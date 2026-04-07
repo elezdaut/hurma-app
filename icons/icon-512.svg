@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="256" fill="#2c7a4b"/>
+  <!-- Palm tree trunk -->
+  <rect x="234" y="295" width="44" height="145" rx="22" fill="#8B6914"/>
+  <!-- Palm leaves -->
+  <ellipse cx="256" cy="210" rx="32" ry="100" fill="#4caf7d" transform="rotate(-40 256 210)"/>
+  <ellipse cx="256" cy="210" rx="32" ry="100" fill="#3d9966" transform="rotate(-15 256 210)"/>
+  <ellipse cx="256" cy="210" rx="32" ry="100" fill="#4caf7d" transform="rotate(10 256 210)"/>
+  <ellipse cx="256" cy="210" rx="32" ry="100" fill="#3d9966" transform="rotate(35 256 210)"/>
+  <ellipse cx="256" cy="210" rx="32" ry="100" fill="#4caf7d" transform="rotate(60 256 210)"/>
+  <!-- Hurma fruits cluster -->
+  <circle cx="256" cy="300" r="18" fill="#c0392b"/>
+  <circle cx="224" cy="288" r="16" fill="#a93226"/>
+  <circle cx="288" cy="288" r="16" fill="#c0392b"/>
+  <circle cx="238" cy="320" r="16" fill="#a93226"/>
+  <circle cx="274" cy="320" r="16" fill="#c0392b"/>
+  <!-- App name -->
+  <text x="256" y="478" font-family="Arial,sans-serif" font-size="48" font-weight="bold" fill="rgba(255,255,255,0.95)" text-anchor="middle">HURMA</text>
+</svg>

@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="sq" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Hurma App</title>
+
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#2c7a4b" id="meta-theme-color">
+    <meta name="description" content="Menaxhim biznesi për shitjen e hurmave — shitje, stok, klientë dhe raporte.">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Hurma">
+    <meta name="msapplication-TileColor" content="#2c7a4b">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+
+    <!-- App Icons -->
+    <link rel="icon" type="image/svg+xml" href="icons/icon-192.svg">
+    <link rel="apple-touch-icon" href="icons/icon-192.svg">
+
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- Export libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+    <!-- Sidebar -->
+    <nav id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <h2>🌴 Hurma App</h2>
+            <button class="sidebar-toggle" onclick="toggleSidebar()"><i class="fas fa-times"></i></button>
+        </div>
+        <ul class="nav-menu">
+            <li class="nav-item active" data-page="dashboard"><i class="fas fa-tachometer-alt"></i> <span data-i18n="dashboard">Dashboard</span></li>
+            <li class="nav-item" data-page="sales"><i class="fas fa-cash-register"></i> <span data-i18n="sales">Shitjet</span><span class="nav-badge hidden" id="badge-sales">0</span></li>
+            <li class="nav-item" data-page="stock"><i class="fas fa-boxes-stacked"></i> <span data-i18n="stock">Stoku</span><span class="nav-badge hidden" id="badge-stock">0</span></li>
+            <li class="nav-item" data-page="clients"><i class="fas fa-users"></i> <span data-i18n="clients">Klientët</span><span class="nav-badge hidden" id="badge-clients">0</span></li>
+            <li class="nav-item" data-page="orders"><i class="fas fa-clipboard-list"></i> <span data-i18n="orders">Porositë</span><span class="nav-badge hidden" id="badge-orders">0</span></li>
+            <li class="nav-item" data-page="faton"><i class="fas fa-handshake"></i> <span data-i18n="faton_account">Llogaria Fatoni</span><span class="nav-badge hidden" id="badge-faton">0</span></li>
+            <li class="nav-item" data-page="reports"><i class="fas fa-chart-bar"></i> <span data-i18n="reports">Raporte</span></li>
+            <li class="nav-item" data-page="balance"><i class="fas fa-balance-scale"></i> <span data-i18n="balance">Bilanci</span></li>
+            <li class="nav-item" data-page="returns"><i class="fas fa-undo"></i> <span data-i18n="returns">Kthimet</span><span class="nav-badge hidden" id="badge-returns">0</span></li>
+            <li class="nav-item" data-page="contacts"><i class="fas fa-address-book"></i> <span data-i18n="contacts">Kontaktet</span></li>
+            <li class="nav-item" data-page="notes"><i class="fas fa-sticky-note"></i> <span data-i18n="notes">Shënime</span></li>
+            <li class="nav-item" data-page="targets"><i class="fas fa-bullseye"></i> <span data-i18n="targets">Qëllime</span></li>
+            <li class="nav-item" data-page="calculator"><i class="fas fa-calculator"></i> <span data-i18n="calculator">Kalkulatori</span></li>
+            <li class="nav-item" data-page="cashDrawer"><i class="fas fa-cash-register"></i> <span data-i18n="cash_drawer">Arka Ditore</span></li>
+            <li class="nav-item" data-page="trends"><i class="fas fa-chart-line"></i> <span data-i18n="trends">Trende</span></li>
+            <li class="nav-item" data-page="activity"><i class="fas fa-history"></i> <span data-i18n="activity_log">Log Aktivitetesh</span></li>
+            <li class="nav-item" data-page="settings"><i class="fas fa-cog"></i> <span data-i18n="settings">Cilësimet</span></li>
+        </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <main id="main-content" class="main-content">
+        <!-- Top Bar -->
+        <header class="topbar">
+            <button class="sidebar-toggle-open" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+            <h1 id="page-title" data-i18n="dashboard">Dashboard</h1>
+            <!-- Global Search -->
+            <div class="global-search" id="global-search">
+                <i class="fas fa-search"></i>
+                <input type="text" id="global-search-input" placeholder="Kërko kudo..." oninput="globalSearch(this.value)" onfocus="showSearchResults()" onblur="setTimeout(()=>hideSearchResults(),200)">
+                <div id="global-search-results" class="global-search-results hidden"></div>
+            </div>
+            <!-- Global Date Filter -->
+            <div class="global-date-filter">
+                <input type="date" id="global-date-from" onchange="applyGlobalDateFilter()" title="Nga data">
+                <input type="date" id="global-date-to" onchange="applyGlobalDateFilter()" title="Deri në datë">
+                <button class="btn btn-sm btn-secondary" onclick="clearGlobalDateFilter()" title="Pastro filtrin"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="topbar-right">
+                <button class="theme-toggle" onclick="showKeyboardShortcutsHelp()" title="Keyboard Shortcuts (?)"><i class="fas fa-keyboard"></i></button>
+                <div class="notification-bell" onclick="toggleNotifications()">
+                    <i class="fas fa-bell"></i>
+                    <span id="notification-badge" class="badge hidden">0</span>
+                </div>
+                <select id="lang-select" onchange="changeLanguage(this.value)">
+                    <option value="sq">Shqip</option>
+                    <option value="en">English</option>
+                </select>
+                <button class="theme-toggle" onclick="toggleTheme()"><i class="fas fa-moon"></i></button>
+            </div>
+            <!-- Sync Status Bar -->
+            <div class="sync-status-bar" id="sync-status-bar">
+                <span class="sync-item" title="Të dhënat"><i class="fas fa-database"></i> <span id="sync-data-status">OK ✓</span></span>
+                <span class="sync-item" title="Backup"><i class="fas fa-cloud"></i> <span id="sync-backup-status">--</span></span>
+                <span class="sync-item" title="Stoku"><i class="fas fa-boxes-stacked"></i> <span id="sync-stock-count">0</span></span>
+                <span class="sync-item" title="Borxhe"><i class="fas fa-exclamation-triangle"></i> <span id="sync-debt-count">0</span></span>
+            </div>
+        </header>
+
+        <!-- Notification Panel -->
+        <div id="notification-panel" class="notification-panel hidden">
+            <h3 data-i18n="notifications">Njoftimet</h3>
+            <div id="notification-list"></div>
+        </div>
+
+        <!-- Pages -->
+        <!-- Dashboard Page -->
+        <section id="page-dashboard" class="page active">
+            <div class="export-buttons">
+                <button class="btn btn-export btn-excel" onclick="exportDashboard('excel')"><i class="fas fa-file-excel"></i> Excel</button>
+                <button class="btn btn-export btn-pdf" onclick="exportDashboard('pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
+                <button class="btn btn-export btn-word" onclick="exportDashboard('word')"><i class="fas fa-file-word"></i> Word</button>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <i class="fas fa-money-bill-wave"></i>
+                    <div>
+                        <h3 data-i18n="today_profit">Fitimi i sotëm</h3>
+                        <p id="today-profit">0 ден</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-shopping-cart"></i>
+                    <div>
+                        <h3 data-i18n="today_sales">Shitjet e sotme</h3>
+                        <p id="today-sales">0</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-user"></i>
+                    <div>
+                        <h3 data-i18n="your_share">Pjesa jote</h3>
+                        <p id="your-share">0 ден</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-user-friends"></i>
+                    <div>
+                        <h3 data-i18n="orhan_share">Pjesa e Orhanit</h3>
+                        <p id="orhan-share">0 ден</p>
+                    </div>
+                </div>
+            </div>
+            <div id="quick-actions" class="quick-actions" style="margin-bottom:20px;display:flex;flex-wrap:wrap;gap:10px;">
+            </div>
+            <div class="faton-btn-row" style="margin-top:10px;">
+                <button class="btn btn-warning" onclick="showClientOfDay()"><i class="fas fa-crown"></i> Klienti i Ditës</button>
+                <button class="btn btn-info" onclick="showComparisonChart()"><i class="fas fa-chart-bar"></i> Grafik Krahasues</button>
+                <button class="btn btn-secondary" onclick="openGlobalTimeline()"><i class="fas fa-stream"></i> Timeline</button>
+                <button class="btn btn-secondary" onclick="generateDailyReport()"><i class="fas fa-file-alt"></i> Raport Ditor</button>
+            </div>
+            <div class="faton-btn-row" style="margin-top:8px;">
+                <button class="btn btn-success" onclick="showTopWeekProducts()"><i class="fas fa-fire"></i> Top 5 Javes</button>
+                <button class="btn btn-primary" onclick="showPartnerProfitChart()"><i class="fas fa-chart-pie"></i> Elez vs Orhan</button>
+                <button class="btn btn-danger" onclick="showSleepingClients()"><i class="fas fa-bed"></i> Kliente te Fjetur</button>
+                <button class="btn btn-info" onclick="showTodayPaymentsSummary()"><i class="fas fa-cash-register"></i> Pagesat Sot</button>
+            </div>
+            <div class="faton-btn-row" style="margin-top:8px;">
+                <button class="btn btn-warning" onclick="openDailyTargetModal()"><i class="fas fa-bullseye"></i> Target Ditor</button>
+                <button class="btn btn-info" onclick="showWeeklyComparison()"><i class="fas fa-exchange-alt"></i> Kjo vs Java Kaluar</button>
+                <button class="btn btn-success" onclick="showQuickPaymentDashboard()"><i class="fas fa-hand-holding-usd"></i> Merr Pagese</button>
+                <button class="btn btn-secondary" onclick="sendDailyReportToOrhan()"><i class="fab fa-whatsapp"></i> Raport per Orhan</button>
+            </div>
+            <div class="faton-btn-row" style="margin-top:8px;">
+                <button class="btn btn-primary" onclick="showPaymentCalendar()"><i class="fas fa-calendar-alt"></i> Kalendar Pagesash</button>
+                <button class="btn btn-warning" onclick="showMostProfitableProduct()"><i class="fas fa-gem"></i> Produkti Top</button>
+                <button class="btn btn-info" onclick="showWeeklyComparisonChart()"><i class="fas fa-chart-line"></i> Grafik Javor</button>
+                <button class="btn btn-danger" onclick="showDebtRemindersModal()"><i class="fas fa-bell"></i> Kujtesa Borxhit</button>
+            </div>
+            <div class="faton-btn-row" style="margin-top:8px;">
+                <button class="btn btn-success" onclick="showProductROI()"><i class="fas fa-percentage"></i> ROI Produktesh</button>
+                <button class="btn btn-primary" onclick="showProfitByHour()"><i class="fas fa-clock"></i> Fitimi per Ore</button>
+                <button class="btn btn-warning" onclick="showWeeklyForecast()"><i class="fas fa-crystal-ball"></i> Parashikim</button>
+                <button class="btn btn-info" onclick="showDebtByCity()"><i class="fas fa-map"></i> Borxhe Qytetesh</button>
+            </div>
+            <div class="faton-btn-row" style="margin-top:8px;">
+                <button class="btn btn-success" onclick="sendGroupWhatsAppReport()"><i class="fab fa-whatsapp"></i> Raport Grup</button>
+                <button class="btn btn-primary" onclick="generateProductCatalog()"><i class="fas fa-book"></i> Katalog PDF</button>
+                <button class="btn btn-secondary" onclick="showFullAuditLog()"><i class="fas fa-clipboard-list"></i> Audit Log</button>
+                <button class="btn btn-warning" onclick="showCommissionReport()"><i class="fas fa-coins"></i> Komisione</button>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <i class="fas fa-box"></i>
+                    <div>
+                        <h3 data-i18n="total_stock">Stoku total</h3>
+                        <p id="total-stock">0</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-hand-holding-usd"></i>
+                    <div>
+                        <h3 data-i18n="faton_cash_debt">Borxhi cash ndaj Fatonit</h3>
+                        <p id="faton-debt">0 ден</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-coins" style="color:var(--warning)"></i>
+                    <div>
+                        <h3 data-i18n="profit_to_collect">Fitim për tu mbledhur</h3>
+                        <p id="faton-profit-to-collect">0 ден</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-chart-line"></i>
+                    <div>
+                        <h3 data-i18n="monthly_profit">Fitimi mujor</h3>
+                        <p id="monthly-profit">0 ден</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-trophy"></i>
+                    <div>
+                        <h3 data-i18n="best_seller">Më e shitura</h3>
+                        <p id="best-seller">-</p>
+                    </div>
+                </div>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <i class="fas fa-money-bill-wave" style="color:var(--success)"></i>
+                    <div>
+                        <h3 data-i18n="real_profit">Fitimi real</h3>
+                        <p id="real-profit">0 ден</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-file-alt" style="color:var(--warning)"></i>
+                    <div>
+                        <h3 data-i18n="paper_profit">Fitimi në letër</h3>
+                        <p id="paper-profit">0 ден</p>
+                    </div>
+                </div>
+            </div>
+            <div id="week-stats" class="stats-grid" style="margin-bottom:20px;"></div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <i class="fas fa-money-bill"></i>
+                    <div>
+                        <h3 data-i18n="total_cash">Totali cash (sot)</h3>
+                        <p id="today-cash">0 ден</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <div>
+                        <h3 data-i18n="invoice_60">Faturë 60 ditë (sot)</h3>
+                        <p id="today-invoice">0 ден</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-clock"></i>
+                    <div>
+                        <h3 data-i18n="open_invoices">Fatura të hapura</h3>
+                        <p id="open-invoices">0</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-exclamation-circle" style="color:var(--danger)"></i>
+                    <div>
+                        <h3 data-i18n="overdue_invoices">Fatura të vonuara</h3>
+                        <p id="overdue-invoices">0</p>
+                    </div>
+                </div>
+            </div>
+            <div id="last-weekly-report" style="margin-bottom:20px;"></div>
+            <div id="quick-sale-presets" style="margin-bottom:20px;"></div>
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <h3 data-i18n="sales_chart">Grafiku i shitjeve (7 ditët e fundit)</h3>
+                    <canvas id="salesChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3 data-i18n="profit_chart">Grafiku i fitimit (7 ditët e fundit)</h3>
+                    <canvas id="profitChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-container">
+                <h3 data-i18n="product_chart">Shitjet sipas produktit</h3>
+                <canvas id="productChart"></canvas>
+            </div>
+        </section>
+
+        <!-- Sales Page -->
+        <section id="page-sales" class="page">
+            <div class="export-buttons">
+                <button class="btn btn-export btn-excel" onclick="exportSales('excel')"><i class="fas fa-file-excel"></i> Excel</button>
+                <button class="btn btn-export btn-pdf" onclick="exportSales('pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
+                <button class="btn btn-export btn-word" onclick="exportSales('word')"><i class="fas fa-file-word"></i> Word</button>
+            </div>
+            <div id="sales-month-tabs" style="margin-bottom:15px;display:flex;flex-wrap:wrap;gap:8px;"></div>
+            <div class="page-actions">
+                <button class="btn btn-primary" onclick="openSaleModal()"><i class="fas fa-plus"></i> <span data-i18n="new_sale">Shitje e re</span></button>
+                <div class="search-box">
+                    <input type="text" id="sales-search" placeholder="Kërko shitje..." data-i18n-placeholder="search_sales" oninput="filterSales()">
+                    <i class="fas fa-search"></i>
+                </div>
+                <div class="filter-group">
+                    <input type="date" id="sales-date-from" onchange="filterSales()">
+                    <input type="date" id="sales-date-to" onchange="filterSales()">
+                    <select id="sales-product-filter" onchange="filterSales()">
+                        <option value="" data-i18n="all_products">Të gjitha</option>
+                    </select>
+                    <select id="sales-location-filter" onchange="filterSales()">
+                        <option value="" data-i18n="all_locations">Të gjitha lokacionet</option>
+                    </select>
+                    <select id="sales-payment-filter" onchange="filterSales()">
+                        <option value="" data-i18n="all_payment_types">Të gjitha llojet</option>
+                        <option value="cash" data-i18n="cash">Cash</option>
+                        <option value="invoice_60" data-i18n="invoice_60">Faturë 60 ditë</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-container">
+                <table id="sales-table">
+                    <thead>
+                        <tr>
+                            <th data-i18n="date">Data</th>
+                            <th data-i18n="product">Produkti</th>
+                            <th data-i18n="quantity">Sasia</th>
+                            <th data-i18n="buy_price">Çmimi blerjes</th>
+                            <th data-i18n="sell_price">Çmimi shitjes</th>
+                            <th data-i18n="total">Totali</th>
+                            <th data-i18n="profit">Fitimi</th>
+                            <th data-i18n="client">Klienti</th>
+                            <th data-i18n="payment_type">Lloji pagesës</th>
+                            <th data-i18n="location">Lokacioni</th>
+                            <th data-i18n="actions">Veprime</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sales-body"></tbody>
+                </table>
+            </div>
+            <div class="sales-summary">
+                <div><strong data-i18n="total_sales_amount">Totali shitjeve:</strong> <span id="sales-total">0 ден</span></div>
+                <div><strong data-i18n="total_profit_amount">Fitimi total:</strong> <span id="sales-profit-total">0 ден</span></div>
+                <div><strong data-i18n="your_share">Pjesa jote:</strong> <span id="sales-your-share">0 ден</span></div>
+                <div><strong data-i18n="orhan_share">Pjesa e Orhanit:</strong> <span id="sales-orhan-share">0 ден</span></div>
+                <div><strong data-i18n="total_cash">Cash:</strong> <span id="sales-cash-total">0 ден</span></div>
+                <div><strong data-i18n="total_invoices">Fatura:</strong> <span id="sales-invoice-total">0 ден</span></div>
+            </div>
+        </section>
+
+        <!-- Stock Page -->
+        <section id="page-stock" class="page">
+            <div class="export-buttons">
+                <button class="btn btn-export btn-excel" onclick="exportStock('excel')"><i class="fas fa-file-excel"></i> Excel</button>
+                <button class="btn btn-export btn-pdf" onclick="exportStock('pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
+                <button class="btn btn-export btn-word" onclick="exportStock('word')"><i class="fas fa-file-word"></i> Word</button>
+            </div>
+            <div class="faton-button-rows" style="margin-bottom:10px;">
+                <div class="faton-btn-row">
+                    <button class="btn btn-info" onclick="openStockCountModal()"><i class="fas fa-clipboard-check"></i> Inventar Fizik</button>
+                    <button class="btn btn-warning" onclick="checkAutoOrders()"><i class="fas fa-magic"></i> Porosi Automatike</button>
+                    <button class="btn btn-success" onclick="openBarcodeScanner()"><i class="fas fa-barcode"></i> Skaner</button>
+                </div>
+            </div>
+            <div class="page-actions">
+                <button class="btn btn-primary" onclick="openStockModal()"><i class="fas fa-plus"></i> <span data-i18n="add_stock">Shto stok</span></button>
+            </div>
+            <div class="stock-cards" id="stock-cards"></div>
+            <h3 data-i18n="expiry_tracking" style="margin-top:20px;">Gjurmimi i skadencave</h3>
+            <div class="table-container">
+                <table id="expiry-table">
+                    <thead>
+                        <tr>
+                            <th data-i18n="product">Produkti</th>
+                            <th data-i18n="quantity">Sasia</th>
+                            <th data-i18n="expiry_date">Data skadencës</th>
+                            <th data-i18n="days_left">Ditë të mbetura</th>
+                            <th data-i18n="status">Statusi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="expiry-body"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Clients Page -->
+        <section id="page-clients" class="page">
+            <div class="export-buttons">
+                <button class="btn btn-export btn-excel" onclick="exportClients('excel')"><i class="fas fa-file-excel"></i> Excel</button>
+                <button class="btn btn-export btn-pdf" onclick="exportClients('pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
+                <button class="btn btn-export btn-word" onclick="exportClients('word')"><i class="fas fa-file-word"></i> Word</button>
+            </div>
+            <div class="page-actions">
+                <button class="btn btn-primary" onclick="openClientModal()"><i class="fas fa-plus"></i> <span data-i18n="add_client">Shto klient</span></button>
+                <div class="search-box">
+                    <input type="text" id="clients-search" placeholder="Kërko klient..." data-i18n-placeholder="search_client" oninput="filterClients()">
+                    <i class="fas fa-search"></i>
+                </div>
+                <select id="clients-category-filter" onchange="refreshClients()" style="padding:8px; border-radius:5px; border:1px solid #ddd;">
+                    <option value="">All Categories</option>
+                    <option value="Regular">Regular</option>
+                    <option value="Shumice">Shumice</option>
+                    <option value="Njeheresh">Njeheresh</option>
+                </select>
+            </div>
+            <!-- Client Payment Management Buttons -->
+            <div class="faton-button-rows" style="margin-bottom:15px;">
+                <div class="faton-btn-row">
+                    <button class="btn btn-primary" onclick="openClientPaymentDashboard()"><i class="fas fa-tachometer-alt"></i> Dashboard Pagesave</button>
+                    <button class="btn btn-success" onclick="showClientRanking()"><i class="fas fa-trophy"></i> Renditja</button>
+                    <button class="btn btn-info" onclick="showClientComparison()"><i class="fas fa-chart-bar"></i> Krahasimi</button>
+                    <button class="btn btn-warning" onclick="showWeeklyPaymentReport()"><i class="fas fa-calendar-week"></i> Raporti Javor</button>
+                </div>
+                <div class="faton-btn-row">
+                    <button class="btn btn-info" onclick="showPaymentsByPeriod()"><i class="fas fa-calendar-alt"></i> Sipas Periudhës</button>
+                    <button class="btn btn-success" onclick="exportClientPaymentsCSV()"><i class="fas fa-file-csv"></i> Eksporto CSV</button>
+                    <button class="btn btn-secondary" onclick="checkClientDebtReminders()"><i class="fas fa-bell"></i> Kujtesa Borxheve</button>
+                </div>
+                <div class="faton-btn-row">
+                    <button class="btn btn-danger" onclick="showSleepingClients()"><i class="fas fa-bed"></i> Kliente te Fjetur</button>
+                    <button class="btn btn-warning" onclick="showDebtRemindersModal()"><i class="fas fa-bell"></i> Borxhe +30 Dite</button>
+                    <button class="btn btn-primary" onclick="showPaymentCalendar()"><i class="fas fa-calendar-alt"></i> Kalendar Pagesash</button>
+                    <button class="btn btn-info" onclick="showClientDebtChart()"><i class="fas fa-chart-area"></i> Grafik Borxhesh</button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table id="clients-table">
+                    <thead>
+                        <tr>
+                            <th data-i18n="name">Emri</th>
+                            <th data-i18n="phone">Telefoni</th>
+                            <th data-i18n="total_purchases">Blerje totale</th>
+                            <th data-i18n="total_cash">Cash</th>
+                            <th data-i18n="open_invoices">Fatura hapura</th>
+                            <th data-i18n="overdue_invoices">Fatura vonuara</th>
+                            <th data-i18n="debt">Borxhi</th>
+                            <th data-i18n="actions">Veprime</th>
+                        </tr>
+                    </thead>
+                    <tbody id="clients-body"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Orders Page -->
+        <section id="page-orders" class="page">
+            <div class="export-buttons">
+                <button class="btn btn-export btn-excel" onclick="exportOrders('excel')"><i class="fas fa-file-excel"></i> Excel</button>
+                <button class="btn btn-export btn-pdf" onclick="exportOrders('pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
+                <button class="btn btn-export btn-word" onclick="exportOrders('word')"><i class="fas fa-file-word"></i> Word</button>
+            </div>
+            <div class="page-actions">
+                <button class="btn btn-primary" onclick="openOrderModal()"><i class="fas fa-plus"></i> <span data-i18n="new_order">Porosi e re</span></button>
+            </div>
+            <div class="table-container">
+                <table id="orders-table">
+                    <thead>
+                        <tr>
+                            <th data-i18n="date">Data</th>
+                            <th data-i18n="client">Klienti</th>
+                            <th data-i18n="product">Produkti</th>
+                            <th data-i18n="quantity">Sasia</th>
+                            <th data-i18n="status">Statusi</th>
+                            <th data-i18n="actions">Veprime</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orders-body"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Faton Account Page -->
+        <section id="page-faton" class="page">
+            <div class="export-buttons">
+                <button class="btn btn-export btn-excel" onclick="exportFaton('excel')"><i class="fas fa-file-excel"></i> Excel</button>
+                <button class="btn btn-export btn-pdf" onclick="exportFaton('pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
+                <button class="btn btn-export btn-word" onclick="exportFaton('word')"><i class="fas fa-file-word"></i> Word</button>
+            </div>
+            <!-- TOTAL NET BALANCE - Feature 1 -->
+            <div id="faton-net-balance" class="faton-net-balance">
+                <i class="fas fa-balance-scale"></i>
+                <div>
+                    <h3>Borxhi TOTAL ndaj Fatonit</h3>
+                    <p id="faton-net-total">0 den</p>
+                    <small id="faton-net-breakdown"></small>
+                </div>
+            </div>
+            <div style="display:flex;gap:20px;align-items:center;margin-bottom:15px;">
+                <div style="flex:1;" id="faton-progress-bar"></div>
+                <div id="faton-circle-progress"></div>
+            </div>
+
+            <!-- Cash Debt Section -->
+            <h3 style="margin-bottom:15px;" data-i18n="cash_sales_debt">Borxhi nga shitjet cash</h3>
+            <div class="stats-grid">
+                <div class="stat-card" id="faton-card-purchased">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <div>
+                        <h3 data-i18n="total_purchased">Totali i blerjeve</h3>
+                        <p id="faton-total-purchased">0 den</p>
+                    </div>
+                </div>
+                <div class="stat-card" id="faton-card-paid">
+                    <i class="fas fa-money-check-alt"></i>
+                    <div>
+                        <h3 data-i18n="total_paid">Totali i paguar</h3>
+                        <p id="faton-total-paid">0 den</p>
+                    </div>
+                </div>
+                <div class="stat-card" id="faton-card-debt">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>
+                        <h3 data-i18n="faton_cash_debt">Borxhi cash ndaj Fatonit</h3>
+                        <p id="faton-remaining">0 den</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profit from Invoice Sales Section -->
+            <h3 style="margin-top:25px;margin-bottom:15px;" data-i18n="faton_profit_summary">Permbledhja e fitimit nga Fatoni</h3>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <i class="fas fa-hand-holding-usd"></i>
+                    <div>
+                        <h3 data-i18n="invoice_sales_profit">Fitimi nga shitjet me fature</h3>
+                        <p id="faton-invoice-profit-total">0 den</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-check-circle" style="color:var(--success)"></i>
+                    <div>
+                        <h3 data-i18n="faton_profit_collected">Fitimi i mbledhur nga Fatoni</h3>
+                        <p id="faton-profit-collected">0 den</p>
+                    </div>
+                </div>
+                <div class="stat-card" id="faton-card-profit-remaining">
+                    <i class="fas fa-hourglass-half" style="color:var(--warning)"></i>
+                    <div>
+                        <h3 data-i18n="faton_profit_remaining">Fitimi i mbetur per tu mbledhur</h3>
+                        <p id="faton-profit-remaining">0 den</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mini Dashboard -->
+            <div id="faton-mini-dashboard" style="margin-top:15px;"></div>
+
+            <!-- Action buttons - Row 1: Main actions -->
+            <!-- Action buttons - Row 1: Main actions -->
+            <div class="page-actions" style="margin-top:15px;">
+                <button class="btn btn-primary" onclick="openFatonPaymentModal()"><i class="fas fa-plus"></i> Shto pagese</button>
+                <button class="btn btn-success" onclick="openProfitCollectionModal()"><i class="fas fa-hand-holding-usd"></i> Mblidh fitimin</button>
+            </div>
+            <!-- Action buttons - Row 2: Payment types -->
+            <div class="page-actions" style="margin-top:8px;">
+                <button class="btn btn-secondary" onclick="openSplitPaymentModal()"><i class="fas fa-divide"></i> Pagese split</button>
+                <button class="btn btn-secondary" onclick="openDiscountPaymentModal()"><i class="fas fa-percentage"></i> Me zbritje</button>
+                <button class="btn btn-secondary" onclick="openReferencePaymentModal()"><i class="fas fa-link"></i> Me reference</button>
+                <button class="btn btn-secondary" onclick="quickPayLastAmount()"><i class="fas fa-bolt"></i> 1-klik</button>
+                <button class="btn btn-secondary" onclick="openScheduledPaymentModal()"><i class="fas fa-clock"></i> Programo</button>
+            </div>
+            <!-- Action buttons - Row 3: Reports & tools -->
+            <div class="page-actions" style="margin-top:8px;">
+                <button class="btn btn-secondary" onclick="showReceiptHistory()"><i class="fas fa-receipt"></i> Faturat</button>
+                <button class="btn btn-secondary" onclick="openFatonMonthlyReport()"><i class="fas fa-chart-pie"></i> Raport mujor</button>
+                <button class="btn btn-secondary" onclick="showFatonComparison()"><i class="fas fa-balance-scale-left"></i> Krahasim</button>
+                <button class="btn btn-secondary" onclick="showBalancePerProduct()"><i class="fas fa-box"></i> Sipas produktit</button>
+                <button class="btn btn-secondary" onclick="showPaymentMethodChart()"><i class="fas fa-chart-pie"></i> Metoda</button>
+            </div>
+            <!-- Action buttons - Row 4: Planning & analytics -->
+            <div class="page-actions" style="margin-top:8px;">
+                <button class="btn btn-secondary" onclick="openFatonInstallmentModal()"><i class="fas fa-calendar-alt"></i> Keste</button>
+                <button class="btn btn-secondary" onclick="openPaymentCalendar()"><i class="fas fa-calendar"></i> Kalendar</button>
+                <button class="btn btn-secondary" onclick="showProfitPerPersonChart()"><i class="fas fa-chart-line"></i> Fitimi E vs O</button>
+                <button class="btn btn-secondary" onclick="showPaymentStats()"><i class="fas fa-chart-bar"></i> Statistika</button>
+                <button class="btn btn-secondary" onclick="openFatonDebtLimitModal()"><i class="fas fa-bell"></i> Limit</button>
+            </div>
+            <!-- Action buttons - Row 5: Documents & export -->
+            <div class="page-actions" style="margin-top:8px;">
+                <button class="btn btn-secondary" onclick="generatePaymentContract()"><i class="fas fa-file-contract"></i> Kontrate</button>
+                <button class="btn btn-secondary" onclick="exportFatonCSV()"><i class="fas fa-file-csv"></i> CSV</button>
+                <button class="btn btn-secondary" onclick="showPaymentAuditTrail()"><i class="fas fa-history"></i> Audit</button>
+                <button class="btn btn-secondary" onclick="openPaymentTemplateModal()"><i class="fas fa-copy"></i> Shabllone</button>
+                <button class="btn btn-secondary" onclick="openCurrencyModal()"><i class="fas fa-coins"></i> Valuta</button>
+            </div>
+
+            <!-- Installment plan display -->
+            <div id="faton-installment-plan" style="margin-top:15px;"></div>
+
+            <!-- Unified Timeline - Feature 6 -->
+            <h3 style="margin-top:25px;margin-bottom:10px;"><i class="fas fa-stream"></i> Historiku kronologjik</h3>
+            <div class="filter-group" style="margin-bottom:15px;">
+                <input type="date" id="faton-timeline-from" onchange="refreshFaton()">
+                <input type="date" id="faton-timeline-to" onchange="refreshFaton()">
+                <select id="faton-timeline-type" onchange="refreshFaton()">
+                    <option value="">Te gjitha</option>
+                    <option value="purchase">Blerje</option>
+                    <option value="payment">Pagesa</option>
+                    <option value="profit_collection">Mbledhje fitimi</option>
+                </select>
+                <button class="btn btn-secondary" onclick="exportFatonReport()"><i class="fas fa-file-export"></i> Eksport per Fatonin</button>
+            </div>
+            <div class="table-container">
+                <table id="faton-timeline-table">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Lloji</th>
+                            <th>Pershkrim</th>
+                            <th>Shuma</th>
+                            <th>Bilanci</th>
+                            <th>Veprime</th>
+                        </tr>
+                    </thead>
+                    <tbody id="faton-timeline-body"></tbody>
+                </table>
+            </div>
+
+            <!-- Purchases vs Payments Chart - Feature 11 -->
+            <h3 style="margin-top:25px;">Blerjet vs Pagesat (mujore)</h3>
+            <div class="chart-container">
+                <canvas id="faton-purchases-vs-payments-chart"></canvas>
+            </div>
+
+            <h3 style="margin-top:20px;" data-i18n="faton_debt_chart">Grafiku i borxhit ndaj Fatonit</h3>
+            <div class="chart-container">
+                <canvas id="faton-debt-chart"></canvas>
+            </div>
+            <h3 style="margin-top:20px;" data-i18n="faton_debt_chart">Grafiku i borxhit ndaj Fatonit</h3>
+            <div class="chart-container">
+                <canvas id="faton-debt-chart"></canvas>
+            </div>
+        </section>
+
+        <!-- Reports Page -->
+        <section id="page-reports" class="page">
+            <div class="export-buttons">
+                <button class="btn btn-export btn-excel" onclick="exportReports('excel')"><i class="fas fa-file-excel"></i> Excel</button>
+                <button class="btn btn-export btn-pdf" onclick="exportReports('pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
+                <button class="btn btn-export btn-word" onclick="exportReports('word')"><i class="fas fa-file-word"></i> Word</button>
+            </div>
+            <div class="faton-button-rows" style="margin-bottom:15px;">
+                <div class="faton-btn-row">
+                    <button class="btn btn-primary" onclick="openReportsHub()"><i class="fas fa-th-large"></i> Qendra e Raporteve</button>
+                    <button class="btn btn-success" onclick="generateDailyReport()"><i class="fas fa-calendar-day"></i> Raport Ditor</button>
+                    <button class="btn btn-danger" onclick="generateMonthlyPDF()"><i class="fas fa-file-pdf"></i> Raport Mujor PDF</button>
+                </div>
+                <div class="faton-btn-row">
+                    <button class="btn" style="background:#25D366;color:white;" onclick="generateWeeklyWhatsAppReport()"><i class="fab fa-whatsapp"></i> Raport WhatsApp</button>
+                    <button class="btn btn-info" onclick="showYearlyComparison()"><i class="fas fa-chart-line"></i> Krahasim Vjetor</button>
+                    <button class="btn btn-warning" onclick="showSalesPrediction()"><i class="fas fa-crystal-ball"></i> Parashikim</button>
+                </div>
+                <div class="faton-btn-row">
+                    <button class="btn btn-success" onclick="showProfitableProducts()"><i class="fas fa-trophy"></i> Produkte Fitimprurëse</button>
+                    <button class="btn btn-info" onclick="showBestSalesHour()"><i class="fas fa-clock"></i> Ora e Shitjes</button>
+                    <button class="btn btn-secondary" onclick="showSalesSeason()"><i class="fas fa-calendar-alt"></i> Sezoni</button>
+                </div>
+                <div class="faton-btn-row">
+                    <button class="btn btn-danger" onclick="showClientMap()"><i class="fas fa-map-marker-alt"></i> Harta</button>
+                    <button class="btn btn-primary" onclick="showProfitByClient()"><i class="fas fa-users"></i> Fitimi/Klient</button>
+                    <button class="btn btn-secondary" onclick="masterExport()"><i class="fas fa-download"></i> Eksport Total</button>
+                </div>
+            </div>
+            <div class="filter-group">
+                <select id="report-period" onchange="generateReport()">
+                    <option value="daily" data-i18n="daily">Ditore</option>
+                    <option value="weekly" data-i18n="weekly">Javore</option>
+                    <option value="monthly" data-i18n="monthly" selected>Mujore</option>
+                </select>
+                <input type="date" id="report-date-from" onchange="generateReport()">
+                <input type="date" id="report-date-to" onchange="generateReport()">
+                <button class="btn btn-secondary" onclick="exportCSV()"><i class="fas fa-file-csv"></i> CSV</button>
+                <button class="btn btn-secondary" onclick="exportPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
+                <button class="btn btn-secondary" onclick="printReport()"><i class="fas fa-print"></i> <span data-i18n="print">Printo</span></button>
+                <button class="btn btn-secondary" onclick="generateOrhanReport()"><i class="fas fa-user-friends"></i> <span data-i18n="orhan_report">Raport Orhani</span></button>
+            </div>
+            <div class="stats-grid" id="report-stats"></div>
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <h3 data-i18n="comparison_chart">Krahasimi mujor</h3>
+                    <canvas id="comparisonChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3 data-i18n="location_chart">Shitjet sipas lokacionit</h3>
+                    <canvas id="locationChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Returns Page -->
+        <section id="page-returns" class="page">
+            <div class="export-buttons">
+                <button class="btn btn-export btn-excel" onclick="exportReturns('excel')"><i class="fas fa-file-excel"></i> Excel</button>
+                <button class="btn btn-export btn-pdf" onclick="exportReturns('pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
+                <button class="btn btn-export btn-word" onclick="exportReturns('word')"><i class="fas fa-file-word"></i> Word</button>
+            </div>
+            <div class="page-actions">
+                <button class="btn btn-primary" onclick="openReturnModal()"><i class="fas fa-plus"></i> <span data-i18n="new_return">Kthim i ri</span></button>
+            </div>
+            <div class="table-container">
+                <table id="returns-table">
+                    <thead>
+                        <tr>
+                            <th data-i18n="date">Data</th>
+                            <th data-i18n="client">Klienti</th>
+                            <th data-i18n="product">Produkti</th>
+                            <th data-i18n="quantity">Sasia</th>
+                            <th data-i18n="reason">Arsyeja</th>
+                            <th data-i18n="actions">Veprime</th>
+                        </tr>
+                    </thead>
+                    <tbody id="returns-body"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Contacts Page -->
+        <section id="page-contacts" class="page">
+            <div class="export-buttons">
+                <button class="btn btn-export btn-excel" onclick="exportContacts('excel')"><i class="fas fa-file-excel"></i> Excel</button>
+                <button class="btn btn-export btn-pdf" onclick="exportContacts('pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
+                <button class="btn btn-export btn-word" onclick="exportContacts('word')"><i class="fas fa-file-word"></i> Word</button>
+            </div>
+            <div class="page-actions">
+                <button class="btn btn-primary" onclick="openContactModal()"><i class="fas fa-plus"></i> <span data-i18n="add_contact">Shto kontakt</span></button>
+            </div>
+            <div class="contacts-grid" id="contacts-grid"></div>
+        </section>
+
+        <!-- Notes Page -->
+        <section id="page-notes" class="page">
+            <div class="export-buttons">
+                <button class="btn btn-export btn-excel" onclick="exportNotes('excel')"><i class="fas fa-file-excel"></i> Excel</button>
+                <button class="btn btn-export btn-pdf" onclick="exportNotes('pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
+                <button class="btn btn-export btn-word" onclick="exportNotes('word')"><i class="fas fa-file-word"></i> Word</button>
+            </div>
+            <div class="page-actions">
+                <button class="btn btn-primary" onclick="openNoteModal()"><i class="fas fa-plus"></i> <span data-i18n="add_note">Shto shënim</span></button>
+            </div>
+            <div class="notes-grid" id="notes-grid"></div>
+        </section>
+
+        <!-- Targets Page -->
+        <section id="page-targets" class="page">
+            <div class="export-buttons">
+                <button class="btn btn-export btn-excel" onclick="exportTargets('excel')"><i class="fas fa-file-excel"></i> Excel</button>
+                <button class="btn btn-export btn-pdf" onclick="exportTargets('pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
+                <button class="btn btn-export btn-word" onclick="exportTargets('word')"><i class="fas fa-file-word"></i> Word</button>
+            </div>
+            <div class="page-actions">
+                <button class="btn btn-primary" onclick="openTargetModal()"><i class="fas fa-plus"></i> <span data-i18n="add_target">Shto qëllim</span></button>
+            </div>
+            <div class="targets-grid" id="targets-grid"></div>
+        </section>
+
+        <!-- Calculator Page -->
+        <section id="page-calculator" class="page">
+            <div class="calculator-container">
+                <h3 data-i18n="quick_calculator">Kalkulatori i shpejtë</h3>
+                <div class="form-group">
+                    <label data-i18n="select_product">Zgjidh produktin:</label>
+                    <select id="calc-product" onchange="calculateQuick()">
+                        <option value="">--</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label data-i18n="quantity">Sasia:</label>
+                    <input type="number" id="calc-quantity" min="1" value="1" oninput="calculateQuick()">
+                </div>
+                <div class="calc-results">
+                    <div class="calc-result"><span data-i18n="total_buy">Totali blerjes:</span> <strong id="calc-buy-total">0 ден</strong></div>
+                    <div class="calc-result"><span data-i18n="total_sell">Totali shitjes:</span> <strong id="calc-sell-total">0 ден</strong></div>
+                    <div class="calc-result"><span data-i18n="total_profit">Fitimi total:</span> <strong id="calc-profit">0 ден</strong></div>
+                    <div class="calc-result"><span data-i18n="your_share">Pjesa jote:</span> <strong id="calc-your-share">0 ден</strong></div>
+                    <div class="calc-result"><span data-i18n="orhan_share">Pjesa e Orhanit:</span> <strong id="calc-orhan-share">0 ден</strong></div>
+                </div>
+            </div>
+            <div class="calculator-container" style="margin-top:20px;">
+                <h3 data-i18n="markup_calculator">Krahasimi i çmimeve</h3>
+                <div class="form-group">
+                    <label data-i18n="select_product">Zgjidh produktin:</label>
+                    <select id="markup-product" onchange="calculateMarkup()">
+                        <option value="">--</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label data-i18n="new_sell_price">Çmimi i ri i shitjes:</label>
+                    <input type="number" id="markup-sell-price" min="1" oninput="calculateMarkup()">
+                </div>
+                <div class="form-group">
+                    <label data-i18n="quantity">Sasia:</label>
+                    <input type="number" id="markup-quantity" min="1" value="1" oninput="calculateMarkup()">
+                </div>
+                <div id="markup-result" class="calc-results"></div>
+            </div>
+        </section>
+
+        <!-- Settings Page -->
+        <section id="page-settings" class="page">
+            <div class="settings-container">
+                <div class="setting-group">
+                    <h3 data-i18n="appearance">Pamja</h3>
+                    <div class="setting-row">
+                        <label data-i18n="dark_mode">Dark Mode</label>
+                        <label class="switch">
+                            <input type="checkbox" id="dark-mode-toggle" onchange="toggleTheme()">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            <div class="faton-button-rows" style="margin:15px 0;">
+                <div class="faton-btn-row">
+                    <button class="btn btn-primary" onclick="autoBackupJSON()"><i class="fas fa-download"></i> Backup JSON</button>
+                    <button class="btn btn-warning" onclick="restoreFromBackup()"><i class="fas fa-upload"></i> Rikthe Backup</button>
+                    <button class="btn btn-info" onclick="openDashboardSettings()"><i class="fas fa-th-large"></i> Personalizo Dashboard</button>
+                    <button class="btn btn-success" onclick="openPWASettings()" title="Instalo si app, aktivizo njoftime"><i class="fas fa-mobile-alt"></i> PWA &amp; Njoftime</button>
+                </div>
+                <div class="faton-btn-row">
+                    <button class="btn btn-secondary" onclick="undoLastAction()"><i class="fas fa-undo"></i> Kthe (Undo)</button>
+                    <button class="btn btn-secondary" onclick="redoLastAction()"><i class="fas fa-redo"></i> Ribëj (Redo)</button>
+                    <button class="btn btn-success" onclick="openSuppliersModal()"><i class="fas fa-truck"></i> Furnitorët</button>
+                    <button class="btn btn-warning" onclick="openPromotionsModal()"><i class="fas fa-tag"></i> Promocione</button>
+                </div>
+                <div class="faton-btn-row">
+                    <button class="btn btn-danger" onclick="openChangePinModal()"><i class="fas fa-lock"></i> Ndrysho PIN</button>
+                    <button class="btn btn-info" onclick="openCommissionSettings()"><i class="fas fa-coins"></i> Komisione</button>
+                    <button class="btn btn-success" onclick="openVolumeDiscountSettings()"><i class="fas fa-layer-group"></i> Zbritje Sasie</button>
+                    <button class="btn btn-warning" onclick="showWarrantyTracker()"><i class="fas fa-shield-alt"></i> Garanci</button>
+                </div>
+                <!-- Data Storage & Backup -->
+                <h4 style="margin-top:15px;margin-bottom:8px;"><i class="fas fa-database"></i> Ruajtja e te Dhenave</h4>
+                <div class="faton-btn-row">
+                    <button class="btn btn-success" onclick="oneClickBackup()"><i class="fas fa-download"></i> Backup 1-Klik</button>
+                    <button class="btn btn-primary" onclick="downloadJSONBackup()"><i class="fas fa-file-code"></i> Shkarko JSON</button>
+                    <button class="btn btn-info" onclick="openImportModal()"><i class="fas fa-upload"></i> Importo JSON</button>
+                    <button class="btn btn-warning" onclick="openMergeModal()"><i class="fas fa-code-merge"></i> Bashko Backup</button>
+                </div>
+                <div class="faton-btn-row">
+                    <button class="btn btn-primary" onclick="showVersionHistory()"><i class="fas fa-history"></i> Versionet (30)</button>
+                    <button class="btn btn-success" onclick="showStorageDashboard()"><i class="fas fa-hdd"></i> Hapesira</button>
+                    <button class="btn btn-info" onclick="showStorageAnalytics()"><i class="fas fa-chart-pie"></i> Analitika</button>
+                    <button class="btn btn-secondary" onclick="showExportOptions()"><i class="fas fa-file-export"></i> Eksporto Tab</button>
+                </div>
+                <div class="faton-btn-row">
+                    <button class="btn btn-danger" onclick="openEncryptBackupModal()"><i class="fas fa-lock"></i> Backup Enkriptuar</button>
+                    <button class="btn btn-warning" onclick="openDecryptRestoreModal()"><i class="fas fa-unlock"></i> Rikthe Enkriptuar</button>
+                    <button class="btn btn-info" onclick="showSyncModal()"><i class="fas fa-sync"></i> Sinkronizo</button>
+                    <button class="btn btn-primary" onclick="sendBackupToEmail()"><i class="fas fa-envelope"></i> Backup Email</button>
+                </div>
+                <div class="faton-btn-row">
+                    <button class="btn btn-warning" onclick="validateData()"><i class="fas fa-check-circle"></i> Valido Te Dhenat</button>
+                    <button class="btn btn-danger" onclick="findDuplicates()"><i class="fas fa-clone"></i> Gjej Duplikate</button>
+                    <button class="btn btn-secondary" onclick="archiveOldData()"><i class="fas fa-archive"></i> Arkivo te Vjetrat</button>
+                    <button class="btn btn-info" onclick="recoverFromIndexedDB()"><i class="fas fa-life-ring"></i> Rikthe IndexedDB</button>
+                </div>
+                <!-- Data Protection Suite -->
+                <h4 style="margin-top:15px;margin-bottom:8px;"><i class="fas fa-shield-alt"></i> Mbrojtja e te Dhenave</h4>
+                <div class="faton-btn-row">
+                    <button class="btn btn-primary" onclick="showDataProtectionDashboard()"><i class="fas fa-shield-alt"></i> Paneli Mbrojtjes</button>
+                    <button class="btn btn-danger" onclick="showTrashBin()"><i class="fas fa-trash-restore"></i> Koshi i Plehrave</button>
+                    <button class="btn btn-info" onclick="showHourlySnapshots()"><i class="fas fa-clock"></i> Snapshots</button>
+                    <button class="btn btn-warning" onclick="showChangeTimeline()"><i class="fas fa-history"></i> Timeline</button>
+                </div>
+                <div class="faton-btn-row">
+                    <button class="btn btn-success" onclick="openSelectiveRestoreModal()"><i class="fas fa-tasks"></i> Rikthim Selektiv</button>
+                    <button class="btn btn-primary" onclick="showCloudSyncOptions()"><i class="fas fa-cloud-upload-alt"></i> Cloud Sync</button>
+                    <button class="btn btn-info" onclick="downloadVerifiedBackup()"><i class="fas fa-fingerprint"></i> Backup+Hash</button>
+                    <button class="btn btn-warning" onclick="verifyBackupFile()"><i class="fas fa-search"></i> Verifiko Backup</button>
+                </div>
+                <div class="faton-btn-row">
+                    <button class="btn btn-secondary" onclick="showRestoreLog()"><i class="fas fa-clipboard-list"></i> Ditari Restore</button>
+                    <button class="btn btn-success" onclick="restorePreRestoreBackup()"><i class="fas fa-undo"></i> Rikthe Para-Restore</button>
+                </div>
+            </div>
+                <div class="setting-group">
+                    <h3 data-i18n="language">Gjuha</h3>
+                    <div class="setting-row">
+                        <select id="settings-lang" onchange="changeLanguage(this.value)">
+                            <option value="sq">Shqip</option>
+                            <option value="en">English</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="setting-group">
+                    <h3 data-i18n="expenses">Shpenzimet shtesë</h3>
+                    <div class="page-actions">
+                        <button class="btn btn-primary" onclick="openExpenseModal()"><i class="fas fa-plus"></i> <span data-i18n="add_expense">Shto shpenzim</span></button>
+                    </div>
+                    <div class="table-container">
+                        <table id="expenses-table">
+                            <thead>
+                                <tr>
+                                    <th data-i18n="date">Data</th>
+                                    <th data-i18n="description">Përshkrimi</th>
+                                    <th data-i18n="amount">Shuma</th>
+                                    <th data-i18n="actions">Veprime</th>
+                                </tr>
+                            </thead>
+                            <tbody id="expenses-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="setting-group">
+                    <h3 data-i18n="backup">Backup</h3>
+                    <div class="setting-row">
+                        <button class="btn btn-secondary" onclick="exportBackup()"><i class="fas fa-download"></i> <span data-i18n="export_backup">Eksporto backup</span></button>
+                        <button class="btn btn-secondary" onclick="document.getElementById('import-backup').click()"><i class="fas fa-upload"></i> <span data-i18n="import_backup">Importo backup</span></button>
+                        <input type="file" id="import-backup" accept=".json" style="display:none" onchange="importBackup(event)">
+                    </div>
+                </div>
+                <div class="setting-group">
+                    <h3 data-i18n="locations">Lokacionet</h3>
+                    <div class="page-actions">
+                        <button class="btn btn-primary" onclick="openLocationModal()"><i class="fas fa-plus"></i> <span data-i18n="add_location">Shto lokacion</span></button>
+                    </div>
+                    <div id="locations-list"></div>
+                </div>
+                <div class="setting-group">
+                    <h3>Product Management</h3>
+                    <div id="products-list"></div>
+                </div>
+                <div class="setting-group" id="settings-additional">
+                    <!-- Additional settings buttons will be added by refreshSettingsUI() -->
+                </div>
+            </div>
+        </section>
+        <!-- Balance Page -->
+        <section id="page-balance" class="page">
+            <div class="export-buttons">
+                <button class="btn btn-export btn-excel" onclick="exportBalance('excel')"><i class="fas fa-file-excel"></i> Excel</button>
+                <button class="btn btn-export btn-pdf" onclick="exportBalance('pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
+                <button class="btn btn-export btn-word" onclick="exportBalance('word')"><i class="fas fa-file-word"></i> Word</button>
+            </div>
+            <div id="balance-content"></div>
+        </section>
+        <!-- Activity Log Page -->
+        <section id="page-activity" class="page">
+            <div class="export-buttons">
+                <button class="btn btn-export btn-excel" onclick="exportActivityLog('excel')"><i class="fas fa-file-excel"></i> Excel</button>
+                <button class="btn btn-export btn-pdf" onclick="exportActivityLog('pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
+                <button class="btn btn-export btn-word" onclick="exportActivityLog('word')"><i class="fas fa-file-word"></i> Word</button>
+            </div>
+            <!-- Content will be filled by refreshActivityLog() -->
+        </section>
+        <!-- Cash Drawer Page -->
+        <section id="page-cashDrawer" class="page">
+            <div class="export-buttons">
+                <button class="btn btn-export btn-excel" onclick="exportCashDrawer('excel')"><i class="fas fa-file-excel"></i> Excel</button>
+                <button class="btn btn-export btn-pdf" onclick="exportCashDrawer('pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
+                <button class="btn btn-export btn-word" onclick="exportCashDrawer('word')"><i class="fas fa-file-word"></i> Word</button>
+            </div>
+            <!-- Content will be filled by refreshCashDrawer() -->
+        </section>
+        <!-- Trends Page -->
+        <section id="page-trends" class="page">
+            <div class="export-buttons">
+                <button class="btn btn-export btn-excel" onclick="exportTrends('excel')"><i class="fas fa-file-excel"></i> Excel</button>
+                <button class="btn btn-export btn-pdf" onclick="exportTrends('pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
+                <button class="btn btn-export btn-word" onclick="exportTrends('word')"><i class="fas fa-file-word"></i> Word</button>
+            </div>
+            <!-- Content will be filled by refreshTrends() -->
+        </section>
+    </main>
+
+    <!-- Modals -->
+    <div id="modal-overlay" class="modal-overlay hidden" onclick="closeModal()"></div>
+    <div id="modal" class="modal hidden">
+        <div class="modal-header">
+            <h3 id="modal-title"></h3>
+            <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div id="modal-body" class="modal-body"></div>
+    </div>
+
+    <!-- Invoice Modal -->
+    <div id="invoice-modal" class="modal hidden" style="max-width:600px;">
+        <div class="modal-header">
+            <h3 data-i18n="invoice">Fatura</h3>
+            <button class="modal-close" onclick="closeInvoiceModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div id="invoice-content" class="modal-body"></div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" onclick="printInvoice()"><i class="fas fa-print"></i> <span data-i18n="print">Printo</span></button>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <!-- Recent Activity Bar -->
+    <div class="recent-activity-bar" id="recent-activity-bar">
+        <div class="rab-toggle" onclick="toggleRecentBar()"><i class="fas fa-history"></i> Veprimet e fundit</div>
+        <div class="rab-items" id="rab-items"></div>
+    </div>
+
+    <!-- Side Panel -->
+    <div class="side-panel-overlay hidden" id="side-panel-overlay" onclick="closeSidePanel()"></div>
+    <div class="side-panel hidden" id="side-panel">
+        <div class="side-panel-header">
+            <h3 id="side-panel-title">Detaje</h3>
+            <button onclick="closeSidePanel()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="side-panel-body" id="side-panel-body"></div>
+    </div>
+
+    <div id="toast-container" style="position:fixed;top:80px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px;"></div>
+
+    <!-- Offline Banner -->
+    <div id="offline-banner" class="offline-banner hidden" style="position:fixed;bottom:0;left:0;right:0;background:var(--danger);color:#fff;text-align:center;padding:10px;z-index:9999;font-weight:bold;">
+        <i class="fas fa-wifi-slash"></i> <span data-i18n="offline_mode">Jeni offline - të dhënat ruhen vetëm lokalisht</span>
+    </div>
+
+    <!-- PWA: Butoni "Instalo App" (shfaqet vetëm kur është e mundur) -->
+    <div id="pwa-install-banner" style="display:none;position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:var(--bg-primary, #fff);border:2px solid #2c7a4b;border-radius:16px;padding:14px 20px;box-shadow:0 4px 20px rgba(0,0,0,0.15);z-index:9998;min-width:280px;text-align:center;">
+        <div style="font-size:1.5em;margin-bottom:6px;">🌴</div>
+        <strong style="display:block;margin-bottom:4px;">Instalo Hurma App</strong>
+        <small style="color:#666;display:block;margin-bottom:12px;">Shto në ekranin kryesor si app i vërtetë</small>
+        <div style="display:flex;gap:8px;justify-content:center;">
+            <button id="pwa-install-btn" onclick="pwaTriggerInstall()" style="background:#2c7a4b;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:0.95em;cursor:pointer;font-weight:bold;">
+                <i class="fas fa-download"></i> Instalo
+            </button>
+            <button onclick="pwaDismissInstall()" style="background:transparent;color:#666;border:1px solid #ccc;border-radius:8px;padding:8px 14px;font-size:0.95em;cursor:pointer;">
+                Jo tani
+            </button>
+        </div>
+    </div>
+
+    <!-- PWA: Banner update disponibël -->
+    <div id="pwa-update-banner" style="display:none;position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#1565c0;color:#fff;border-radius:12px;padding:12px 20px;box-shadow:0 4px 16px rgba(0,0,0,0.2);z-index:9998;min-width:260px;text-align:center;">
+        <i class="fas fa-sync-alt"></i> <strong>Update i ri disponibël!</strong>
+        <button onclick="pwaApplyUpdate()" style="background:#fff;color:#1565c0;border:none;border-radius:6px;padding:5px 12px;margin-left:10px;cursor:pointer;font-weight:bold;">Ringarko</button>
+        <button onclick="document.getElementById('pwa-update-banner').style.display='none'" style="background:transparent;border:none;color:#fff;cursor:pointer;margin-left:6px;opacity:0.7;">✕</button>
+    </div>
+
+    <script src="i18n.js"></script>
+    <script src="app.js?v=6"></script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+{
+  "name": "Hurma App",
+  "short_name": "Hurma",
+  "description": "Menaxhim biznesi për shitjen e hurmave — shitje, stok, klientë dhe raporte.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#2c7a4b",
+  "lang": "sq",
+  "categories": ["business", "finance", "productivity"],
+  "icons": [
+    {
+      "src": "icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Shto Shitje",
+      "short_name": "Shitje",
+      "description": "Shto shitje të re direkt",
+      "url": "/?page=sales&action=new",
+      "icons": [{ "src": "icons/icon-192.svg", "sizes": "192x192" }]
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Shiko dashboard-in kryesor",
+      "url": "/?page=dashboard",
+      "icons": [{ "src": "icons/icon-192.svg", "sizes": "192x192" }]
+    }
+  ]
+}

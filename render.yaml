@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: hurma-app
+    runtime: static
+    staticPublishPath: .
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache
+      - path: /sw.js
+        name: Service-Worker-Allowed
+        value: /
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
