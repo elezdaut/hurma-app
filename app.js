@@ -6477,35 +6477,60 @@ function renderFatonDebtChart() {
 
 // ===================== FEATURE 9: FATON EXPORT REPORT =====================
 function exportFatonReport() {
+    // Bug #17: RFC 4180 CSV escape për vlerat (thonjëzat, presjet, newline)
+    function csvEsc(v) {
+        var s = (v === null || v === undefined) ? '' : String(v);
+        if (s.indexOf('"') !== -1 || s.indexOf(',') !== -1 || s.indexOf('\n') !== -1 || s.indexOf('\r') !== -1) {
+            s = '"' + s.replace(/"/g, '""') + '"';
+        }
+        return s;
+    }
+
     const purchases = state.fatonPurchases || [];
     const payments = state.fatonPayments || [];
     const debt = calcFatonDebt();
     const profitOwed = calcFatonProfitOwed();
     const profitCollected = calcFatonProfitCollected();
 
+    // Bug #17: Totals me guard (p.total/p.amount mund të mungojnë në rekorde të importuara)
+    const totalPurchased = purchases.reduce((s, p) => s + (p.total || 0), 0);
+    const totalPaid = payments.reduce((s, p) => s + (p.amount || 0), 0);
+
     let text = '=== RAPORTI I FATONIT ===\n';
-    text += `Data: ${new Date().toLocaleDateString()}\n\n`;
-    text += `Totali blerjeve: ${purchases.reduce((s, p) => s + p.total, 0)} den\n`;
-    text += `Totali pagesave: ${payments.reduce((s, p) => s + p.amount, 0)} den\n`;
-    text += `Borxhi mbetur: ${debt} den\n`;
-    text += `Fitimi nga faturat: ${profitOwed} den\n`;
-    text += `Fitimi i mbledhur: ${profitCollected} den\n`;
-    text += `Fitimi per tu mbledhur: ${profitOwed - profitCollected} den\n\n`;
+    text += 'Data: ' + new Date().toLocaleDateString('sq-AL') + '\n\n';
+    text += 'Totali blerjeve: ' + totalPurchased + ' den\n';
+    text += 'Totali pagesave: ' + totalPaid + ' den\n';
+    text += 'Borxhi mbetur: ' + (debt || 0) + ' den\n';
+    text += 'Fitimi nga faturat: ' + (profitOwed || 0) + ' den\n';
+    text += 'Fitimi i mbledhur: ' + (profitCollected || 0) + ' den\n';
+    text += 'Fitimi per tu mbledhur: ' + ((profitOwed || 0) - (profitCollected || 0)) + ' den\n\n';
 
     text += '--- BLERJET ---\n';
     text += 'Data,Produkti,Sasia,Totali\n';
     purchases.forEach(p => {
         const product = getProduct(p.productId);
-        text += `${p.date},${product.name},${p.quantity},${p.total}\n`;
+        const productName = (product && product.name) ? product.name : '-';
+        text += [
+            csvEsc(p.date || ''),
+            csvEsc(productName),
+            csvEsc(p.quantity || 0),
+            csvEsc(p.total || 0)
+        ].join(',') + '\n';
     });
 
     text += '\n--- PAGESAT ---\n';
     text += 'Data,Shuma,Shenime\n';
     payments.forEach(p => {
-        text += `${p.date},${p.amount},${p.note || ''}\n`;
+        text += [
+            csvEsc(p.date || ''),
+            csvEsc(p.amount || 0),
+            csvEsc(p.note || '')
+        ].join(',') + '\n';
     });
 
-    downloadFile('faton-raport.csv', text, 'text/csv');
+    // Bug #17: extension .txt + content-type text/plain — raport me tekst + tabela,
+    // nuk është CSV standard (mund të hapet me Notepad ose Excel manualisht)
+    downloadFile('faton-raport.txt', text, 'text/plain;charset=utf-8');
     showToast('Raporti i Fatonit u eksportua', 'success');
 }
 
