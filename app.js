@@ -6883,19 +6883,26 @@ function generateOrhanReport() {
 }
 
 function exportOrhanReport() {
-    const totalProfit = state.sales.reduce((sum, s) => sum + s.profit, 0);
-    const totalExpenses = state.expenses.reduce((sum, e) => sum + e.amount, 0);
+    // Bug #18: Guard state arrays (mungesë mund të shkaktojë TypeError)
+    // dhe (s.profit || 0) / (e.amount || 0) që rekorde të vjetra pa këto fusha të mos bëhen NaN
+    const totalProfit = (state.sales || []).reduce((sum, s) => sum + (s.profit || 0), 0);
+    const totalExpenses = (state.expenses || []).reduce((sum, e) => sum + (e.amount || 0), 0);
     const netProfit = totalProfit - totalExpenses;
+    const partnerShare = calcPartnerShare(netProfit) || 0;
+    const fatonDebt = calcFatonDebt() || 0;
+    // Bug #18: fallback për emrin e partnerit (shmang "Pjesa e undefined")
+    const partnerName = state.partnerName || 'Partneri';
 
     let text = '=== RAPORTI I ORHANIT ===\n';
-    text += `Data: ${new Date().toLocaleDateString()}\n\n`;
+    // Bug #18: data në format shqip
+    text += `Data: ${new Date().toLocaleDateString('sq-AL')}\n\n`;
     text += `Fitimi total: ${totalProfit} den\n`;
     text += `Shpenzimet: ${totalExpenses} den\n`;
     text += `Fitimi neto: ${netProfit} den\n`;
-    text += `Pjesa e ${state.partnerName}: ${calcPartnerShare(netProfit)} den\n`;
-    text += `Borxhi ndaj Fatonit: ${calcFatonDebt()} den\n`;
+    text += `Pjesa e ${partnerName}: ${partnerShare} den\n`;
+    text += `Borxhi ndaj Fatonit: ${fatonDebt} den\n`;
 
-    downloadFile('orhan-raport.txt', text, 'text/plain');
+    downloadFile('orhan-raport.txt', text, 'text/plain;charset=utf-8');
     showToast('Raporti i Orhanit u eksportua', 'success');
 }
 
