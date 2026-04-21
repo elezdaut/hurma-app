@@ -2018,6 +2018,42 @@ function deleteFatonPurchase(purchaseId) {
     showToast('Blerja u fshi me sukses', 'success');
 }
 
+// ===================== FSHI STOKUN E NJË PRODUKTI (ZERO-OUT) =====================
+// Kur produkti ka sasi në stok pa batch përkatës (p.sh. u shtua pa datë afati),
+// ky funksion lejon përdoruesin të zerojë numrin direkt nga kartela e produktit.
+// Heq edhe batch-et ekzistuese për atë produkt që të mos mbeten "jetim".
+// NUK prek fatonPurchases (ato janë rekorde historike blerjesh).
+function resetProductStock(productId) {
+    const product = getProduct(productId);
+    const productName = (product && product.name) ? product.name : '-';
+    const currentCount = state.stock[productId] || 0;
+    if (currentCount === 0) {
+        showToast('Stoku është tashmë 0 për ' + productName, 'info');
+        return;
+    }
+    const batches = (state.stockBatches || []).filter(b => b.productId === productId);
+    const batchMsg = batches.length > 0
+        ? '\n• Do fshihen ' + batches.length + ' ngarkesë/a nga tabela e afateve'
+        : '';
+    const msg = 'A je i sigurt që do ta zerosh stokun?\n\n' +
+                productName + '\n' +
+                'Sasia aktuale: ' + currentCount + '\n' +
+                '→ Do bëhet: 0' + batchMsg + '\n\n' +
+                'Blerjet historike te Fatoni NUK preken.';
+    if (!confirm(msg)) return;
+
+    // 1) Zero stokun aktual
+    state.stock[productId] = 0;
+
+    // 2) Hiq batch-et e atij produkti (që të mos mbeten pa stok përkatës)
+    state.stockBatches = (state.stockBatches || []).filter(b => b.productId !== productId);
+
+    saveState();
+    refreshAll();
+    if (typeof logActivity === 'function') logActivity('stock', 'Zeruar stoku: ' + productName + ' (ishte ' + currentCount + ')');
+    showToast('Stoku u zerua: ' + productName, 'success');
+}
+
 function refreshStock() {
     const container = document.getElementById('stock-cards');
     container.innerHTML = '';
@@ -2037,7 +2073,10 @@ function refreshStock() {
                 ${isLow ? `<div style="color:var(--danger);margin-top:5px;font-size:0.85em;"><i class="fas fa-exclamation-triangle"></i> ${t('low_stock')}</div>` : ''}
                 ${depletionHtml}
                 <div style="margin-top:10px;" id="qr-${p.id}"></div>
-                <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();showQR('${p.id}')" style="margin-top:8px;"><i class="fas fa-qrcode"></i> ${t('qr_code')}</button>
+                <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+                    <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();showQR('${p.id}')"><i class="fas fa-qrcode"></i> ${t('qr_code')}</button>
+                    ${count > 0 ? `<button class="btn btn-sm btn-danger" onclick="event.stopPropagation();resetProductStock('${p.id}')" title="Zero stokun"><i class="fas fa-trash"></i> Fshi</button>` : ''}
+                </div>
             </div>
         `;
     });
