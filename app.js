@@ -1946,6 +1946,78 @@ function addStock() {
     logActivity('Stock Added', `${quantity}x ${product.name}`);
 }
 
+// ===================== FSHI NGARKESË / BLERJE FATON =====================
+// Të dy funksionet kërkojnë konfirmim, zbresin sasinë nga stoku, heqin
+// të dhënat edhe nga fatonPurchases edhe nga stockBatches (nëse lidhur
+// përmes productId+quantity+date), ruajnë state-in dhe logohen.
+
+function deleteStockBatch(batchId) {
+    const idx = (state.stockBatches || []).findIndex(b => b.id === batchId);
+    if (idx === -1) { showToast('Ngarkesa nuk u gjet!', 'error'); return; }
+    const batch = state.stockBatches[idx];
+    const product = getProduct(batch.productId);
+    const productName = (product && product.name) ? product.name : '-';
+    const msg = 'A je i sigurt që do ta fshish ngarkesën?\n\n' +
+                productName + ' x ' + batch.quantity + '\n' +
+                'Data: ' + (batch.date || '-') + '\n' +
+                'Afati: ' + (batch.expiry || '-') + '\n\n' +
+                'Sasia do të zbritet nga stoku dhe blerjet e Fatonit.';
+    if (!confirm(msg)) return;
+
+    // 1) Zbrit sasinë nga stoku aktual (nuk shkon nën 0)
+    state.stock[batch.productId] = Math.max(0, (state.stock[batch.productId] || 0) - batch.quantity);
+
+    // 2) Hiq batch-in
+    state.stockBatches.splice(idx, 1);
+
+    // 3) Gjej blerjen e Fatonit me të njëjtat fusha dhe hiqe (nëse ekziston)
+    const purchIdx = (state.fatonPurchases || []).findIndex(p =>
+        p.productId === batch.productId &&
+        p.quantity === batch.quantity &&
+        p.date === batch.date
+    );
+    if (purchIdx !== -1) state.fatonPurchases.splice(purchIdx, 1);
+
+    saveState();
+    refreshAll();
+    if (typeof logActivity === 'function') logActivity('stock', 'Fshirë ngarkesa: ' + productName + ' x ' + batch.quantity);
+    showToast('Ngarkesa u fshi me sukses', 'success');
+}
+
+function deleteFatonPurchase(purchaseId) {
+    const idx = (state.fatonPurchases || []).findIndex(p => p.id === purchaseId);
+    if (idx === -1) { showToast('Blerja nuk u gjet!', 'error'); return; }
+    const p = state.fatonPurchases[idx];
+    const product = getProduct(p.productId);
+    const productName = (product && product.name) ? product.name : '-';
+    const msg = 'A je i sigurt që do ta fshish blerjen?\n\n' +
+                productName + ' x ' + p.quantity + '\n' +
+                'Data: ' + (p.date || '-') + '\n' +
+                'Totali: ' + (p.total || 0) + ' den\n\n' +
+                'Sasia do të zbritet nga stoku dhe borxhi i Fatonit do të reduktohet automatikisht.';
+    if (!confirm(msg)) return;
+
+    // 1) Zbrit sasinë nga stoku aktual (nuk shkon nën 0)
+    state.stock[p.productId] = Math.max(0, (state.stock[p.productId] || 0) - p.quantity);
+
+    // 2) Hiq blerjen (kjo automatikisht zbret borxhin e Fatonit sepse
+    //    calcFatonDebt()/refreshFaton() e llogarit nga fatonPurchases)
+    state.fatonPurchases.splice(idx, 1);
+
+    // 3) Gjej batch-in përkatës (nëse ka) dhe hiqe
+    const batchIdx = (state.stockBatches || []).findIndex(b =>
+        b.productId === p.productId &&
+        b.quantity === p.quantity &&
+        b.date === p.date
+    );
+    if (batchIdx !== -1) state.stockBatches.splice(batchIdx, 1);
+
+    saveState();
+    refreshAll();
+    if (typeof logActivity === 'function') logActivity('stock', 'Fshirë blerja Faton: ' + productName + ' x ' + p.quantity);
+    showToast('Blerja u fshi me sukses', 'success');
+}
+
 function refreshStock() {
     const container = document.getElementById('stock-cards');
     container.innerHTML = '';
@@ -1988,6 +2060,7 @@ function refreshStock() {
                 <td>${batch.expiry}</td>
                 <td>${daysLeft}</td>
                 <td style="${statusClass}">${status}</td>
+                <td><button class="btn btn-sm btn-danger" onclick="deleteStockBatch(${batch.id})" title="Fshi ngarkesën"><i class="fas fa-trash"></i></button></td>
             </tr>
         `;
     });
@@ -3148,6 +3221,8 @@ function refreshFaton() {
                           '<button class="btn btn-sm btn-danger" onclick="deleteFatonPayment(' + e.editIndex + ')"><i class="fas fa-trash"></i></button>';
             } else if (e.type === 'profit_collection' && e.collectionIndex !== undefined) {
                 actions = '<button class="btn btn-sm btn-danger" onclick="deleteProfitCollection(' + e.collectionIndex + ')"><i class="fas fa-trash"></i></button>';
+            } else if (e.type === 'purchase' && e.raw && e.raw.id !== undefined) {
+                actions = '<button class="btn btn-sm btn-danger" onclick="deleteFatonPurchase(' + e.raw.id + ')" title="Fshi blerjen"><i class="fas fa-trash"></i></button>';
             }
 
             timelineBody.innerHTML += '<tr>' +
