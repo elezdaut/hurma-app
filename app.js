@@ -8541,19 +8541,28 @@ function exportToWord(title, headers, rows, filename) {
 // Dashboard export
 function exportDashboard(format) {
     const today = new Date().toISOString().split('T')[0];
-    const todaySales = state.sales.filter(s => s.date === today);
-    const totalRev = todaySales.reduce((s, x) => s + x.sellTotal, 0);
-    const totalProfit = todaySales.reduce((s, x) => s + x.profit, 0);
-    const totalExp = state.expenses.filter(e => e.date === today).reduce((s, x) => s + x.amount, 0);
+    // Bug #20: guard (state.sales || []) / (state.expenses || []) shmang TypeError
+    // dhe (x.field || 0) shmang NaN për rekorde pa fusha (importe të vjetra)
+    const todaySales = (state.sales || []).filter(s => s.date === today);
+    const totalRev = todaySales.reduce((s, x) => s + (x.sellTotal || 0), 0);
+    const totalProfit = todaySales.reduce((s, x) => s + (x.profit || 0), 0);
+    const totalExp = (state.expenses || []).filter(e => e.date === today).reduce((s, x) => s + (x.amount || 0), 0);
+    // Bug #20: fallback për profitSplit dhe partnerName (shmang crash/undefined)
+    const split = state.profitSplit || { owner: 50, partner: 50 };
+    const partnerName = state.partnerName || 'Partneri';
+    const netProfit = totalProfit - totalExp;
+    const ownerShare = calcOwnerShare(netProfit) || 0;
+    const partnerShare = calcPartnerShare(netProfit) || 0;
+
     const headers = ['Metrike', 'Vlera'];
     const rows = [
         ['Shitje sot', todaySales.length],
         ['Te ardhura sot', totalRev + ' den'],
         ['Fitimi sot', totalProfit + ' den'],
         ['Shpenzime sot', totalExp + ' den'],
-        ['Fitimi neto', (totalProfit - totalExp) + ' den'],
-        ['Pjesa jote (' + state.profitSplit.owner + '%)', calcOwnerShare(totalProfit - totalExp) + ' den'],
-        ['Pjesa e ' + state.partnerName + ' (' + state.profitSplit.partner + '%)', calcPartnerShare(totalProfit - totalExp) + ' den']
+        ['Fitimi neto', netProfit + ' den'],
+        ['Pjesa jote (' + (split.owner || 50) + '%)', ownerShare + ' den'],
+        ['Pjesa e ' + partnerName + ' (' + (split.partner || 50) + '%)', partnerShare + ' den']
     ];
     const fname = 'Dashboard_' + today;
     if (format === 'excel') exportToExcel(headers, rows, fname);
