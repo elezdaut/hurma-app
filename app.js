@@ -20144,6 +20144,18 @@ function exportDistribution(format) {
 }
 
 function exportDistReport(type, format) {
+    // Bug #19: helpers për të shmangur crash në d.items mungues
+    // dhe NaN në rast se quantity/price s'janë definuar në rekorde të importuara
+    function itemsTotal(items) {
+        return (items || []).reduce(function(s, i) { return s + (i.quantity || 0) * (i.price || 0); }, 0);
+    }
+    function itemsStr(items) {
+        return (items || []).map(function(i) {
+            var p = getDistProduct(i.productId);
+            return (p && p.name ? p.name : '-') + ' x' + (i.quantity || 0);
+        }).join(', ');
+    }
+
     var headers, rows, title;
     var today = new Date().toISOString().split('T')[0];
 
@@ -20152,9 +20164,8 @@ function exportDistReport(type, format) {
         headers = ['Nr.', 'Dyqani', 'Produkte', 'Totali', 'Pagesa'];
         rows = (state.distDeliveries || []).filter(function(d) { return d.date === today; }).map(function(d) {
             var shop = getDistShop(d.shopId);
-            var total = d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
-            var itemsStr = d.items.map(function(i) { return getDistProduct(i.productId).name + ' x' + i.quantity; }).join(', ');
-            return [d.invoiceNum, shop.name, itemsStr, total + ' den', d.paymentType === 'cash' ? 'Cash' : 'Faturë'];
+            var total = itemsTotal(d.items);
+            return [d.invoiceNum, shop.name, itemsStr(d.items), total + ' den', d.paymentType === 'cash' ? 'Cash' : 'Faturë'];
         });
     } else if (type === 'weekly' || type === 'monthly') {
         var fromDate;
@@ -20170,7 +20181,7 @@ function exportDistReport(type, format) {
         headers = ['Nr.', 'Data', 'Dyqani', 'Totali', 'Pagesa', 'Statusi'];
         rows = (state.distDeliveries || []).filter(function(d) { return d.date >= fromDate && d.date <= today; }).map(function(d) {
             var shop = getDistShop(d.shopId);
-            var total = d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+            var total = itemsTotal(d.items);
             return [d.invoiceNum, d.date, shop.name, total + ' den', d.paymentType === 'cash' ? 'Cash' : 'Faturë', d.paid ? 'Paguar' : 'Papaguar'];
         });
     } else if (type === 'pershop') {
@@ -20178,7 +20189,7 @@ function exportDistReport(type, format) {
         headers = ['Dyqani', 'Dërgesa', 'Total', 'Paguar', 'Borxh'];
         rows = (state.distShops || []).map(function(shop) {
             var deliveries = (state.distDeliveries || []).filter(function(d) { return d.shopId === shop.id; });
-            var total = deliveries.reduce(function(s, d) { return s + d.items.reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
+            var total = deliveries.reduce(function(s, d) { return s + itemsTotal(d.items); }, 0);
             var paid = 0;
             deliveries.forEach(function(d) { paid += (d.paidAmount || 0); });
             return [shop.name, deliveries.length, total + ' den', paid + ' den', (total - paid) + ' den'];
@@ -20188,24 +20199,32 @@ function exportDistReport(type, format) {
         headers = ['Produkti', 'Pranuar', 'Dorezuar', 'Ne Stok'];
         var stock = calcDistStock();
         rows = PRODUCTS.map(function(p) {
-            var totalReceived = (state.distReceived || []).filter(function(r) { return r.productId === p.id; }).reduce(function(s, r) { return s + r.quantity; }, 0);
+            // Bug #19: (r.quantity || 0) shmang NaN nëse rekordi s'ka quantity
+            var totalReceived = (state.distReceived || []).filter(function(r) { return r.productId === p.id; }).reduce(function(s, r) { return s + (r.quantity || 0); }, 0);
             var totalDelivered = 0;
-            (state.distDeliveries || []).forEach(function(d) { d.items.forEach(function(item) { if (item.productId === p.id) totalDelivered += item.quantity; }); });
+            (state.distDeliveries || []).forEach(function(d) {
+                (d.items || []).forEach(function(item) {
+                    if (item.productId === p.id) totalDelivered += (item.quantity || 0);
+                });
+            });
             return [p.name, totalReceived, totalDelivered, stock[p.id] || 0];
         });
     } else if (type === 'financial') {
         title = 'Permbledhje Financiare';
         headers = ['Zëri', 'Vlera'];
-        var cashCollected = calcDistTotalCashCollected();
-        var givenToFaton = calcDistGivenToFaton();
+        var cashCollected = calcDistTotalCashCollected() || 0;
+        var givenToFaton = calcDistGivenToFaton() || 0;
+        // Bug #19: guards për distReceived (r.quantity/r.price) dhe distDeliveries (d.items)
+        var mallPranuar = (state.distReceived || []).reduce(function(s, r) { return s + (r.quantity || 0) * (r.price || 0); }, 0);
+        var mallDorezuar = (state.distDeliveries || []).reduce(function(s, d) { return s + itemsTotal(d.items); }, 0);
         rows = [
-            ['Mall i pranuar', (state.distReceived || []).reduce(function(s, r) { return s + r.quantity * r.price; }, 0) + ' den'],
-            ['Mall i dorezuar', (state.distDeliveries || []).reduce(function(s, d) { return s + d.items.reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0) + ' den'],
+            ['Mall i pranuar', mallPranuar + ' den'],
+            ['Mall i dorezuar', mallDorezuar + ' den'],
             ['Cash i mbledhur', cashCollected + ' den'],
             ['Dorezuar Fatonit', givenToFaton + ' den'],
             ['Cash gati', (cashCollected - givenToFaton) + ' den'],
-            ['Borxhe dyqanesh', calcDistShopDebts() + ' den'],
-            ['Borxhe te vonuara', calcDistOverdueDebts() + ' den']
+            ['Borxhe dyqanesh', (calcDistShopDebts() || 0) + ' den'],
+            ['Borxhe te vonuara', (calcDistOverdueDebts() || 0) + ' den']
         ];
     }
 
