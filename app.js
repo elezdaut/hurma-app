@@ -27,6 +27,19 @@ let state = {
     notifications: [],
     weeklyReports: [],
     fatonDebtHistory: [],
+    clientTasks: [],
+    clientVisits: [],
+    reminderEvents: [],
+    invoiceProfile: {
+        businessName: 'Hurma App',
+        legalName: 'Hurma Trading',
+        phone: '+389 XX XXX XXX',
+        email: 'sales@hurma.app',
+        address: 'Kërçovë, Maqedonia e Veriut',
+        footerNote: 'Faleminderit për bashkëpunimin. Për çdo paqartësi na kontaktoni.',
+        paymentTerms: 'Pagesa bëhet sipas afatit të faturës.',
+        accentColor: '#8b5a2b'
+    },
     pinnedClients: [],
     salesMonthFilter: '',
     // Feature 1: Custom products
@@ -61,7 +74,15 @@ let state = {
     trash: [],           // Koshi i plehrave
     restoreLog: [],      // Ditari i restore-ve
     changeTimeline: [],  // Timeline ndryshimesh
-    hourlySnapshots: []  // Snapshots çdo orë
+    hourlySnapshots: [], // Snapshots çdo orë
+    // Distribution (Shpërndarja Fatoni)
+    distShops: [],
+    distReceived: [],
+    distDeliveries: [],
+    distPayToFaton: [],
+    distStock: {},
+    distInvoiceCounter: 0,
+    distFatonReminder: { enabled: false, type: 'days', days: 7, weekday: 1, threshold: 5000, lastDismissed: null }
 };
 
 // ===================== INIT =====================
@@ -90,6 +111,9 @@ function initAfterAuth() {
     initFatonDebtTracking();
     // Feature 13: Auto-backup check
     checkAutoBackup();
+    // Feature 6: Payment reminders
+    try { checkPaymentReminders(); } catch(e) {}
+    try { checkClientDebtAlerts(); } catch(e) {}
 
     const theme = localStorage.getItem('hurma-theme') || 'light';
     document.documentElement.setAttribute('data-theme', theme);
@@ -119,6 +143,19 @@ function loadState() {
         if (!state.fatonPurchases) state.fatonPurchases = [];
         if (!state.weeklyReports) state.weeklyReports = [];
         if (!state.fatonDebtHistory) state.fatonDebtHistory = [];
+        if (!state.clientTasks) state.clientTasks = [];
+        if (!state.clientVisits) state.clientVisits = [];
+        if (!state.reminderEvents) state.reminderEvents = [];
+        if (!state.invoiceProfile) state.invoiceProfile = {
+            businessName: 'Hurma App',
+            legalName: 'Hurma Trading',
+            phone: '+389 XX XXX XXX',
+            email: 'sales@hurma.app',
+            address: 'Kërçovë, Maqedonia e Veriut',
+            footerNote: 'Faleminderit për bashkëpunimin. Për çdo paqartësi na kontaktoni.',
+            paymentTerms: 'Pagesa bëhet sipas afatit të faturës.',
+            accentColor: '#8b5a2b'
+        };
         if (!state.pinnedClients) state.pinnedClients = [];
         if (!state.salesMonthFilter) state.salesMonthFilter = '';
         // New features backward compatibility
@@ -149,6 +186,14 @@ function loadState() {
         if (!state.restoreLog) state.restoreLog = [];
         if (!state.changeTimeline) state.changeTimeline = [];
         if (!state.hourlySnapshots) state.hourlySnapshots = [];
+        // Distribution (Shpërndarja Fatoni)
+        if (!state.distShops) state.distShops = [];
+        if (!state.distReceived) state.distReceived = [];
+        if (!state.distDeliveries) state.distDeliveries = [];
+        if (!state.distPayToFaton) state.distPayToFaton = [];
+        if (!state.distStock) state.distStock = {};
+        if (!state.distInvoiceCounter) state.distInvoiceCounter = 0;
+        if (!state.distFatonReminder) state.distFatonReminder = { enabled: false, type: 'days', days: 7, weekday: 1, threshold: 5000, lastDismissed: null };
         // Feature 1: Load custom products
         if (state.customProducts && state.customProducts.length > 0) {
             PRODUCTS = state.customProducts;
@@ -228,6 +273,7 @@ function refreshAll() {
     refreshLocations();
     refreshBalance();
     updateCharts();
+    try { refreshDistribution(); } catch(e) {}
     try { updateTabBadges(); updateSyncStatusBar(); refreshRecentActivityBar(); refreshDashboardMiniatures(); showSmartSuggestions(); updateLiveProfitTracker(); } catch(e) {}
 }
 
@@ -250,6 +296,9 @@ function refreshPage(page) {
         case 'activity': refreshActivityLog(); break;
         case 'cashDrawer': refreshCashDrawer(); break;
         case 'trends': refreshTrends(); break;
+        case 'analytics': refreshAnalytics(); break;
+        case 'invoices': refreshInvoicesPage(); break;
+        case 'distribution': refreshDistribution(); break;
     }
 }
 
@@ -403,6 +452,97 @@ function refreshDashboard() {
             presetsEl.innerHTML = '';
         }
     }
+
+    renderExecutiveDashboardWidget();
+}
+
+function renderExecutiveDashboardWidget() {
+    const dash = document.getElementById('page-dashboard');
+    if (!dash) return;
+    let container = document.getElementById('executive-dashboard-widget');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'executive-dashboard-widget';
+        const anchor = document.getElementById('week-stats') || dash.querySelector('.stats-grid');
+        if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(container, anchor.nextSibling);
+    }
+
+    const debtClients = (state.clients || []).filter(c => (c.debt || 0) > 0);
+    const totalDebt = debtClients.reduce((sum, client) => sum + (client.debt || 0), 0);
+    const activeTasks = (state.clientTasks || []).filter(task => task.status !== 'done').length;
+    const upcomingVisits = (state.clientVisits || []).filter(visit => visit.nextVisitDate && visit.nextVisitDate >= new Date().toISOString().split('T')[0]).length;
+    const premiumClients = (state.clients || []).filter(client => calculateClientScore(client.id) >= 75).length;
+
+    container.innerHTML = `
+        <div style="margin:18px 0 8px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+            <h3 style="margin:0;"><i class="fas fa-briefcase"></i> Dashboard Ekzekutiv</h3>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button class="btn btn-secondary" onclick="showExecutiveDashboard()"><i class="fas fa-chart-line"></i> Hape</button>
+                <button class="btn btn-primary" onclick="generateAllMarketMonthlyReports()"><i class="fas fa-file-pdf"></i> Raporte Mujore</button>
+            </div>
+        </div>
+        <div class="stats-grid">
+            <div class="stat-card"><i class="fas fa-user-shield"></i><div><h3>Klientë premium</h3><p>${premiumClients}</p></div></div>
+            <div class="stat-card"><i class="fas fa-bell"></i><div><h3>Task-e aktive</h3><p>${activeTasks}</p></div></div>
+            <div class="stat-card"><i class="fas fa-route"></i><div><h3>Vizita në plan</h3><p>${upcomingVisits}</p></div></div>
+            <div class="stat-card"><i class="fas fa-triangle-exclamation"></i><div><h3>Borxh klientësh</h3><p>${totalDebt} ден</p></div></div>
+        </div>
+    `;
+}
+
+function showExecutiveDashboard() {
+    const rankedClients = [...(state.clients || [])]
+        .map(client => ({
+            client,
+            score: calculateClientScore(client.id),
+            status: getClientStatusInfo(client.id),
+            totalPurchases: (state.sales || []).filter(s => s.clientId === client.id).reduce((sum, sale) => sum + (sale.sellTotal || 0), 0)
+        }))
+        .sort((a, b) => b.score - a.score);
+
+    const topClients = rankedClients.slice(0, 10).map((row, index) => `
+        <tr>
+            <td>${index + 1}</td>
+            <td><span style="cursor:pointer;color:var(--primary);text-decoration:underline;" onclick="openClient360('${row.client.id}')">${row.client.name}</span></td>
+            <td>${row.totalPurchases} ден</td>
+            <td style="color:var(--danger);">${row.client.debt || 0} ден</td>
+            <td style="font-weight:700;color:${row.status.color};">${row.status.label}</td>
+            <td>${row.score}/100</td>
+        </tr>
+    `).join('');
+
+    const pendingTasks = (state.clientTasks || []).filter(task => task.status !== 'done').slice(0, 8).map(task => {
+        const client = getClientById(task.clientId);
+        return `<li><strong>${task.title}</strong>${client ? ' - ' + client.name : ''} <span style="color:var(--text-secondary);">(${task.dueDate || 'pa afat'})</span></li>`;
+    }).join('') || '<li>Nuk ka task-e aktive.</li>';
+
+    const upcomingVisits = (state.clientVisits || [])
+        .filter(visit => visit.nextVisitDate)
+        .sort((a, b) => (a.nextVisitDate || '').localeCompare(b.nextVisitDate || ''))
+        .slice(0, 8)
+        .map(visit => {
+            const client = getClientById(visit.clientId);
+            return `<li><strong>${client ? client.name : 'Klient'}</strong> - ${visit.nextVisitDate} ${visit.purpose ? '(' + visit.purpose + ')' : ''}</li>`;
+        }).join('') || '<li>Nuk ka vizita të planifikuara.</li>';
+
+    openModal('Dashboard Ekzekutiv', `
+        <div class="stats-grid" style="margin-bottom:16px;">
+            <div class="stat-card"><i class="fas fa-users"></i><div><h3>Klientë gjithsej</h3><p>${state.clients.length}</p></div></div>
+            <div class="stat-card"><i class="fas fa-user-tie"></i><div><h3>Premium</h3><p>${rankedClients.filter(r => r.score >= 75).length}</p></div></div>
+            <div class="stat-card"><i class="fas fa-list-check"></i><div><h3>Task-e aktive</h3><p>${(state.clientTasks || []).filter(t => t.status !== 'done').length}</p></div></div>
+            <div class="stat-card"><i class="fas fa-calendar-check"></i><div><h3>Vizita të ardhshme</h3><p>${(state.clientVisits || []).filter(v => v.nextVisitDate && v.nextVisitDate >= new Date().toISOString().split('T')[0]).length}</p></div></div>
+        </div>
+        <div class="table-container" style="margin-bottom:16px;">
+            <table class="data-table">
+                <thead><tr><th>#</th><th>Klienti</th><th>Blerje</th><th>Borxhi</th><th>Statusi</th><th>Score</th></tr></thead>
+                <tbody>${topClients}</tbody>
+            </table>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;">
+            <div class="target-card"><h4><i class="fas fa-bell"></i> Task-e prioritare</h4><ul style="padding-left:18px;line-height:1.7;">${pendingTasks}</ul></div>
+            <div class="target-card"><h4><i class="fas fa-route"></i> Vizita në terren</h4><ul style="padding-left:18px;line-height:1.7;">${upcomingVisits}</ul></div>
+        </div>
+    `);
 }
 
 // ===================== SALES =====================
@@ -466,24 +606,94 @@ function openSaleModal(editId) {
                 <input type="checkbox" id="sale-is-debt" ${sale && sale.isDebt ? 'checked' : ''}> ${t('debt')} (${t('client')} ${t('pay_debt')})
             </label>
         </div>
-        <button class="btn btn-primary" onclick="${isEdit ? `updateSale(${editId})` : 'addSale()'}" style="width:100%;">
+        ${isEdit ? `
+        <div class="form-group" id="sale-payment-status-group" style="background:var(--bg-secondary);padding:12px;border-radius:10px;margin-top:8px;">
+            <label style="font-weight:bold;margin-bottom:8px;display:block;">💳 Statusi i Pagesës:</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <label style="display:flex;align-items:center;gap:5px;padding:8px 12px;border-radius:8px;cursor:pointer;border:2px solid ${sale.invoicePaid ? 'var(--success)' : 'var(--bg-tertiary)'};background:${sale.invoicePaid ? '#e8f5e9' : 'transparent'};">
+                    <input type="radio" name="sale-pay-status" value="paid" ${sale.invoicePaid ? 'checked' : ''} onchange="togglePartialPayment()">
+                    <i class="fas fa-check-circle" style="color:var(--success);"></i> E paguar
+                </label>
+                <label style="display:flex;align-items:center;gap:5px;padding:8px 12px;border-radius:8px;cursor:pointer;border:2px solid ${!sale.invoicePaid && !sale.paidAmount ? 'var(--danger)' : 'var(--bg-tertiary)'};background:${!sale.invoicePaid && !sale.paidAmount ? '#ffebee' : 'transparent'};">
+                    <input type="radio" name="sale-pay-status" value="unpaid" ${!sale.invoicePaid && !sale.paidAmount ? 'checked' : ''} onchange="togglePartialPayment()">
+                    <i class="fas fa-times-circle" style="color:var(--danger);"></i> E papaguar
+                </label>
+                <label style="display:flex;align-items:center;gap:5px;padding:8px 12px;border-radius:8px;cursor:pointer;border:2px solid ${sale.paidAmount && sale.paidAmount > 0 && !sale.invoicePaid ? 'var(--warning)' : 'var(--bg-tertiary)'};background:${sale.paidAmount && sale.paidAmount > 0 && !sale.invoicePaid ? '#fff3e0' : 'transparent'};">
+                    <input type="radio" name="sale-pay-status" value="partial" ${sale.paidAmount && sale.paidAmount > 0 && !sale.invoicePaid ? 'checked' : ''} onchange="togglePartialPayment()">
+                    <i class="fas fa-adjust" style="color:var(--warning);"></i> Pjesërisht
+                </label>
+            </div>
+            <div id="partial-payment-fields" style="display:${sale.paidAmount && sale.paidAmount > 0 && !sale.invoicePaid ? 'block' : 'none'};margin-top:10px;">
+                <div class="form-group" style="margin-bottom:5px;">
+                    <label>Shuma e paguar (ден):</label>
+                    <input type="number" id="sale-paid-amount" min="0" max="${sale.sellTotal}" value="${sale.paidAmount || 0}">
+                </div>
+                <div style="font-size:0.85em;color:var(--text-secondary);">Mbetet: <strong id="sale-remaining-amount">${sale.sellTotal - (sale.paidAmount || 0)}</strong> ден</div>
+            </div>
+            <div class="form-group" style="margin-top:8px;">
+                <label>Metoda e pagesës:</label>
+                <select id="sale-pay-method">
+                    <option value="cash" ${(sale.payMethod || '') === 'cash' ? 'selected' : ''}>💵 Cash</option>
+                    <option value="bank" ${(sale.payMethod || '') === 'bank' ? 'selected' : ''}>🏦 Transfer Bankar</option>
+                    <option value="mobile" ${(sale.payMethod || '') === 'mobile' ? 'selected' : ''}>📱 Mobile Payment</option>
+                    <option value="card" ${(sale.payMethod || '') === 'card' ? 'selected' : ''}>💳 Kartë</option>
+                    <option value="" ${!sale.payMethod ? 'selected' : ''}>— Pa specifikuar</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin-top:5px;">
+                <label>Data e pagesës:</label>
+                <input type="date" id="sale-pay-date" value="${sale.invoicePaidDate || sale.payDate || ''}">
+            </div>
+        </div>
+        ` : ''}
+        <button class="btn btn-primary" id="sale-submit-btn" style="width:100%;margin-top:10px;">
             ${isEdit ? t('edit') : t('add_sale')}
         </button>
     `;
     openModal(isEdit ? t('edit') : t('new_sale'), html);
-    setTimeout(() => { if (typeof addLiveCalculation === 'function') addLiveCalculation(); }, 100);
+    setTimeout(function() {
+        var submitBtn = document.getElementById('sale-submit-btn');
+        if (submitBtn) {
+            submitBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (isEdit) { updateSale(editId); } else { addSale(); }
+            });
+        }
+        if (typeof addLiveCalculation === 'function') addLiveCalculation();
+    }, 100);
+}
+
+function togglePartialPayment() {
+    const status = document.querySelector('input[name="sale-pay-status"]:checked')?.value;
+    const partialFields = document.getElementById('partial-payment-fields');
+    if (partialFields) {
+        partialFields.style.display = status === 'partial' ? 'block' : 'none';
+    }
+    // Update radio button visual styles
+    document.querySelectorAll('input[name="sale-pay-status"]').forEach(r => {
+        const label = r.closest('label');
+        if (r.checked) {
+            if (r.value === 'paid') { label.style.borderColor = 'var(--success)'; label.style.background = '#e8f5e9'; }
+            else if (r.value === 'unpaid') { label.style.borderColor = 'var(--danger)'; label.style.background = '#ffebee'; }
+            else { label.style.borderColor = 'var(--warning)'; label.style.background = '#fff3e0'; }
+        } else {
+            label.style.borderColor = 'var(--bg-tertiary)';
+            label.style.background = 'transparent';
+        }
+    });
 }
 
 function toggleInvoiceDueDate() {
     const paymentType = document.getElementById('sale-payment-type').value;
     const dueDateGroup = document.getElementById('invoice-due-date-group');
-    if (paymentType === 'invoice_60') {
+    var invoiceDaysMap = { 'invoice_30': 30, 'invoice_60': 60, 'invoice_90': 90 };
+    if (invoiceDaysMap[paymentType]) {
         dueDateGroup.classList.remove('hidden');
-        // Auto-set due date to 60 days from sale date
         const saleDate = document.getElementById('sale-date').value;
         if (saleDate && !document.getElementById('sale-due-date').value) {
             const due = new Date(saleDate);
-            due.setDate(due.getDate() + 60);
+            due.setDate(due.getDate() + invoiceDaysMap[paymentType]);
             document.getElementById('sale-due-date').value = due.toISOString().split('T')[0];
         }
     } else {
@@ -502,11 +712,13 @@ function addSale() {
     const isDebt = document.getElementById('sale-is-debt').checked;
     const paymentType = document.getElementById('sale-payment-type').value;
     let dueDate = '';
-    if (paymentType === 'invoice_60') {
-        dueDate = document.getElementById('sale-due-date').value;
+    var _invDaysMap = { 'invoice_30': 30, 'invoice_60': 60, 'invoice_90': 90 };
+    if (_invDaysMap[paymentType]) {
+        var _dueDateEl = document.getElementById('sale-due-date');
+        dueDate = _dueDateEl ? _dueDateEl.value : '';
         if (!dueDate) {
             const due = new Date(date);
-            due.setDate(due.getDate() + 60);
+            due.setDate(due.getDate() + _invDaysMap[paymentType]);
             dueDate = due.toISOString().split('T')[0];
         }
     }
@@ -524,15 +736,14 @@ function addSale() {
     const profit = sellTotal - buyTotal;
 
     // Feature 6: Credit limit check
-    if (paymentType === 'invoice_60' && clientId) {
+    if (paymentType.indexOf('invoice') !== -1 && clientId) {
         const client = state.clients.find(c => c.id === clientId);
         if (client && client.creditLimit && client.creditLimit > 0) {
             const currentDebt = client.debt || 0;
             const totalAfterSale = currentDebt + Math.round(sellTotal);
             if (totalAfterSale > client.creditLimit) {
-                if (!confirm(`Warning: This sale will exceed client's credit limit of ${client.creditLimit} den. Current debt: ${currentDebt} den. Continue?`)) {
-                    return;
-                }
+                // Show warning but don't block - credit limit is advisory
+                showToast('⚠️ Kujdes: Kjo shitje tejkalon limitin e kreditit (' + client.creditLimit + ' ден). Borxhi aktual: ' + currentDebt + ' ден', 'warning');
             }
         }
     }
@@ -642,11 +853,13 @@ function updateSale(index) {
     const isDebt = document.getElementById('sale-is-debt').checked;
     const paymentType = document.getElementById('sale-payment-type').value;
     let dueDate = '';
-    if (paymentType === 'invoice_60') {
-        dueDate = document.getElementById('sale-due-date').value;
+    var _invDaysMap = { 'invoice_30': 30, 'invoice_60': 60, 'invoice_90': 90 };
+    if (_invDaysMap[paymentType]) {
+        var _dueDateEl = document.getElementById('sale-due-date');
+        dueDate = _dueDateEl ? _dueDateEl.value : '';
         if (!dueDate) {
             const due = new Date(date);
-            due.setDate(due.getDate() + 60);
+            due.setDate(due.getDate() + _invDaysMap[paymentType]);
             dueDate = due.toISOString().split('T')[0];
         }
     }
@@ -670,6 +883,47 @@ function updateSale(index) {
     const buyTotal = product.buyPrice * quantity;
     const profit = sellTotal - buyTotal;
 
+    // Read payment status from edit modal
+    const payStatusEl = document.querySelector('input[name="sale-pay-status"]:checked');
+    let invoicePaid = paymentType === 'cash' ? true : (old.invoicePaid || false);
+    let paidAmount = old.paidAmount || 0;
+    let payMethod = old.payMethod || '';
+    let payDate = old.invoicePaidDate || old.payDate || '';
+    let paymentHistory = old.paymentHistory || [];
+
+    if (payStatusEl) {
+        const newStatus = payStatusEl.value;
+        const oldStatus = old.invoicePaid ? 'paid' : (old.paidAmount > 0 ? 'partial' : 'unpaid');
+
+        if (newStatus === 'paid') {
+            invoicePaid = true;
+            paidAmount = Math.round(sellTotal);
+        } else if (newStatus === 'unpaid') {
+            invoicePaid = false;
+            paidAmount = 0;
+        } else if (newStatus === 'partial') {
+            invoicePaid = false;
+            paidAmount = parseInt(document.getElementById('sale-paid-amount')?.value) || 0;
+        }
+
+        payMethod = document.getElementById('sale-pay-method')?.value || payMethod;
+        payDate = document.getElementById('sale-pay-date')?.value || payDate;
+
+        // Feature 7: Record payment change in history
+        if (newStatus !== oldStatus || paidAmount !== (old.paidAmount || 0)) {
+            paymentHistory.push({
+                date: new Date().toISOString(),
+                oldStatus: oldStatus,
+                newStatus: newStatus,
+                oldAmount: old.paidAmount || 0,
+                newAmount: paidAmount,
+                method: payMethod,
+                payDate: payDate,
+                note: 'Ndryshim nga editimi'
+            });
+        }
+    }
+
     state.sales[index] = {
         ...old,
         productId,
@@ -685,7 +939,12 @@ function updateSale(index) {
         isDebt,
         paymentType,
         dueDate,
-        invoicePaid: paymentType === 'cash' ? true : (old.invoicePaid || false)
+        invoicePaid,
+        invoicePaidDate: invoicePaid ? (payDate || new Date().toISOString().split('T')[0]) : '',
+        paidAmount,
+        payMethod,
+        payDate,
+        paymentHistory
     };
 
     // Deduct new stock
@@ -703,25 +962,26 @@ function updateSale(index) {
 }
 
 function deleteSale(index) {
-    if (!confirm(t('confirm_delete'))) return;
     const sale = state.sales[index];
     const product = getProduct(sale.productId);
+    modalConfirm('A jeni i sigurt që dëshironi ta fshini shitjen?<br><strong>' + product.name + ' x' + sale.quantity + ' — ' + sale.sellTotal + ' ден</strong>', function() {
+        // Restore stock
+        state.stock[sale.productId] = (state.stock[sale.productId] || 0) + sale.quantity;
 
-    // Restore stock
-    state.stock[sale.productId] = (state.stock[sale.productId] || 0) + sale.quantity;
+        // Reverse client debt if this was a debt sale
+        if (sale.isDebt && sale.clientId) {
+            const client = state.clients.find(c => c.id === sale.clientId);
+            if (client) client.debt = Math.max(0, client.debt - sale.sellTotal);
+        }
 
-    // Reverse client debt if this was a debt sale
-    if (sale.isDebt && sale.clientId) {
-        const client = state.clients.find(c => c.id === sale.clientId);
-        if (client) client.debt = Math.max(0, client.debt - sale.sellTotal);
-    }
+        state.sales.splice(index, 1);
 
-    state.sales.splice(index, 1);
-
-    // Feature 19: Activity log
-    logActivity('Sale Deleted', `${sale.quantity}x ${product.name} - ${sale.sellTotal} den`);
-    saveState();
-    refreshAll();
+        // Feature 19: Activity log
+        logActivity('Sale Deleted', sale.quantity + 'x ' + product.name + ' - ' + sale.sellTotal + ' den');
+        saveState();
+        refreshAll();
+        showToast('Shitja u fshi!', 'success');
+    });
 }
 
 function refreshSales() {
@@ -765,23 +1025,53 @@ function refreshSales() {
         if (pType === 'cash') totalCash += s.sellTotal;
         else totalInvoice += s.sellTotal;
 
-        // Invoice status
-        let invoiceStatusHtml = '';
-        if (pType === 'invoice_60') {
+        // Invoice/payment status with colors and progress
+        let payStatusHtml = '';
+        let rowBorderColor = '';
+        const paid = s.paidAmount || 0;
+        const total = s.sellTotal || 0;
+        const paidPct = total > 0 ? Math.round((paid / total) * 100) : 0;
+
+        if (pType === 'invoice_60' || s.paidAmount !== undefined) {
             if (s.invoicePaid) {
-                invoiceStatusHtml = `<span style="color:var(--success)">${t('paid')}</span>`;
+                payStatusHtml = `<span style="color:#fff;background:var(--success);padding:2px 8px;border-radius:10px;font-size:0.8em;font-weight:600;">✓ Paguar</span>`;
+                if (s.invoicePaidDate || s.payDate) payStatusHtml += `<br><small style="color:#888;">${s.invoicePaidDate || s.payDate}</small>`;
+                if (s.payMethod) payStatusHtml += `<br><small style="color:#888;">${_payMethodLabel(s.payMethod)}</small>`;
+                rowBorderColor = 'border-left:4px solid var(--success);';
+            } else if (s.paidAmount > 0 && s.paidAmount < s.sellTotal) {
+                payStatusHtml = `<span style="color:#fff;background:var(--warning);padding:2px 8px;border-radius:10px;font-size:0.8em;font-weight:600;">◐ Pjesërisht</span>`;
+                payStatusHtml += `<div style="margin-top:4px;background:#e0e0e0;border-radius:4px;height:6px;overflow:hidden;"><div style="width:${paidPct}%;background:var(--warning);height:100%;border-radius:4px;"></div></div>`;
+                payStatusHtml += `<small style="color:#888;">${paid}/${total} ден (${paidPct}%)</small>`;
+                rowBorderColor = 'border-left:4px solid var(--warning);';
             } else {
                 const daysLeft = s.dueDate ? Math.ceil((new Date(s.dueDate) - new Date()) / (1000*60*60*24)) : 0;
-                if (daysLeft < 0) {
-                    invoiceStatusHtml = `<span style="color:var(--danger)">${t('overdue')} (${Math.abs(daysLeft)} ${t('overdue_days')})</span>`;
-                } else {
-                    invoiceStatusHtml = `<span style="color:var(--warning)">${t('unpaid')} (${daysLeft} ${t('days_until_due')})</span>`;
+                if (s.dueDate && daysLeft < 0) {
+                    payStatusHtml = `<span style="color:#fff;background:var(--danger);padding:2px 8px;border-radius:10px;font-size:0.8em;font-weight:600;">⚠ Vonuar</span>`;
+                    payStatusHtml += `<br><small style="color:var(--danger);">${Math.abs(daysLeft)} ditë vonës</small>`;
+                    rowBorderColor = 'border-left:4px solid var(--danger);';
+                } else if (pType === 'invoice_60') {
+                    payStatusHtml = `<span style="color:#fff;background:#FF9800;padding:2px 8px;border-radius:10px;font-size:0.8em;font-weight:600;">✗ Papaguar</span>`;
+                    if (daysLeft > 0) payStatusHtml += `<br><small style="color:#FF9800;">${daysLeft} ditë deri në skadim</small>`;
+                    rowBorderColor = 'border-left:4px solid #FF9800;';
                 }
             }
+        } else if (pType === 'cash') {
+            payStatusHtml = `<span style="color:#fff;background:var(--success);padding:2px 8px;border-radius:10px;font-size:0.8em;font-weight:600;">✓ Cash</span>`;
+            rowBorderColor = 'border-left:4px solid var(--success);';
+        }
+
+        // Quick action buttons
+        let quickPayBtns = '';
+        if (pType === 'invoice_60' && !s.invoicePaid) {
+            quickPayBtns += `<button class="btn btn-sm btn-success" onclick="quickMarkPaid(${realIndex})" title="Shëno paguar"><i class="fas fa-check"></i></button>`;
+            quickPayBtns += `<button class="btn btn-sm" onclick="openPartialPaymentModal(${realIndex})" title="Pagesë e pjesshme" style="background:var(--warning);color:#fff;"><i class="fas fa-adjust"></i></button>`;
+            if (client) quickPayBtns += `<button class="btn btn-sm btn-secondary" onclick="sendPaymentReminder(${realIndex})" title="Kujtesë WhatsApp"><i class="fab fa-whatsapp"></i></button>`;
+        } else if (s.invoicePaid && pType === 'invoice_60') {
+            quickPayBtns += `<button class="btn btn-sm" onclick="unmarkPaid(${realIndex})" title="Kthe si papaguar" style="background:#9E9E9E;color:#fff;"><i class="fas fa-undo"></i></button>`;
         }
 
         tbody.innerHTML += `
-            <tr>
+            <tr style="${rowBorderColor}">
                 <td>${s.date}</td>
                 <td><span style="cursor:pointer;color:var(--primary);text-decoration:underline;" onclick="openProduct360('${s.productId}')">${product.name}</span></td>
                 <td>${s.quantity}</td>
@@ -790,14 +1080,18 @@ function refreshSales() {
                 <td>${s.sellTotal} ден</td>
                 <td>${s.profit} ден</td>
                 <td>${client ? `<span style="cursor:pointer;color:var(--primary);text-decoration:underline;" onclick="openClient360('${client.id}')">${client.name}</span>` : '-'}${s.isDebt ? ' <span style="color:var(--danger)">(borxh)</span>' : ''}</td>
-                <td><span class="payment-badge ${pType}">${t(pType)}</span>${pType === 'invoice_60' ? '<br>' + invoiceStatusHtml : ''}</td>
+                <td style="min-width:120px;">
+                    <span class="payment-badge ${pType}">${t(pType)}</span><br>
+                    ${payStatusHtml}
+                </td>
                 <td>${s.location || '-'}</td>
-                <td>
+                <td style="white-space:nowrap;">
                     <button class="btn btn-sm btn-secondary" onclick="openSaleModal(${realIndex})"><i class="fas fa-edit"></i></button>
                     <button class="btn btn-sm btn-danger" onclick="deleteSale(${realIndex})"><i class="fas fa-trash"></i></button>
                     <button class="btn btn-sm btn-secondary" onclick="generateInvoice(${realIndex})"><i class="fas fa-file-invoice"></i></button>
                     <button class="btn btn-sm btn-secondary" onclick="duplicateSale(${realIndex})" title="Kopjo"><i class="fas fa-copy"></i></button>
-                    ${pType === 'invoice_60' && !s.invoicePaid ? `<button class="btn btn-sm btn-success" onclick="markInvoicePaid(${realIndex})"><i class="fas fa-check"></i></button>` : ''}
+                    ${quickPayBtns}
+                    ${(s.paymentHistory && s.paymentHistory.length > 0) ? `<button class="btn btn-sm btn-secondary" onclick="showSalePaymentHistory(${realIndex})" title="Histori pagesash"><i class="fas fa-history"></i></button>` : ''}
                 </td>
             </tr>
         `;
@@ -809,6 +1103,12 @@ function refreshSales() {
     document.getElementById('sales-orhan-share').textContent = calcPartnerShare(totalProfit) + ' ден';
     document.getElementById('sales-cash-total').textContent = totalCash + ' ден';
     document.getElementById('sales-invoice-total').textContent = totalInvoice + ' ден';
+
+    // Update sales count badge
+    var countBadge = document.getElementById('sales-count-badge');
+    if (countBadge) {
+        countBadge.textContent = state.sales.length;
+    }
 }
 
 function markInvoicePaid(index) {
@@ -817,14 +1117,30 @@ function markInvoicePaid(index) {
     const cashDebt = calcFatonDebt();
     const client = sale.clientId ? state.clients.find(c => c.id === sale.clientId) : null;
     const product = getProduct(sale.productId);
+    const paid = sale.paidAmount || 0;
+    const remaining = sale.sellTotal - paid;
 
     let html = `
         <div style="background:var(--bg-primary);padding:12px;border-radius:8px;margin-bottom:15px;">
             <p><strong>${t('product')}:</strong> ${product.name} x${sale.quantity}</p>
-            <p><strong>${t('total')}:</strong> ${sale.sellTotal} den</p>
-            <p><strong>${t('profit')}:</strong> ${profit} den</p>
+            <p><strong>${t('total')}:</strong> ${sale.sellTotal} ден</p>
+            ${paid > 0 ? `<p><strong>Paguar deri tani:</strong> <span style="color:var(--warning);">${paid} ден</span></p><p><strong>Mbetet:</strong> <span style="color:var(--danger);">${remaining} ден</span></p>` : ''}
+            <p><strong>${t('profit')}:</strong> ${profit} ден</p>
             ${client ? `<p><strong>${t('client')}:</strong> ${client.name}</p>` : ''}
-            <p><strong>${t('faton_cash_debt')}:</strong> ${cashDebt} den</p>
+            <p><strong>${t('faton_cash_debt')}:</strong> ${cashDebt} ден</p>
+        </div>
+        <div class="form-group">
+            <label>Metoda e pagesës:</label>
+            <select id="invoice-pay-method">
+                <option value="cash">💵 Cash</option>
+                <option value="bank">🏦 Transfer Bankar</option>
+                <option value="mobile">📱 Mobile Payment</option>
+                <option value="card">💳 Kartë</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Data e pagesës:</label>
+            <input type="date" id="invoice-pay-date" value="${new Date().toISOString().split('T')[0]}">
         </div>
         <div class="form-group">
             <label>${t('profit_collection_type')}:</label>
@@ -838,21 +1154,61 @@ function markInvoicePaid(index) {
             <label>${t('amount')}:</label>
             <input type="number" id="invoice-profit-amount" value="${profit}" min="0" max="${profit}">
         </div>
-        <button class="btn btn-success" onclick="confirmMarkInvoicePaid(${index})" style="width:100%;">
-            <i class="fas fa-check"></i> ${t('mark_paid')}
+        <div class="form-group">
+            <label>Arsyeja/Shënim:</label>
+            <input type="text" id="invoice-pay-note" placeholder="Opsionale" value="">
+        </div>
+        <button class="btn btn-success" id="mark-paid-confirm-btn" style="width:100%;">
+            <i class="fas fa-check"></i> Shëno si të Paguar Plotësisht
         </button>
     `;
-    openModal(t('mark_paid') + ' - ' + t('collect_profit'), html);
+    openModal('💳 Shëno si të Paguar', html);
+    setTimeout(function() {
+        var btn = document.getElementById('mark-paid-confirm-btn');
+        if (btn) {
+            btn.addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); confirmMarkInvoicePaid(index); });
+            btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, 100);
 }
 
 function confirmMarkInvoicePaid(index) {
     const sale = state.sales[index];
     const profitType = document.getElementById('invoice-profit-type').value;
     const amount = parseInt(document.getElementById('invoice-profit-amount').value) || 0;
+    const payMethod = document.getElementById('invoice-pay-method')?.value || 'cash';
+    const payDate = document.getElementById('invoice-pay-date')?.value || new Date().toISOString().split('T')[0];
+    const payNote = document.getElementById('invoice-pay-note')?.value || '';
+
+    const oldStatus = sale.invoicePaid ? 'paid' : (sale.paidAmount > 0 ? 'partial' : 'unpaid');
 
     // Mark invoice as paid
     state.sales[index].invoicePaid = true;
-    state.sales[index].invoicePaidDate = new Date().toISOString().split('T')[0];
+    state.sales[index].invoicePaidDate = payDate;
+    state.sales[index].paidAmount = sale.sellTotal;
+    state.sales[index].payMethod = payMethod;
+    state.sales[index].payDate = payDate;
+
+    // Record in payment history
+    if (!state.sales[index].paymentHistory) state.sales[index].paymentHistory = [];
+    state.sales[index].paymentHistory.push({
+        date: new Date().toISOString(),
+        oldStatus: oldStatus,
+        newStatus: 'paid',
+        oldAmount: sale.paidAmount || 0,
+        newAmount: sale.sellTotal,
+        method: payMethod,
+        payDate: payDate,
+        note: payNote || 'Shënuar si e paguar plotësisht'
+    });
+
+    // Reverse client debt if it was a debt sale
+    if (sale.isDebt && sale.clientId) {
+        const client = state.clients.find(c => c.id === sale.clientId);
+        if (client) {
+            client.debt = Math.max(0, client.debt - sale.sellTotal);
+        }
+    }
 
     // Auto-collect profit if not "collect later"
     if (profitType !== 'collect_later' && amount > 0) {
@@ -863,12 +1219,13 @@ function confirmMarkInvoicePaid(index) {
             amount: amount,
             deductAmount: profitType === 'deduct_from_debt' ? amount : 0,
             cashAmount: profitType === 'faton_returns_cash' ? amount : 0,
-            date: new Date().toISOString().split('T')[0],
-            note: 'Auto: Fatura e paguar - ' + getProduct(sale.productId).name
+            date: payDate,
+            note: (payNote ? payNote + ' | ' : '') + 'Fatura e paguar - ' + getProduct(sale.productId).name
         });
-        showToast(t('collect_profit') + ': ' + amount + ' den', 'success');
+        showToast('Fitimi i mbledhur: ' + amount + ' ден', 'success');
     }
 
+    logActivity('payment', 'Fatura #' + (index + 1) + ' u shënua si e paguar: ' + sale.sellTotal + ' ден (' + _payMethodLabel(payMethod) + ')');
     saveState();
     closeModal();
     refreshAll();
@@ -877,6 +1234,650 @@ function confirmMarkInvoicePaid(index) {
 
 function filterSales() {
     refreshSales();
+}
+
+// ===================== MODAL CONFIRM (replaces browser confirm()) =====================
+// Browser confirm() is blocked on many mobile browsers and in some contexts.
+// This function shows a modal dialog instead and returns a Promise.
+function modalConfirm(message, onYes, onNo) {
+    // If onYes is provided, use callback style
+    openModal('Konfirmim', `
+        <div style="text-align:center;padding:15px;">
+            <div style="font-size:2.5em;margin-bottom:10px;">❓</div>
+            <p style="font-size:1.05em;margin-bottom:20px;line-height:1.5;">${message}</p>
+            <div style="display:flex;gap:10px;">
+                <button class="btn btn-secondary" id="mconfirm-no" style="flex:1;padding:12px;font-size:1em;">Anulo</button>
+                <button class="btn btn-danger" id="mconfirm-yes" style="flex:1;padding:12px;font-size:1em;font-weight:bold;">
+                    <i class="fas fa-check"></i> OK
+                </button>
+            </div>
+        </div>
+    `);
+    setTimeout(function() {
+        var yesBtn = document.getElementById('mconfirm-yes');
+        var noBtn = document.getElementById('mconfirm-no');
+        if (yesBtn) {
+            yesBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeModal();
+                if (typeof onYes === 'function') onYes();
+            });
+        }
+        if (noBtn) {
+            noBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeModal();
+                if (typeof onNo === 'function') onNo();
+            });
+        }
+    }, 50);
+}
+
+// ===================== PAYMENT MANAGEMENT FEATURES =====================
+
+// Helper: payment method label
+function _payMethodLabel(method) {
+    const labels = { cash: '💵 Cash', bank: '🏦 Transfer', mobile: '📱 Mobile', card: '💳 Kartë' };
+    return labels[method] || method || '—';
+}
+
+// Feature 1: Quick toggle paid (with double confirmation)
+function quickMarkPaid(index) {
+    const sale = state.sales[index];
+    const product = getProduct(sale.productId);
+    const client = sale.clientId ? state.clients.find(c => c.id === sale.clientId) : null;
+    openModal('⚡ Shëno si të Paguar', `
+        <div style="text-align:center;padding:10px;">
+            <div style="font-size:3em;margin-bottom:10px;">💳</div>
+            <h3>${product.name} x${sale.quantity}</h3>
+            <p style="font-size:1.3em;font-weight:bold;color:var(--success);">${sale.sellTotal} ден</p>
+            ${client ? `<p>Klienti: <strong>${client.name}</strong></p>` : ''}
+            ${sale.paidAmount > 0 ? `<p style="color:var(--warning);">Paguar deri tani: ${sale.paidAmount} ден</p>` : ''}
+            <div class="form-group" style="margin-top:15px;text-align:left;">
+                <label>Metoda:</label>
+                <select id="quick-pay-method">
+                    <option value="cash">💵 Cash</option>
+                    <option value="bank">🏦 Transfer Bankar</option>
+                    <option value="mobile">📱 Mobile Payment</option>
+                    <option value="card">💳 Kartë</option>
+                </select>
+            </div>
+            <p style="color:var(--danger);font-size:0.85em;margin:10px 0;">⚠️ Kjo do ta shënojë faturën si plotësisht të paguar</p>
+            <div style="display:flex;gap:10px;margin-top:15px;">
+                <button class="btn btn-secondary" id="qpay-cancel-btn" style="flex:1;">Anulo</button>
+                <button class="btn btn-success" id="qpay-confirm-btn" style="flex:1;">
+                    <i class="fas fa-check"></i> Konfirmo Pagesën
+                </button>
+            </div>
+        </div>
+    `);
+    setTimeout(function() {
+        var confirmBtn = document.getElementById('qpay-confirm-btn');
+        var cancelBtn = document.getElementById('qpay-cancel-btn');
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); _doQuickMarkPaid(index); });
+            confirmBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        if (cancelBtn) cancelBtn.addEventListener('click', function(e) { e.preventDefault(); closeModal(); });
+    }, 100);
+}
+
+function _doQuickMarkPaid(index) {
+    const sale = state.sales[index];
+    const payMethod = document.getElementById('quick-pay-method')?.value || 'cash';
+    const payDate = new Date().toISOString().split('T')[0];
+    const oldStatus = sale.invoicePaid ? 'paid' : (sale.paidAmount > 0 ? 'partial' : 'unpaid');
+
+    state.sales[index].invoicePaid = true;
+    state.sales[index].invoicePaidDate = payDate;
+    state.sales[index].paidAmount = sale.sellTotal;
+    state.sales[index].payMethod = payMethod;
+    state.sales[index].payDate = payDate;
+    if (!state.sales[index].paymentHistory) state.sales[index].paymentHistory = [];
+    state.sales[index].paymentHistory.push({
+        date: new Date().toISOString(),
+        oldStatus: oldStatus,
+        newStatus: 'paid',
+        oldAmount: sale.paidAmount || 0,
+        newAmount: sale.sellTotal,
+        method: payMethod,
+        payDate: payDate,
+        note: 'Pagesë e shpejtë'
+    });
+
+    if (sale.isDebt && sale.clientId) {
+        const client = state.clients.find(c => c.id === sale.clientId);
+        if (client) client.debt = Math.max(0, client.debt - sale.sellTotal);
+    }
+
+    logActivity('payment', 'Pagesë e shpejtë: ' + sale.sellTotal + ' ден (' + _payMethodLabel(payMethod) + ')');
+    saveState();
+    closeModal();
+    refreshAll();
+    showToast('Fatura u shënua si e paguar!', 'success');
+}
+
+// Feature 1b: Unmark paid (kthe si papaguar) with double confirmation
+function unmarkPaid(index) {
+    const sale = state.sales[index];
+    const product = getProduct(sale.productId);
+    openModal('🔄 Kthe si Papaguar', `
+        <div style="text-align:center;padding:10px;">
+            <div style="font-size:3em;margin-bottom:10px;">⚠️</div>
+            <h3>Jeni i sigurt?</h3>
+            <p>Kjo do ta kthejë shitjen "${product.name} x${sale.quantity}" si <strong style="color:var(--danger);">të papaguar</strong>.</p>
+            <p style="font-size:1.2em;font-weight:bold;">${sale.sellTotal} ден</p>
+            <div class="form-group" style="text-align:left;margin-top:15px;">
+                <label>Arsyeja e korrigjimit:</label>
+                <select id="unmark-reason">
+                    <option value="gabim">Gabim — nuk ishte paguar realisht</option>
+                    <option value="kthim">Klienti ktheu mallin</option>
+                    <option value="anullim">Pagesa u anulua</option>
+                    <option value="korrigjim">Korrigjim i të dhënave</option>
+                    <option value="tjeter">Tjetër</option>
+                </select>
+            </div>
+            <div class="form-group" style="text-align:left;">
+                <label>Shënim shtesë:</label>
+                <input type="text" id="unmark-note" placeholder="Opsionale">
+            </div>
+            <div style="display:flex;gap:10px;margin-top:15px;">
+                <button class="btn btn-secondary" id="unmark-cancel-btn" style="flex:1;">Anulo</button>
+                <button class="btn btn-danger" id="unmark-confirm-btn" style="flex:1;">
+                    <i class="fas fa-undo"></i> Konfirmo Kthimin
+                </button>
+            </div>
+        </div>
+    `);
+    // Use addEventListener instead of onclick for better browser compatibility
+    setTimeout(function() {
+        var confirmBtn = document.getElementById('unmark-confirm-btn');
+        var cancelBtn = document.getElementById('unmark-cancel-btn');
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                _doUnmarkPaid(index);
+            });
+            // Auto-scroll button into view
+            confirmBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                closeModal();
+            });
+        }
+    }, 100);
+}
+
+function _doUnmarkPaid(index) {
+    const sale = state.sales[index];
+    const reason = document.getElementById('unmark-reason')?.value || 'tjeter';
+    const note = document.getElementById('unmark-note')?.value || '';
+
+    if (!state.sales[index].paymentHistory) state.sales[index].paymentHistory = [];
+    state.sales[index].paymentHistory.push({
+        date: new Date().toISOString(),
+        oldStatus: 'paid',
+        newStatus: 'unpaid',
+        oldAmount: sale.paidAmount || sale.sellTotal,
+        newAmount: 0,
+        method: '',
+        payDate: '',
+        note: 'Kthyer papaguar: ' + reason + (note ? ' — ' + note : '')
+    });
+
+    state.sales[index].invoicePaid = false;
+    state.sales[index].invoicePaidDate = '';
+    state.sales[index].paidAmount = 0;
+    state.sales[index].payDate = '';
+
+    // Re-add client debt if it was a debt sale
+    if (sale.isDebt && sale.clientId) {
+        const client = state.clients.find(c => c.id === sale.clientId);
+        if (client) client.debt += sale.sellTotal;
+    }
+
+    logActivity('payment_reverse', 'Fatura u kthye papaguar: ' + sale.sellTotal + ' ден (' + reason + ')');
+    saveState();
+    closeModal();
+    refreshAll();
+    showToast('Fatura u kthye si papaguar', 'info');
+}
+
+// Feature 3: Partial payment modal
+function openPartialPaymentModal(index) {
+    const sale = state.sales[index];
+    const product = getProduct(sale.productId);
+    const client = sale.clientId ? state.clients.find(c => c.id === sale.clientId) : null;
+    const alreadyPaid = sale.paidAmount || 0;
+    const remaining = sale.sellTotal - alreadyPaid;
+
+    openModal('💰 Pagesë e Pjesshme', `
+        <div style="padding:5px;">
+            <div style="background:var(--bg-secondary);padding:12px;border-radius:10px;margin-bottom:15px;">
+                <p><strong>${product.name}</strong> x${sale.quantity}</p>
+                ${client ? `<p>Klienti: <strong>${client.name}</strong></p>` : ''}
+                <p>Totali: <strong>${sale.sellTotal} ден</strong></p>
+                ${alreadyPaid > 0 ? `<p style="color:var(--warning);">Paguar deri tani: <strong>${alreadyPaid} ден</strong></p>` : ''}
+                <p style="color:var(--danger);">Mbetet: <strong>${remaining} ден</strong></p>
+            </div>
+            <div style="background:#e0e0e0;border-radius:6px;height:10px;overflow:hidden;margin-bottom:15px;">
+                <div style="width:${sale.sellTotal > 0 ? Math.round((alreadyPaid / sale.sellTotal) * 100) : 0}%;background:var(--warning);height:100%;border-radius:6px;transition:width 0.3s;"></div>
+            </div>
+            <div class="form-group">
+                <label>Shuma e pagesës (ден):</label>
+                <input type="number" id="partial-pay-amount" min="1" max="${remaining}" value="${remaining}"
+                    oninput="document.getElementById('partial-remaining').textContent = (${remaining} - (parseInt(this.value)||0)) + ' ден'">
+                <small style="color:var(--text-secondary);">Pas kësaj pagese mbeten: <strong id="partial-remaining">0 ден</strong></small>
+            </div>
+            <div class="form-group">
+                <label>Metoda:</label>
+                <select id="partial-pay-method">
+                    <option value="cash">💵 Cash</option>
+                    <option value="bank">🏦 Transfer Bankar</option>
+                    <option value="mobile">📱 Mobile Payment</option>
+                    <option value="card">💳 Kartë</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Data e pagesës:</label>
+                <input type="date" id="partial-pay-date" value="${new Date().toISOString().split('T')[0]}">
+            </div>
+            <div class="form-group">
+                <label>Shënim:</label>
+                <input type="text" id="partial-pay-note" placeholder="Opsionale">
+            </div>
+            <button class="btn btn-success" id="partial-confirm-btn" style="width:100%;">
+                <i class="fas fa-coins"></i> Regjistro Pagesën
+            </button>
+        </div>
+    `);
+    setTimeout(function() {
+        var btn = document.getElementById('partial-confirm-btn');
+        if (btn) {
+            btn.addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); _doPartialPayment(index); });
+            btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, 100);
+}
+
+function _doPartialPayment(index) {
+    const sale = state.sales[index];
+    const payAmount = parseInt(document.getElementById('partial-pay-amount')?.value) || 0;
+    const payMethod = document.getElementById('partial-pay-method')?.value || 'cash';
+    const payDate = document.getElementById('partial-pay-date')?.value || new Date().toISOString().split('T')[0];
+    const payNote = document.getElementById('partial-pay-note')?.value || '';
+    const alreadyPaid = sale.paidAmount || 0;
+
+    if (payAmount <= 0) { showToast('Shkruani shumën!', 'error'); return; }
+    if (payAmount > sale.sellTotal - alreadyPaid) { showToast('Shuma tejkalon mbetjen!', 'error'); return; }
+
+    const newTotal = alreadyPaid + payAmount;
+    const fullyPaid = newTotal >= sale.sellTotal;
+    const oldStatus = sale.invoicePaid ? 'paid' : (alreadyPaid > 0 ? 'partial' : 'unpaid');
+
+    if (!state.sales[index].paymentHistory) state.sales[index].paymentHistory = [];
+    state.sales[index].paymentHistory.push({
+        date: new Date().toISOString(),
+        oldStatus: oldStatus,
+        newStatus: fullyPaid ? 'paid' : 'partial',
+        oldAmount: alreadyPaid,
+        newAmount: newTotal,
+        method: payMethod,
+        payDate: payDate,
+        note: payNote || ('Pagesë e pjesshme: ' + payAmount + ' ден')
+    });
+
+    state.sales[index].paidAmount = newTotal;
+    state.sales[index].payMethod = payMethod;
+    state.sales[index].payDate = payDate;
+
+    if (fullyPaid) {
+        state.sales[index].invoicePaid = true;
+        state.sales[index].invoicePaidDate = payDate;
+        if (sale.isDebt && sale.clientId) {
+            const client = state.clients.find(c => c.id === sale.clientId);
+            if (client) client.debt = Math.max(0, client.debt - sale.sellTotal);
+        }
+        showToast('Fatura u pagua plotësisht! 🎉', 'success');
+    } else {
+        showToast('Pagesë e regjistruar: ' + payAmount + ' ден (mbeten ' + (sale.sellTotal - newTotal) + ' ден)', 'info');
+    }
+
+    logActivity('partial_payment', 'Pagesë ' + payAmount + ' ден për faturën: ' + getProduct(sale.productId).name + ' (' + _payMethodLabel(payMethod) + ')');
+    saveState();
+    closeModal();
+    refreshAll();
+}
+
+// Feature 7: Show payment history for a sale
+function showSalePaymentHistory(index) {
+    const sale = state.sales[index];
+    const product = getProduct(sale.productId);
+    const history = sale.paymentHistory || [];
+
+    if (history.length === 0) {
+        showToast('Nuk ka histori pagesash', 'info');
+        return;
+    }
+
+    let html = `
+        <div style="margin-bottom:15px;">
+            <strong>${product.name}</strong> x${sale.quantity} — Totali: ${sale.sellTotal} ден
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+    `;
+
+    history.forEach((h, i) => {
+        const statusIcon = h.newStatus === 'paid' ? '✅' : h.newStatus === 'partial' ? '◐' : '❌';
+        const statusColor = h.newStatus === 'paid' ? 'var(--success)' : h.newStatus === 'partial' ? 'var(--warning)' : 'var(--danger)';
+        html += `
+            <div style="background:var(--bg-secondary);padding:10px;border-radius:8px;border-left:4px solid ${statusColor};">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span>${statusIcon} ${h.oldStatus} → <strong>${h.newStatus}</strong></span>
+                    <small style="color:#888;">${new Date(h.date).toLocaleString('sq-AL')}</small>
+                </div>
+                <div style="margin-top:5px;font-size:0.9em;">
+                    <span>Shuma: <strong>${h.oldAmount}</strong> → <strong style="color:${statusColor};">${h.newAmount} ден</strong></span>
+                    ${h.method ? ` | ${_payMethodLabel(h.method)}` : ''}
+                    ${h.payDate ? ` | Data: ${h.payDate}` : ''}
+                </div>
+                ${h.note ? `<div style="color:#888;font-size:0.85em;margin-top:3px;font-style:italic;">${h.note}</div>` : ''}
+            </div>
+        `;
+    });
+
+    html += `</div>`;
+    openModal('📋 Histori Pagesash — ' + product.name, html);
+}
+
+// Feature 6 & 11: Send payment reminder via WhatsApp
+function sendPaymentReminder(index) {
+    const sale = state.sales[index];
+    if (!sale.clientId) { showToast('Kjo shitje nuk ka klient!', 'error'); return; }
+    const client = state.clients.find(c => c.id === sale.clientId);
+    if (!client) { showToast('Klienti nuk u gjet!', 'error'); return; }
+    const product = getProduct(sale.productId);
+    const remaining = sale.sellTotal - (sale.paidAmount || 0);
+    const dueDate = sale.dueDate || '';
+    const daysLeft = dueDate ? Math.ceil((new Date(dueDate) - new Date()) / (1000*60*60*24)) : 0;
+
+    openModal('📱 Dërgo Kujtesë Pagese', `
+        <div style="padding:5px;">
+            <div style="background:#e8f5e9;padding:15px;border-radius:10px;margin-bottom:15px;">
+                <p style="font-weight:bold;">Klienti: ${client.name}</p>
+                <p>Produkti: ${product.name} x${sale.quantity}</p>
+                <p>Totali: ${sale.sellTotal} ден</p>
+                ${sale.paidAmount > 0 ? `<p>Paguar: ${sale.paidAmount} ден</p>` : ''}
+                <p style="color:var(--danger);font-weight:bold;">Mbetet: ${remaining} ден</p>
+                ${dueDate ? `<p>Skadimi: ${dueDate} ${daysLeft < 0 ? '(⚠️ ' + Math.abs(daysLeft) + ' ditë vonës!)' : '(' + daysLeft + ' ditë)'}</p>` : ''}
+            </div>
+            <div class="form-group">
+                <label>Mesazhi:</label>
+                <textarea id="reminder-msg" rows="5" style="width:100%;box-sizing:border-box;">Përshëndetje ${client.name},
+
+Ju kujtojmë për pagesën e mbetur prej ${remaining} ден për ${product.name}.
+${dueDate ? 'Data e skadimit: ' + dueDate : ''}
+
+Ju faleminderit,
+Hurma App</textarea>
+            </div>
+            <div style="display:flex;gap:10px;">
+                <button class="btn btn-success" id="wa-send-btn" style="flex:1;">
+                    <i class="fab fa-whatsapp"></i> Dërgo WhatsApp
+                </button>
+                <button class="btn btn-secondary" id="wa-copy-btn" style="flex:1;">
+                    <i class="fas fa-copy"></i> Kopjo Mesazhin
+                </button>
+            </div>
+        </div>
+    `);
+    setTimeout(function() {
+        var waBtn = document.getElementById('wa-send-btn');
+        var copyBtn = document.getElementById('wa-copy-btn');
+        if (waBtn) waBtn.addEventListener('click', function(e) { e.preventDefault(); _sendWhatsAppReminder(client.phone || '', index); });
+        if (copyBtn) copyBtn.addEventListener('click', function(e) { e.preventDefault(); _copySmsReminder(index); });
+    }, 100);
+}
+
+function _sendWhatsAppReminder(phone, index) {
+    const msg = document.getElementById('reminder-msg')?.value || '';
+    if (!phone) { showToast('Klienti nuk ka numër telefoni!', 'error'); return; }
+    const cleanPhone = phone.replace(/[^0-9+]/g, '');
+    const waUrl = 'https://wa.me/' + cleanPhone + '?text=' + encodeURIComponent(msg);
+    window.open(waUrl, '_blank');
+
+    // Record reminder sent
+    const sale = state.sales[index];
+    if (!sale.paymentHistory) sale.paymentHistory = [];
+    sale.paymentHistory.push({
+        date: new Date().toISOString(),
+        oldStatus: sale.invoicePaid ? 'paid' : 'unpaid',
+        newStatus: sale.invoicePaid ? 'paid' : 'unpaid',
+        oldAmount: sale.paidAmount || 0,
+        newAmount: sale.paidAmount || 0,
+        method: '',
+        payDate: '',
+        note: '📱 Kujtesë pagese dërguar përmes WhatsApp'
+    });
+    saveState();
+    showToast('Kujtesa u dërgua!', 'success');
+}
+
+function _copySmsReminder(index) {
+    const msg = document.getElementById('reminder-msg')?.value || '';
+    navigator.clipboard.writeText(msg).then(() => {
+        showToast('Mesazhi u kopjua!', 'success');
+    }).catch(() => {
+        showToast('Nuk u kopjua', 'error');
+    });
+}
+
+// Feature 13: Payment Report Dashboard
+function showPaymentReport() {
+    const allSales = state.sales || [];
+    const invoiceSales = allSales.filter(s => (s.paymentType || 'cash') === 'invoice_60');
+    const cashSales = allSales.filter(s => (s.paymentType || 'cash') === 'cash');
+
+    const paidFull = invoiceSales.filter(s => s.invoicePaid);
+    const partial = invoiceSales.filter(s => !s.invoicePaid && s.paidAmount > 0);
+    const unpaid = invoiceSales.filter(s => !s.invoicePaid && (!s.paidAmount || s.paidAmount === 0));
+    const overdue = unpaid.filter(s => s.dueDate && new Date(s.dueDate) < new Date());
+
+    const totalInvoiced = invoiceSales.reduce((s, x) => s + x.sellTotal, 0);
+    const totalPaidAmount = invoiceSales.reduce((s, x) => s + (x.paidAmount || (x.invoicePaid ? x.sellTotal : 0)), 0);
+    const totalRemaining = totalInvoiced - totalPaidAmount;
+    const totalCash = cashSales.reduce((s, x) => s + x.sellTotal, 0);
+
+    // Payment method breakdown
+    const methodCounts = {};
+    allSales.forEach(s => {
+        const m = s.payMethod || ((s.paymentType || 'cash') === 'cash' ? 'cash' : '');
+        if (m) methodCounts[m] = (methodCounts[m] || 0) + 1;
+    });
+
+    let html = `
+        <div style="padding:5px;">
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px;">
+                <div style="background:#e8f5e9;padding:15px;border-radius:12px;text-align:center;">
+                    <div style="font-size:2em;">💚</div>
+                    <div style="font-size:1.5em;font-weight:bold;color:var(--success);">${paidFull.length}</div>
+                    <small>Paguar Plotësisht</small>
+                    <div style="font-weight:bold;">${totalPaidAmount} ден</div>
+                </div>
+                <div style="background:#fff3e0;padding:15px;border-radius:12px;text-align:center;">
+                    <div style="font-size:2em;">🟡</div>
+                    <div style="font-size:1.5em;font-weight:bold;color:var(--warning);">${partial.length}</div>
+                    <small>Pjesërisht Paguar</small>
+                    <div style="font-weight:bold;">${partial.reduce((s,x) => s + (x.paidAmount||0), 0)} ден</div>
+                </div>
+                <div style="background:#fff8e1;padding:15px;border-radius:12px;text-align:center;">
+                    <div style="font-size:2em;">🟠</div>
+                    <div style="font-size:1.5em;font-weight:bold;color:#FF9800;">${unpaid.length}</div>
+                    <small>Papaguar</small>
+                    <div style="font-weight:bold;">${unpaid.reduce((s,x) => s + x.sellTotal, 0)} ден</div>
+                </div>
+                <div style="background:#ffebee;padding:15px;border-radius:12px;text-align:center;">
+                    <div style="font-size:2em;">🔴</div>
+                    <div style="font-size:1.5em;font-weight:bold;color:var(--danger);">${overdue.length}</div>
+                    <small>Vonuar (Overdue)</small>
+                    <div style="font-weight:bold;">${overdue.reduce((s,x) => s + x.sellTotal, 0)} ден</div>
+                </div>
+            </div>
+
+            <div style="background:var(--bg-secondary);padding:15px;border-radius:12px;margin-bottom:15px;">
+                <h4 style="margin-bottom:10px;">📊 Përmbledhje</h4>
+                <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;">
+                    <span>Total Cash:</span><strong style="color:var(--success);">${totalCash} ден</strong>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;">
+                    <span>Total Fatura:</span><strong>${totalInvoiced} ден</strong>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;">
+                    <span>Mbledhur:</span><strong style="color:var(--success);">${totalPaidAmount} ден</strong>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:5px 0;">
+                    <span>Mbetet:</span><strong style="color:var(--danger);">${totalRemaining} ден</strong>
+                </div>
+                <div style="margin-top:10px;background:#e0e0e0;border-radius:6px;height:12px;overflow:hidden;">
+                    <div style="width:${totalInvoiced > 0 ? Math.round((totalPaidAmount/totalInvoiced)*100) : 0}%;background:var(--success);height:100%;border-radius:6px;"></div>
+                </div>
+                <small style="color:#888;">${totalInvoiced > 0 ? Math.round((totalPaidAmount/totalInvoiced)*100) : 0}% e mbledhur</small>
+            </div>
+
+            <div style="background:var(--bg-secondary);padding:15px;border-radius:12px;margin-bottom:15px;">
+                <h4 style="margin-bottom:10px;">💳 Sipas Metodës</h4>
+                ${Object.entries(methodCounts).map(([m, c]) => `
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;">
+                        <span>${_payMethodLabel(m)}</span>
+                        <strong>${c} shitje</strong>
+                    </div>
+                `).join('')}
+            </div>
+
+            ${overdue.length > 0 ? `
+            <div style="background:#ffebee;padding:15px;border-radius:12px;">
+                <h4 style="margin-bottom:10px;color:var(--danger);">⚠️ Fatura të Vonuara</h4>
+                ${overdue.slice(0, 10).map(s => {
+                    const cl = s.clientId ? state.clients.find(c => c.id === s.clientId) : null;
+                    const pr = getProduct(s.productId);
+                    const days = Math.abs(Math.ceil((new Date(s.dueDate) - new Date()) / (1000*60*60*24)));
+                    const ri = state.sales.indexOf(s);
+                    return `
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:#fff;border-radius:8px;margin-bottom:5px;">
+                            <div>
+                                <strong>${pr.name}</strong> ${cl ? '— ' + cl.name : ''}
+                                <br><small style="color:var(--danger);">${days} ditë vonës | ${s.sellTotal} ден</small>
+                            </div>
+                            <div>
+                                ${cl ? `<button class="btn btn-sm btn-success" onclick="sendPaymentReminder(${ri})"><i class="fab fa-whatsapp"></i></button>` : ''}
+                                <button class="btn btn-sm btn-success" onclick="quickMarkPaid(${ri})"><i class="fas fa-check"></i></button>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+            ` : ''}
+        </div>
+    `;
+    openModal('📈 Raporti i Pagesave', html);
+}
+
+// Feature 6: Check payment reminders on app load
+function checkPaymentReminders() {
+    const today = new Date().toISOString().split('T')[0];
+    const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+    const overdue = state.sales.filter(s =>
+        (s.paymentType || 'cash') === 'invoice_60' &&
+        !s.invoicePaid &&
+        s.dueDate && s.dueDate <= today
+    );
+    const dueSoon = state.sales.filter(s =>
+        (s.paymentType || 'cash') === 'invoice_60' &&
+        !s.invoicePaid &&
+        s.dueDate && s.dueDate > today && s.dueDate <= tomorrow
+    );
+
+    if (overdue.length > 0) {
+        showToast('⚠️ ' + overdue.length + ' fatura të vonuara!', 'error');
+    }
+    if (dueSoon.length > 0) {
+        showToast('🔔 ' + dueSoon.length + ' fatura skadojnë nesër!', 'warning');
+    }
+}
+
+function checkClientDebtAlerts() {
+    const today = new Date().toISOString().split('T')[0];
+    const alertKey = 'hurma-last-client-debt-alert';
+    if (localStorage.getItem(alertKey) === today) return;
+
+    const criticalClient = (state.clients || [])
+        .filter(client => (client.debt || 0) >= 10000)
+        .sort((a, b) => (b.debt || 0) - (a.debt || 0))[0];
+
+    if (criticalClient) {
+        showBalanceAlert('danger', `${criticalClient.name} ka borxh kritik: ${criticalClient.debt} ден`);
+        localStorage.setItem(alertKey, today);
+        return;
+    }
+
+    const staleDebtClient = (state.clients || []).find(client => {
+        if ((client.debt || 0) <= 0) return false;
+        const clientSales = state.sales.filter(s => s.clientId === client.id);
+        const clientPayments = (state.clientPayments || []).filter(p => p.clientId === client.id && p.status !== 'cancelled');
+        const lastSaleDate = clientSales.length > 0 ? clientSales.map(s => s.date).sort().slice(-1)[0] : '';
+        const lastPaymentDate = clientPayments.length > 0 ? clientPayments.map(p => p.date).sort().slice(-1)[0] : '';
+        const lastActivity = [lastSaleDate, lastPaymentDate].filter(Boolean).sort().slice(-1)[0];
+        if (!lastActivity) return false;
+        const daysSince = Math.floor((Date.now() - new Date(lastActivity).getTime()) / 86400000);
+        return daysSince >= 30;
+    });
+
+    if (staleDebtClient) {
+        showBalanceAlert('info', `${staleDebtClient.name} ka borxh dhe mbi 30 ditë pa aktivitet`);
+        localStorage.setItem(alertKey, today);
+    }
+}
+
+// Feature 12: Generate invoice with payment status
+function generateInvoiceWithStatus(saleIndex) {
+    const model = buildInvoiceModel(saleIndex);
+    if (!model) return;
+    currentInvoiceSaleIndex = saleIndex;
+    const content = document.getElementById('invoice-content');
+    content.innerHTML = renderInvoiceHtml(model);
+    document.getElementById('invoice-modal').classList.remove('hidden');
+    document.getElementById('modal-overlay').classList.remove('hidden');
+}
+
+// Feature 15: Auto-notify client on status change
+function autoNotifyClientOnStatusChange(saleIndex, oldStatus, newStatus) {
+    const sale = state.sales[saleIndex];
+    if (!sale.clientId) return;
+    const client = state.clients.find(c => c.id === sale.clientId);
+    if (!client || !client.phone) return;
+
+    let msg = '';
+    if (newStatus === 'paid' && oldStatus !== 'paid') {
+        msg = 'Përshëndetje ' + client.name + ', pagesa juaj prej ' + sale.sellTotal + ' ден për ' + getProduct(sale.productId).name + ' u konfirmua. Faleminderit! — Hurma App';
+    } else if (newStatus === 'unpaid' && oldStatus === 'paid') {
+        msg = 'Përshëndetje ' + client.name + ', statusi i pagesës suaj prej ' + sale.sellTotal + ' ден u ndryshua. Ju lutem na kontaktoni. — Hurma App';
+    }
+
+    if (msg && client.phone) {
+        // Show notification option
+        showToast('💬 Dëshironi ta njoftoni klientin?', 'info');
+        setTimeout(() => {
+            modalConfirm('Dërgo njoftim klientit <strong>' + client.name + '</strong> përmes WhatsApp?', function() {
+                const cleanPhone = client.phone.replace(/[^0-9+]/g, '');
+                window.open('https://wa.me/' + cleanPhone + '?text=' + encodeURIComponent(msg), '_blank');
+            });
+        }, 500);
+    }
 }
 
 // ===================== STOCK =====================
@@ -1087,13 +2088,188 @@ function updateClient(id) {
     refreshClients();
 }
 
-function deleteClient(id) {
-    if (!confirm(t('confirm_delete'))) return;
-    const client = state.clients.find(c => c.id === id);
-    logActivity('client', 'Klient fshirë: ' + (client ? client.name : id), 'clients');
-    state.clients = state.clients.filter(c => c.id !== id);
+function openClientTaskModal(clientId, editId) {
+    const task = editId ? (state.clientTasks || []).find(t => t.id === editId) : null;
+    const client = clientId ? getClientById(clientId) : null;
+    openModal(task ? 'Edito Task' : 'Task i Ri', `
+        <div class="form-group">
+            <label>Klienti:</label>
+            <select id="client-task-client">
+                ${(state.clients || []).map(c => `<option value="${c.id}" ${(task ? task.clientId : clientId) === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+            </select>
+        </div>
+        <div class="form-group"><label>Titulli:</label><input type="text" id="client-task-title" value="${task ? task.title : client ? 'Ndjekje për ' + client.name : ''}"></div>
+        <div class="form-group"><label>Lloji:</label><select id="client-task-type"><option value="call" ${task && task.type === 'call' ? 'selected' : ''}>Telefonatë</option><option value="payment" ${task && task.type === 'payment' ? 'selected' : ''}>Mbledhje pagese</option><option value="visit" ${task && task.type === 'visit' ? 'selected' : ''}>Vizitë</option><option value="offer" ${task && task.type === 'offer' ? 'selected' : ''}>Ofertë</option></select></div>
+        <div class="form-group"><label>Prioriteti:</label><select id="client-task-priority"><option value="low" ${task && task.priority === 'low' ? 'selected' : ''}>I ulët</option><option value="medium" ${!task || task.priority === 'medium' ? 'selected' : ''}>Mesatar</option><option value="high" ${task && task.priority === 'high' ? 'selected' : ''}>I lartë</option></select></div>
+        <div class="form-group"><label>Afati:</label><input type="date" id="client-task-due" value="${task ? task.dueDate || '' : ''}"></div>
+        <div class="form-group"><label>Shënim:</label><textarea id="client-task-note">${task ? task.note || '' : ''}</textarea></div>
+        <button class="btn btn-primary" onclick="${task ? `saveClientTask('${task.id}')` : 'saveClientTask()'}" style="width:100%;">Ruaj Task-un</button>
+    `);
+}
+
+function saveClientTask(editId) {
+    const payload = {
+        id: editId || Date.now().toString(),
+        clientId: document.getElementById('client-task-client').value,
+        title: document.getElementById('client-task-title').value.trim(),
+        type: document.getElementById('client-task-type').value,
+        priority: document.getElementById('client-task-priority').value,
+        dueDate: document.getElementById('client-task-due').value,
+        note: document.getElementById('client-task-note').value,
+        status: editId ? ((state.clientTasks || []).find(t => t.id === editId)?.status || 'todo') : 'todo'
+    };
+    if (!payload.title) return;
+    if (!state.clientTasks) state.clientTasks = [];
+    if (editId) {
+        const idx = state.clientTasks.findIndex(task => task.id === editId);
+        if (idx >= 0) state.clientTasks[idx] = payload;
+    } else {
+        state.clientTasks.push(payload);
+    }
     saveState();
-    refreshClients();
+    closeModal();
+    if (payload.clientId) openClient360(payload.clientId);
+}
+
+function toggleClientTaskDone(taskId) {
+    const task = (state.clientTasks || []).find(t => t.id === taskId);
+    if (!task) return;
+    task.status = task.status === 'done' ? 'todo' : 'done';
+    saveState();
+    showTaskBoard();
+}
+
+function showTaskBoard(clientId) {
+    const tasks = (state.clientTasks || [])
+        .filter(task => !clientId || task.clientId === clientId)
+        .sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || ''));
+    const rows = tasks.map(task => {
+        const client = getClientById(task.clientId);
+        const color = task.priority === 'high' ? 'var(--danger)' : task.priority === 'medium' ? 'var(--warning)' : 'var(--success)';
+        return `<tr>
+            <td>${task.title}</td>
+            <td>${client ? client.name : '-'}</td>
+            <td style="color:${color};font-weight:700;">${task.priority}</td>
+            <td>${task.dueDate || '-'}</td>
+            <td>${task.status === 'done' ? 'Kryer' : 'Hapur'}</td>
+            <td style="white-space:nowrap;">
+                <button class="btn btn-sm btn-success" onclick="toggleClientTaskDone('${task.id}')"><i class="fas ${task.status === 'done' ? 'fa-rotate-left' : 'fa-check'}"></i></button>
+                <button class="btn btn-sm btn-secondary" onclick="openClientTaskModal('${task.clientId}','${task.id}')"><i class="fas fa-edit"></i></button>
+            </td>
+        </tr>`;
+    }).join('') || '<tr><td colspan="6">Nuk ka task-e.</td></tr>';
+    openModal('Task Board', `
+        <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+            <button class="btn btn-primary" onclick="openClientTaskModal('${clientId || ''}')"><i class="fas fa-plus"></i> Shto Task</button>
+        </div>
+        <div class="table-container"><table class="data-table"><thead><tr><th>Titulli</th><th>Klienti</th><th>Prioriteti</th><th>Afati</th><th>Statusi</th><th>Veprime</th></tr></thead><tbody>${rows}</tbody></table></div>
+    `);
+}
+
+function openClientVisitModal(clientId, editId) {
+    const visit = editId ? (state.clientVisits || []).find(v => v.id === editId) : null;
+    openModal(visit ? 'Edito Vizitën' : 'Vizitë në Terren', `
+        <div class="form-group"><label>Klienti:</label><select id="client-visit-client">${(state.clients || []).map(c => `<option value="${c.id}" ${(visit ? visit.clientId : clientId) === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}</select></div>
+        <div class="form-group"><label>Data e vizitës:</label><input type="date" id="client-visit-date" value="${visit ? visit.date || new Date().toISOString().split('T')[0] : new Date().toISOString().split('T')[0]}"></div>
+        <div class="form-group"><label>Qëllimi:</label><input type="text" id="client-visit-purpose" value="${visit ? visit.purpose || '' : ''}" placeholder="Kontroll, ofertë, pagesë..."></div>
+        <div class="form-group"><label>Vizita e ardhshme:</label><input type="date" id="client-next-visit-date" value="${visit ? visit.nextVisitDate || '' : ''}"></div>
+        <div class="form-group"><label>Shënime:</label><textarea id="client-visit-note">${visit ? visit.note || '' : ''}</textarea></div>
+        <button class="btn btn-primary" onclick="${visit ? `saveClientVisit('${visit.id}')` : 'saveClientVisit()'}" style="width:100%;">Ruaj Vizitën</button>
+    `);
+}
+
+function saveClientVisit(editId) {
+    const payload = {
+        id: editId || Date.now().toString(),
+        clientId: document.getElementById('client-visit-client').value,
+        date: document.getElementById('client-visit-date').value,
+        purpose: document.getElementById('client-visit-purpose').value,
+        nextVisitDate: document.getElementById('client-next-visit-date').value,
+        note: document.getElementById('client-visit-note').value
+    };
+    if (!state.clientVisits) state.clientVisits = [];
+    if (editId) {
+        const idx = state.clientVisits.findIndex(visit => visit.id === editId);
+        if (idx >= 0) state.clientVisits[idx] = payload;
+    } else {
+        state.clientVisits.push(payload);
+    }
+    saveState();
+    closeModal();
+    if (payload.clientId) openClient360(payload.clientId);
+}
+
+function showVisitsBoard(clientId) {
+    const visits = (state.clientVisits || [])
+        .filter(visit => !clientId || visit.clientId === clientId)
+        .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    const rows = visits.map(visit => {
+        const client = getClientById(visit.clientId);
+        return `<tr>
+            <td>${client ? client.name : '-'}</td>
+            <td>${visit.date || '-'}</td>
+            <td>${visit.purpose || '-'}</td>
+            <td>${visit.nextVisitDate || '-'}</td>
+            <td>${visit.note || '-'}</td>
+            <td><button class="btn btn-sm btn-secondary" onclick="openClientVisitModal('${visit.clientId}','${visit.id}')"><i class="fas fa-edit"></i></button></td>
+        </tr>`;
+    }).join('') || '<tr><td colspan="6">Nuk ka vizita.</td></tr>';
+    openModal('Vizita në Terren', `
+        <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+            <button class="btn btn-primary" onclick="openClientVisitModal('${clientId || ''}')"><i class="fas fa-plus"></i> Shto Vizitë</button>
+        </div>
+        <div class="table-container"><table class="data-table"><thead><tr><th>Klienti</th><th>Data</th><th>Qëllimi</th><th>Vizita tjetër</th><th>Shënime</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+    `);
+}
+
+function showReminderCalendar() {
+    const items = [];
+    (state.clientTasks || []).filter(task => task.status !== 'done' && task.dueDate).forEach(task => {
+        const client = getClientById(task.clientId);
+        items.push({ date: task.dueDate, type: 'Task', label: `${task.title}${client ? ' - ' + client.name : ''}` });
+    });
+    (state.clientVisits || []).filter(visit => visit.nextVisitDate).forEach(visit => {
+        const client = getClientById(visit.clientId);
+        items.push({ date: visit.nextVisitDate, type: 'Vizitë', label: `${client ? client.name : 'Klient'}${visit.purpose ? ' - ' + visit.purpose : ''}` });
+    });
+    (state.sales || []).filter(sale => sale.paymentType === 'invoice_60' && !sale.invoicePaid && sale.dueDate).forEach(sale => {
+        const client = getClientById(sale.clientId);
+        const product = getProduct(sale.productId);
+        items.push({ date: sale.dueDate, type: 'Pagesë', label: `${client ? client.name : 'Klient'} - ${product.name} (${sale.sellTotal} ден)` });
+    });
+    items.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    const rows = items.map(item => `<tr><td>${item.date}</td><td>${item.type}</td><td>${item.label}</td></tr>`).join('') || '<tr><td colspan="3">Nuk ka rikujtime.</td></tr>';
+    openModal('Reminder Calendar', `<div class="table-container"><table class="data-table"><thead><tr><th>Data</th><th>Lloji</th><th>Përshkrimi</th></tr></thead><tbody>${rows}</tbody></table></div>`);
+}
+
+function generateAllMarketMonthlyReports() {
+    const month = new Date().toISOString().slice(0, 7);
+    const rows = (state.clients || []).map(client => {
+        const sales = (state.sales || []).filter(s => s.clientId === client.id && (s.date || '').startsWith(month));
+        const payments = (state.clientPayments || []).filter(p => p.clientId === client.id && (p.date || '').startsWith(month) && p.status !== 'cancelled');
+        const totalSales = sales.reduce((sum, sale) => sum + (sale.sellTotal || 0), 0);
+        const totalPayments = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+        const status = getClientStatusInfo(client.id);
+        return `<tr>
+            <td>${client.name}</td>
+            <td>${totalSales} ден</td>
+            <td>${totalPayments} ден</td>
+            <td>${client.debt || 0} ден</td>
+            <td style="color:${status.color};font-weight:700;">${status.label}</td>
+            <td><button class="btn btn-sm btn-primary" onclick="openClientHistoryReport('${client.id}', { fromDate: '${month}-01', toDate: '${month}-${new Date(new Date().getFullYear(), new Date().getMonth()+1, 0).getDate().toString().padStart(2,'0')}' })"><i class="fas fa-eye"></i></button></td>
+        </tr>`;
+    }).join('');
+    openModal('Raporte Mujore për Marketet', `<p style="margin-bottom:10px;color:var(--text-secondary);">Muaji: ${month}</p><div class="table-container"><table class="data-table"><thead><tr><th>Klienti</th><th>Blerje</th><th>Pagesa</th><th>Borxhi</th><th>Statusi</th><th>Raporti</th></tr></thead><tbody>${rows || '<tr><td colspan="6">Nuk ka klientë.</td></tr>'}</tbody></table></div>`);
+}
+
+function deleteClient(id) {
+    var client = state.clients.find(c => c.id === id);
+    modalConfirm('Fshi klientin' + (client ? ' <strong>' + client.name + '</strong>' : '') + '?', function() {
+        logActivity('client', 'Klient fshirë: ' + (client ? client.name : id), 'clients');
+        state.clients = state.clients.filter(c => c.id !== id);
+        saveState();
+        refreshClients();
+    });
 }
 
 function payClientDebt(id) {
@@ -1165,6 +2341,8 @@ function refreshClients() {
         const uniqueDates = [...new Set(clientSales.map(s => s.date))];
         const frequency = uniqueDates.length;
         const isPinned = pinned.includes(c.id);
+        const statusInfo = getClientStatusInfo(c.id);
+        const score = calculateClientScore(c.id);
 
         tbody.innerHTML += `
             <tr>
@@ -1175,9 +2353,8 @@ function refreshClients() {
                 <td>${clientOpenInvoices.length > 0 ? `<span style="color:var(--warning)">${clientOpenInvoices.length} (${clientOpenInvoiceTotal} ден)</span>` : '-'}</td>
                 <td>${clientOverdue.length > 0 ? `<span style="color:var(--danger)">${clientOverdue.length} (${clientOverdueTotal} ден)</span>` : '-'}</td>
                 <td style="${c.debt > 0 ? 'color:var(--danger)' : ''}">${c.debt || 0} ден</td>
-                <td>${clientProfit} ден</td>
-                <td>${avgPerOrder} ден</td>
-                <td>${frequency}x</td>
+                <td>${clientStatusBadge(c.id)}</td>
+                <td><strong style="color:${statusInfo.color};">${score}</strong></td>
                 <td>
                     <button class="btn btn-sm ${isPinned ? 'btn-warning' : 'btn-secondary'}" onclick="togglePinClient('${c.id}')" title="${isPinned ? 'Hiq pin' : 'Pin'}"><i class="fas fa-thumbtack"></i></button>
                     <button class="btn btn-sm btn-secondary" onclick="openClientModal('${c.id}')"><i class="fas fa-edit"></i></button>
@@ -1188,6 +2365,8 @@ function refreshClients() {
                     ${c.phone ? `<button class="btn btn-sm btn-secondary" onclick="showWhatsAppTemplates('${c.phone}', '${c.name}')" title="Shabllone WhatsApp"><i class="fas fa-comment-dots"></i></button>` : ''}
                     <button class="btn btn-sm btn-secondary" onclick="showClientPaymentHistory('${c.id}')" title="Historia"><i class="fas fa-history"></i></button>
                     <button class="btn btn-sm btn-success" onclick="openQuickCollectModal('${c.id}')" title="Mbledh Pagese"><i class="fas fa-hand-holding-usd"></i></button>
+                    <button class="btn btn-sm btn-primary" onclick="openClientTaskModal('${c.id}')" title="Task"><i class="fas fa-list-check"></i></button>
+                    <button class="btn btn-sm btn-info" onclick="openClientVisitModal('${c.id}')" title="Vizitë"><i class="fas fa-route"></i></button>
                     <button class="btn btn-sm btn-info" onclick="showClientQR('${c.id}')" title="QR Kod"><i class="fas fa-qrcode"></i></button>
                     <button class="btn btn-sm btn-secondary" onclick="generateClientStatement('${c.id}')" title="Pasqyrë"><i class="fas fa-file-alt"></i></button>
                     ${c.debt > 0 ? `<button class="btn btn-sm btn-warning" onclick="sendClientDebtWhatsApp('${c.id}')" title="Kujto Borxhin"><i class="fas fa-comment-dollar"></i></button>` : ''}
@@ -1346,10 +2525,11 @@ function changeOrderStatus(index, status) {
 }
 
 function deleteOrder(index) {
-    if (!confirm(t('confirm_delete'))) return;
-    state.orders.splice(index, 1);
-    saveState();
-    refreshOrders();
+    modalConfirm('Fshi këtë porosi?', function() {
+        state.orders.splice(index, 1);
+        saveState();
+        refreshOrders();
+    });
 }
 
 function refreshOrders() {
@@ -1534,12 +2714,13 @@ function updateFatonPayment(index) {
 }
 
 function deleteFatonPayment(index) {
-    if (!confirm(t('confirm_delete'))) return;
-    const payment = state.fatonPayments[index];
+    modalConfirm('Fshi këtë pagesë?', function() {
+    var payment = state.fatonPayments[index];
     addPaymentAudit('FSHIRJE_PAGESE', 'Shuma: ' + payment.amount + ' den, Data: ' + payment.date);
     state.fatonPayments.splice(index, 1);
     saveState();
     refreshFaton();
+    });
 }
 
 // ===================== PROFIT COLLECTION FROM FATON =====================
@@ -1655,11 +2836,12 @@ function addProfitCollection() {
 }
 
 function deleteProfitCollection(index) {
-    if (!confirm(t('confirm_delete'))) return;
-    if (!state.fatonProfitCollections) return;
-    state.fatonProfitCollections.splice(index, 1);
-    saveState();
-    refreshFaton();
+    modalConfirm('Fshi këtë mbledhje fitimi?', function() {
+        if (!state.fatonProfitCollections) return;
+        state.fatonProfitCollections.splice(index, 1);
+        saveState();
+        refreshFaton();
+    });
 }
 
 // Installment planning
@@ -2211,6 +3393,11 @@ function downloadReceiptPDF(receiptIndex) {
     const receipt = state.paymentReceipts[receiptIndex];
     if (!receipt) return;
 
+    // Bug #15 guard: jsPDF mund të mos jetë ngarkuar
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+        if (typeof showToast === 'function') showToast('jsPDF nuk u ngarkua!', 'error');
+        return;
+    }
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
@@ -2471,6 +3658,11 @@ function showReceiptHistory() {
 function exportAllReceiptsPDF() {
     if (!state.paymentReceipts || state.paymentReceipts.length === 0) return;
 
+    // Bug #15 guard: jsPDF mund të mos jetë ngarkuar
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+        if (typeof showToast === 'function') showToast('jsPDF nuk u ngarkua!', 'error');
+        return;
+    }
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
@@ -3127,6 +4319,11 @@ function generatePaymentContract() {
     const profitRemaining = calcFatonProfitOwed() - calcFatonProfitCollected();
     const installments = state.fatonInstallments || [];
 
+    // Bug #15 guard: jsPDF mund të mos jetë ngarkuar
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+        if (typeof showToast === 'function') showToast('jsPDF nuk u ngarkua!', 'error');
+        return;
+    }
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
@@ -3186,20 +4383,32 @@ function showBalanceAlert(type, message) {
 
 // ===================== CSV EXPORT FOR ACCOUNTANT =====================
 function exportFatonCSV() {
+    // Helper: escape sipas RFC 4180 — dyfishon " dhe mbështjell në "..." nëse ka ",  " ose \n
+    function csvEsc(v) {
+        var s = (v === null || v === undefined) ? '' : String(v);
+        if (s.indexOf('"') !== -1 || s.indexOf(',') !== -1 || s.indexOf('\n') !== -1) {
+            s = '"' + s.replace(/"/g, '""') + '"';
+        }
+        return s;
+    }
     let csv = 'Data,Lloji,Pershkrim,Debi,Kredi,Bilanci,Kategoria\n';
     let balance = 0;
     const events = [];
     (state.fatonPurchases || []).forEach(p => {
         const prod = getProduct(p.productId);
-        events.push({ date: p.date, type: 'Blerje', desc: (prod ? prod.name : '-') + ' x' + p.quantity, debit: p.total, credit: 0, cat: '-' });
+        events.push({ date: p.date || '', type: 'Blerje', desc: (prod ? prod.name : '-') + ' x' + p.quantity, debit: p.total || 0, credit: 0, cat: '-' });
     });
-    state.fatonPayments.forEach(p => {
-        events.push({ date: p.date, type: 'Pagese', desc: p.note || '-', debit: 0, credit: p.amount, cat: getCategoryLabel(p.category) });
+    (state.fatonPayments || []).forEach(p => {
+        events.push({ date: p.date || '', type: 'Pagese', desc: p.note || '-', debit: 0, credit: p.amount || 0, cat: getCategoryLabel(p.category) });
     });
-    events.sort((a, b) => a.date.localeCompare(b.date));
+    // Fitimi i mbledhur nga Fatoni — kishte humbur fare nga CSV, tani përfshihet për kontabilistin
+    (state.fatonProfitCollections || []).forEach(c => {
+        events.push({ date: c.date || '', type: 'Mbledhje fitimi', desc: c.note || c.type || '-', debit: 0, credit: c.amount || 0, cat: 'Fitim' });
+    });
+    events.sort((a, b) => (a.date || '').localeCompare(b.date || ''));  // mbrojtje nga undefined date
     events.forEach(e => {
         balance += e.debit - e.credit;
-        csv += e.date + ',' + e.type + ',"' + e.desc + '",' + e.debit + ',' + e.credit + ',' + balance + ',' + e.cat + '\n';
+        csv += [e.date, e.type, e.desc, e.debit, e.credit, balance, e.cat].map(csvEsc).join(',') + '\n';
     });
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -3505,12 +4714,13 @@ function addReturn() {
 }
 
 function deleteReturn(index) {
-    if (!confirm(t('confirm_delete'))) return;
-    const ret = state.returns[index];
+    modalConfirm('Fshi këtë kthim?', function() {
+    var ret = state.returns[index];
     state.stock[ret.productId] = Math.max(0, (state.stock[ret.productId] || 0) - ret.quantity);
     state.returns.splice(index, 1);
     saveState();
     refreshReturns();
+    });
     refreshAll();
 }
 
@@ -3603,10 +4813,11 @@ function updateContact(id) {
 }
 
 function deleteContact(id) {
-    if (!confirm(t('confirm_delete'))) return;
-    state.contacts = state.contacts.filter(c => c.id !== id);
-    saveState();
-    refreshContacts();
+    modalConfirm('Fshi këtë kontakt?', function() {
+        state.contacts = state.contacts.filter(c => c.id !== id);
+        saveState();
+        refreshContacts();
+    });
 }
 
 function refreshContacts() {
@@ -3681,10 +4892,11 @@ function updateNote(id) {
 }
 
 function deleteNote(id) {
-    if (!confirm(t('confirm_delete'))) return;
-    state.notes = state.notes.filter(n => n.id !== id);
-    saveState();
-    refreshNotes();
+    modalConfirm('Fshi këtë shënim?', function() {
+        state.notes = state.notes.filter(n => n.id !== id);
+        saveState();
+        refreshNotes();
+    });
 }
 
 function refreshNotes() {
@@ -3769,10 +4981,11 @@ function updateTarget(id) {
 }
 
 function deleteTarget(id) {
-    if (!confirm(t('confirm_delete'))) return;
-    state.targets = state.targets.filter(t => t.id !== id);
-    saveState();
-    refreshTargets();
+    modalConfirm('Fshi këtë target?', function() {
+        state.targets = state.targets.filter(t => t.id !== id);
+        saveState();
+        refreshTargets();
+    });
 }
 
 function refreshTargets() {
@@ -3903,10 +5116,11 @@ function addExpense() {
 }
 
 function deleteExpense(index) {
-    if (!confirm(t('confirm_delete'))) return;
-    state.expenses.splice(index, 1);
-    saveState();
-    refreshExpenses();
+    modalConfirm('Fshi këtë shpenzim?', function() {
+        state.expenses.splice(index, 1);
+        saveState();
+        refreshExpenses();
+    });
 }
 
 function refreshExpenses() {
@@ -4114,33 +5328,108 @@ function updateReportCharts(sales) {
 
 // ===================== EXPORT =====================
 function exportCSV() {
+    // Bug #16: RFC 4180 CSV escape — wrap fields me presje/thonjëza/newline dhe dyfisho thonjëzat brenda
+    function csvEsc(v) {
+        var s = (v === null || v === undefined) ? '' : String(v);
+        if (s.indexOf('"') !== -1 || s.indexOf(',') !== -1 || s.indexOf('\n') !== -1 || s.indexOf('\r') !== -1) {
+            s = '"' + s.replace(/"/g, '""') + '"';
+        }
+        return s;
+    }
     let csv = 'Data,Produkti,Sasia,Cmimi Blerjes,Cmimi Shitjes,Totali,Fitimi,Klienti,Lokacioni,Lloji Pageses,Data Afatit,Statusi Fatures\n';
-    state.sales.forEach(s => {
+    (state.sales || []).forEach(s => {
         const p = getProduct(s.productId);
-        const client = s.clientId ? state.clients.find(c => c.id === s.clientId) : null;
+        const client = s.clientId ? (state.clients || []).find(c => c.id === s.clientId) : null;
         const pType = s.paymentType || 'cash';
         let invStatus = '';
         if (pType === 'invoice_60') {
             invStatus = s.invoicePaid ? 'E paguar' : (s.dueDate && s.dueDate < new Date().toISOString().split('T')[0] ? 'E vonuar' : 'E papaguar');
         }
-        csv += `${s.date},${p.name},${s.quantity},${p.buyPrice},${p.sellPrice},${s.sellTotal},${s.profit},${client ? client.name : ''},${s.location || ''},${pType === 'cash' ? 'Cash' : 'Fature 60'},${s.dueDate || ''},${invStatus}\n`;
+        csv += [
+            csvEsc(s.date || ''),
+            csvEsc((p && p.name) ? p.name : '-'),
+            csvEsc(s.quantity || 0),
+            csvEsc((p && p.buyPrice) || 0),
+            csvEsc((p && p.sellPrice) || 0),
+            csvEsc(s.sellTotal || 0),
+            csvEsc(s.profit || 0),
+            csvEsc(client ? client.name : ''),
+            csvEsc(s.location || ''),
+            csvEsc(pType === 'cash' ? 'Cash' : 'Fature 60'),
+            csvEsc(s.dueDate || ''),
+            csvEsc(invStatus)
+        ].join(',') + '\n';
     });
     downloadFile('hurma-raport.csv', csv, 'text/csv');
 }
 
 function exportPDF() {
-    // Simple text-based report
-    let text = '=== HURMA APP - RAPORT ===\n\n';
-    text += `Data: ${new Date().toLocaleDateString()}\n\n`;
-    text += `Totali shitjeve: ${state.sales.reduce((s, x) => s + x.sellTotal, 0)} ден\n`;
-    text += `Fitimi total: ${state.sales.reduce((s, x) => s + x.profit, 0)} ден\n`;
-    text += `Shpenzimet: ${state.expenses.reduce((s, x) => s + x.amount, 0)} ден\n\n`;
-    text += '--- SHITJET ---\n';
-    state.sales.forEach(s => {
-        const p = getProduct(s.productId);
-        text += `${s.date} | ${p.name} x${s.quantity} | ${s.sellTotal} ден | Fitim: ${s.profit} ден\n`;
-    });
-    downloadFile('hurma-raport.txt', text, 'text/plain');
+    // Real PDF report using jsPDF + autoTable (same pattern as exportToPDF core helper)
+    try {
+        if (!window.jspdf || !window.jspdf.jsPDF) {
+            if (typeof showToast === 'function') showToast('jsPDF nuk u ngarkua!', 'error');
+            return;
+        }
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        const totalSales = state.sales.reduce((s, x) => s + (x.sellTotal || 0), 0);
+        const totalProfit = state.sales.reduce((s, x) => s + (x.profit || 0), 0);
+        const totalExpenses = (state.expenses || []).reduce((s, x) => s + (x.amount || 0), 0);
+
+        // Header
+        doc.setFontSize(18);
+        doc.text('HURMA APP - RAPORT', 14, 20);
+        doc.setFontSize(10);
+        doc.text('Data: ' + new Date().toLocaleDateString('sq-AL'), 14, 28);
+
+        // Summary block
+        doc.setFontSize(12);
+        let y = 40;
+        doc.text('Totali shitjeve: ' + totalSales + ' den', 14, y); y += 7;
+        doc.text('Fitimi total: ' + totalProfit + ' den', 14, y); y += 7;
+        doc.text('Shpenzimet: ' + totalExpenses + ' den', 14, y); y += 10;
+
+        // Sales table
+        const headers = ['Data', 'Produkti', 'Sasia', 'Totali (den)', 'Fitimi (den)'];
+        const rows = state.sales.map(s => {
+            const p = getProduct(s.productId);
+            return [
+                s.date || '',
+                (p && p.name) ? p.name : '-',
+                String(s.quantity || 0),
+                String(s.sellTotal || 0),
+                String(s.profit || 0)
+            ];
+        });
+
+        if (typeof doc.autoTable === 'function') {
+            doc.autoTable({
+                head: [headers],
+                body: rows,
+                startY: y,
+                styles: { fontSize: 8, cellPadding: 3 },
+                headStyles: { fillColor: [44, 62, 80], textColor: 255 },
+                alternateRowStyles: { fillColor: [245, 245, 245] },
+                margin: { left: 14, right: 14 }
+            });
+        } else {
+            // Fallback: autoTable plugin missing — write rows as plain text
+            doc.setFontSize(9);
+            doc.text('--- SHITJET ---', 14, y); y += 6;
+            rows.forEach(r => {
+                if (y > 280) { doc.addPage(); y = 20; }
+                doc.text(r.join(' | '), 14, y);
+                y += 5;
+            });
+        }
+
+        doc.save('hurma-raport.pdf');
+        if (typeof showToast === 'function') showToast('PDF u shkarkua: hurma-raport.pdf', 'success');
+    } catch (err) {
+        console.error('exportPDF error:', err);
+        if (typeof showToast === 'function') showToast('Gabim gjatë gjenerimit të PDF: ' + err.message, 'error');
+    }
 }
 
 function printReport() {
@@ -4168,49 +5457,126 @@ function importBackup(event) {
     if (!file) return;
     // Reset input so same file can be selected again
     event.target.value = '';
-    // Use the same modal-based restore flow
+
+    console.log('[importBackup] file:', file.name, 'size:', file.size, 'type:', file.type);
+
+    if (file.size === 0) {
+        showToast('Skedari është bosh (0 bytes)!', 'error');
+        return;
+    }
+    if (file.size > 200 * 1024 * 1024) {
+        showToast('Skedari është tepër i madh (>200MB)!', 'error');
+        return;
+    }
+
     const reader = new FileReader();
-    reader.onerror = () => showToast('Gabim gjatë leximit!', 'error');
+    reader.onerror = (err) => {
+        console.error('[importBackup] read error:', err);
+        showToast('Gabim gjatë leximit të skedarit!', 'error');
+    };
     reader.onload = function(e) {
+        let raw = e.target.result;
+        // Strip BOM if present
+        if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
+        // Trim whitespace
+        raw = raw.trim();
+
+        if (!raw) {
+            showToast('Skedari nuk përmban të dhëna.', 'error');
+            return;
+        }
+
+        let data;
         try {
-            const data = JSON.parse(e.target.result);
-            if (typeof data !== 'object' || data === null || Array.isArray(data)) {
-                showToast('Skedari nuk është backup valid!', 'error');
-                return;
-            }
-            window._pendingRestore = data;
-            window._pendingRestoreFile = file.name;
-            // Reuse the same confirmation modal from restoreFromBackup
-            const salesCount = Array.isArray(data.sales) ? data.sales.length : 0;
-            const clientsCount = Array.isArray(data.clients) ? data.clients.length : 0;
-            const stockCount = data.stock ? Object.keys(data.stock).length : 0;
-            const paymentsCount = Array.isArray(data.clientPayments) ? data.clientPayments.length : 0;
-            openModal('Importo Backup', `
-                <div style="text-align:center;padding:10px;">
-                    <div style="font-size:3em;margin-bottom:10px;">📦</div>
-                    <h3 style="margin-bottom:15px;">Skedari: ${file.name}</h3>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;text-align:left;background:var(--bg-secondary);padding:15px;border-radius:10px;">
-                        <div><i class="fas fa-shopping-cart"></i> Shitje: <strong>${salesCount}</strong></div>
-                        <div><i class="fas fa-users"></i> Klientë: <strong>${clientsCount}</strong></div>
-                        <div><i class="fas fa-boxes"></i> Produkte stok: <strong>${stockCount}</strong></div>
-                        <div><i class="fas fa-money-bill"></i> Pagesa: <strong>${paymentsCount}</strong></div>
+            data = JSON.parse(raw);
+        } catch (err) {
+            console.error('[importBackup] JSON parse error:', err, 'preview:', raw.substring(0, 200));
+            // Show a modal with the detailed error so user can see what's wrong
+            openModal('Skedari nuk është JSON valid', `
+                <div style="padding:10px;">
+                    <div style="color:#c0392b;margin-bottom:10px;"><i class="fas fa-exclamation-triangle"></i> <strong>Gabim gjatë leximit:</strong></div>
+                    <pre style="background:#fee;padding:10px;border-radius:6px;border-left:3px solid #c0392b;white-space:pre-wrap;">${err.message}</pre>
+                    <div style="margin-top:12px;color:#555;">Fillimi i skedarit (200 shkronja):</div>
+                    <pre style="background:#f5f5f5;padding:10px;border-radius:6px;max-height:200px;overflow:auto;">${raw.substring(0, 200).replace(/</g,'&lt;')}</pre>
+                    <div style="margin-top:12px;background:#fff3e0;padding:10px;border-radius:6px;color:#e65100;">
+                        <strong>Çfarë mund të bëni:</strong><br>
+                        • Sigurohuni që skedari është backup JSON i gjeneruar nga kjo aplikacion<br>
+                        • Nëse është nga version i vjetër, duhet të ketë prapashtesën <code>.json</code><br>
+                        • Hapeni me editor teksti për të verifikuar që fillon me <code>{</code>
                     </div>
-                    <div style="background:#fff3e0;padding:12px;border-radius:8px;margin-bottom:15px;color:#e65100;">
-                        <i class="fas fa-exclamation-triangle"></i> <strong>KUJDES:</strong> Të dhënat aktuale do të zëvendësohen!
-                    </div>
-                    <div style="display:flex;gap:10px;">
-                        <button onclick="closeModal()" style="flex:1;padding:12px;border:2px solid var(--border);background:var(--bg);color:var(--text-primary);border-radius:8px;cursor:pointer;font-size:1em;">
-                            <i class="fas fa-times"></i> Anulo
-                        </button>
-                        <button onclick="_confirmRestore()" style="flex:1;padding:12px;border:none;background:var(--success);color:white;border-radius:8px;cursor:pointer;font-size:1em;font-weight:bold;">
-                            <i class="fas fa-check"></i> Konfirmo Rikthimin
-                        </button>
+                    <button class="btn btn-primary" style="width:100%;margin-top:12px;" onclick="closeModal()">Në rregull</button>
+                </div>
+            `);
+            return;
+        }
+
+        // Unwrap if wrapped in { state: {...} } or { data: {...} }
+        if (data && typeof data === 'object' && !Array.isArray(data)) {
+            if (data.state && typeof data.state === 'object' && !Array.isArray(data.state)) data = data.state;
+            else if (data.data && typeof data.data === 'object' && !Array.isArray(data.data)) data = data.data;
+            else if (data.backup && typeof data.backup === 'object' && !Array.isArray(data.backup)) data = data.backup;
+        }
+
+        if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+            showToast('Skedari nuk është backup valid (nuk është objekt JSON)!', 'error');
+            return;
+        }
+
+        // Relaxed validation: accept any object that has at least some recognizable keys
+        const knownKeys = ['sales', 'clients', 'stock', 'clientPayments', 'purchases', 'fatonPurchases',
+                           'fatonPayments', 'notes', 'activityLog', 'distShops', 'distDeliveries',
+                           'distReceived', 'distPayToFaton', 'locations', 'expenses'];
+        const hasAnyKnown = knownKeys.some(k => k in data);
+        if (!hasAnyKnown) {
+            const preview = Object.keys(data).slice(0, 10).join(', ');
+            openModal('Backup-i duket i pazakontë', `
+                <div style="padding:10px;">
+                    <div style="color:#e67e22;margin-bottom:10px;"><i class="fas fa-exclamation-triangle"></i> <strong>Paralajmërim:</strong></div>
+                    <p>Skedari u lexua si JSON, por nuk përmban asnjë nga fushat e njohura të backup-it (shitje, klientë, stok, etj.).</p>
+                    <div style="margin-top:10px;color:#555;">Fushat që gjendën:</div>
+                    <pre style="background:#f5f5f5;padding:10px;border-radius:6px;">${preview || '(asnjë)'}</pre>
+                    <p style="margin-top:10px;">A dëshiron të vazhdosh gjithsesi? Kjo do t'i zëvendësojë të dhënat aktuale me përmbajtjen e skedarit.</p>
+                    <div style="display:flex;gap:10px;margin-top:12px;">
+                        <button class="btn" onclick="closeModal()" style="flex:1;background:#95a5a6;color:white;">Anulo</button>
+                        <button class="btn btn-primary" onclick="_proceedImportAnyway()" style="flex:1;">Vazhdo gjithsesi</button>
                     </div>
                 </div>
             `);
-        } catch (err) {
-            showToast('Skedari JSON i dëmtuar: ' + err.message, 'error');
+            window._pendingRestore = data;
+            window._pendingRestoreFile = file.name;
+            return;
         }
+
+        window._pendingRestore = data;
+        window._pendingRestoreFile = file.name;
+        // Reuse the same confirmation modal from restoreFromBackup
+        const salesCount = Array.isArray(data.sales) ? data.sales.length : 0;
+        const clientsCount = Array.isArray(data.clients) ? data.clients.length : 0;
+        const stockCount = data.stock ? Object.keys(data.stock).length : 0;
+        const paymentsCount = Array.isArray(data.clientPayments) ? data.clientPayments.length : 0;
+        openModal('Importo Backup', `
+            <div style="text-align:center;padding:10px;">
+                <div style="font-size:3em;margin-bottom:10px;">📦</div>
+                <h3 style="margin-bottom:15px;">Skedari: ${file.name}</h3>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;text-align:left;background:var(--bg-secondary);padding:15px;border-radius:10px;">
+                    <div><i class="fas fa-shopping-cart"></i> Shitje: <strong>${salesCount}</strong></div>
+                    <div><i class="fas fa-users"></i> Klientë: <strong>${clientsCount}</strong></div>
+                    <div><i class="fas fa-boxes"></i> Produkte stok: <strong>${stockCount}</strong></div>
+                    <div><i class="fas fa-money-bill"></i> Pagesa: <strong>${paymentsCount}</strong></div>
+                </div>
+                <div style="background:#fff3e0;padding:12px;border-radius:8px;margin-bottom:15px;color:#e65100;">
+                    <i class="fas fa-exclamation-triangle"></i> <strong>KUJDES:</strong> Të dhënat aktuale do të zëvendësohen!
+                </div>
+                <div style="display:flex;gap:10px;">
+                    <button onclick="closeModal()" style="flex:1;padding:12px;border:2px solid var(--border);background:var(--bg);color:var(--text-primary);border-radius:8px;cursor:pointer;font-size:1em;">
+                        <i class="fas fa-times"></i> Anulo
+                    </button>
+                    <button onclick="_confirmRestore()" style="flex:1;padding:12px;border:none;background:var(--success);color:white;border-radius:8px;cursor:pointer;font-size:1em;font-weight:bold;">
+                        <i class="fas fa-check"></i> Konfirmo Rikthimin
+                    </button>
+                </div>
+            </div>
+        `);
     };
     reader.readAsText(file);
 }
@@ -4282,6 +5648,40 @@ function checkNotifications() {
                 text: `${c.name}: ${t('debt')} ${c.debt} ден`
             });
         }
+
+        if (c.debt >= 10000) {
+            state.notifications.push({
+                type: 'danger',
+                text: `URGJENT: ${c.name} ka borxh të lartë (${c.debt} ден)`
+            });
+        } else if (c.debt >= 5000) {
+            state.notifications.push({
+                type: 'warning',
+                text: `Kujdes: ${c.name} ka borxh mbi 5,000 ден (${c.debt} ден)`
+            });
+        }
+
+        if (c.debt > 0) {
+            const clientSales = state.sales.filter(s => s.clientId === c.id);
+            const clientPayments = (state.clientPayments || []).filter(p => p.clientId === c.id && p.status !== 'cancelled');
+            const lastSaleDate = clientSales.length > 0 ? clientSales.map(s => s.date).sort().slice(-1)[0] : '';
+            const lastPaymentDate = clientPayments.length > 0 ? clientPayments.map(p => p.date).sort().slice(-1)[0] : '';
+            const lastActivity = [lastSaleDate, lastPaymentDate].filter(Boolean).sort().slice(-1)[0];
+            if (lastActivity) {
+                const daysSince = Math.floor((Date.now() - new Date(lastActivity).getTime()) / 86400000);
+                if (daysSince >= 30) {
+                    state.notifications.push({
+                        type: 'danger',
+                        text: `${c.name}: borxh ${c.debt} ден dhe ${daysSince} ditë pa aktivitet`
+                    });
+                } else if (daysSince >= 15) {
+                    state.notifications.push({
+                        type: 'warning',
+                        text: `${c.name}: ${daysSince} ditë pa pagesë/aktivitet`
+                    });
+                }
+            }
+        }
     });
 
     // Uncollected profit from Faton
@@ -4344,41 +5744,10 @@ function toggleNotifications() {
 }
 
 // ===================== INVOICE =====================
+let currentInvoiceSaleIndex = null;
+
 function generateInvoice(saleIndex) {
-    const sale = state.sales[saleIndex];
-    const product = getProduct(sale.productId);
-    const client = sale.clientId ? state.clients.find(c => c.id === sale.clientId) : null;
-
-    const content = document.getElementById('invoice-content');
-    content.innerHTML = `
-        <div class="invoice-header">
-            <h2>HURMA APP</h2>
-            <p>${t('invoice')}</p>
-        </div>
-        <div class="invoice-details">
-            <p><strong>${t('date')}:</strong> ${sale.date}</p>
-            ${client ? `<p><strong>${t('client')}:</strong> ${client.name}</p>` : ''}
-            ${sale.location ? `<p><strong>${t('location')}:</strong> ${sale.location}</p>` : ''}
-        </div>
-        <table class="invoice-table">
-            <thead>
-                <tr><th>${t('product')}</th><th>${t('quantity')}</th><th>${t('sell_price')}</th><th>${t('total')}</th></tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>${product.name}</td>
-                    <td>${sale.quantity}</td>
-                    <td>${product.sellPrice} ден</td>
-                    <td>${sale.sellTotal} ден</td>
-                </tr>
-            </tbody>
-        </table>
-        ${sale.discount ? `<p>${t('discount')}: ${sale.discount}%</p>` : ''}
-        <div class="invoice-total">${t('total')}: ${sale.sellTotal} ден</div>
-    `;
-
-    document.getElementById('invoice-modal').classList.remove('hidden');
-    document.getElementById('modal-overlay').classList.remove('hidden');
+    generateInvoiceWithStatus(saleIndex);
 }
 
 function closeInvoiceModal() {
@@ -4391,11 +5760,256 @@ function printInvoice() {
     const win = window.open('', '_blank');
     win.document.write(`
         <html><head><title>${t('invoice')}</title>
-        <style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse}th,td{padding:8px;border:1px solid #ddd;text-align:left}h2{margin:0}.invoice-total{text-align:right;font-size:1.2em;font-weight:bold;margin-top:10px}</style>
+        <link rel="stylesheet" href="style.css">
+        <style>body{background:#f4efe7;padding:24px;font-family:Arial,sans-serif;} .invoice-document{box-shadow:none !important;max-width:none !important;} .invoice-screen-toolbar{display:none !important;}</style>
         </head><body>${content}</body></html>
     `);
     win.document.close();
     win.print();
+}
+
+function getInvoiceProfile() {
+    return state.invoiceProfile || {
+        businessName: 'Hurma App',
+        legalName: 'Hurma Trading',
+        phone: '+389 XX XXX XXX',
+        email: 'sales@hurma.app',
+        address: 'Kërçovë, Maqedonia e Veriut',
+        footerNote: 'Faleminderit për bashkëpunimin. Për çdo paqartësi na kontaktoni.',
+        paymentTerms: 'Pagesa bëhet sipas afatit të faturës.',
+        accentColor: '#8b5a2b'
+    };
+}
+
+function getInvoiceNumber(saleIndex, sale) {
+    const year = (sale.date || new Date().toISOString().split('T')[0]).slice(0, 4);
+    return `HRM-${year}-${String(saleIndex + 1).padStart(5, '0')}`;
+}
+
+function buildInvoiceModel(saleIndex) {
+    const sale = state.sales[saleIndex];
+    if (!sale) return null;
+    const product = getProduct(sale.productId);
+    const client = sale.clientId ? state.clients.find(c => c.id === sale.clientId) : null;
+    const profile = getInvoiceProfile();
+    const paid = sale.paidAmount || (sale.invoicePaid ? sale.sellTotal : 0);
+    const remaining = Math.max(0, (sale.sellTotal || 0) - paid);
+    const statusKey = sale.invoicePaid ? 'paid' : (paid > 0 ? 'partial' : 'unpaid');
+    const statusMap = {
+        paid: { label: 'E PAGUAR', color: '#2e8b57' },
+        partial: { label: 'PJESËRISHT E PAGUAR', color: '#d98b16' },
+        unpaid: { label: 'E PAPAGUAR', color: '#c0392b' }
+    };
+    return {
+        sale,
+        product,
+        client,
+        profile,
+        paid,
+        remaining,
+        status: statusMap[statusKey],
+        invoiceNumber: getInvoiceNumber(saleIndex, sale)
+    };
+}
+
+function renderInvoiceHtml(model) {
+    const { sale, product, client, profile, paid, remaining, status, invoiceNumber } = model;
+    const accent = profile.accentColor || '#8b5a2b';
+    const dueLabel = sale.dueDate ? formatReportDate(sale.dueDate) : 'Menjëherë';
+    const payDateLabel = sale.invoicePaidDate || sale.payDate ? formatReportDate(sale.invoicePaidDate || sale.payDate) : '-';
+    const unitPrice = sale.quantity > 0 ? Math.round((sale.sellTotal || 0) / sale.quantity) : (product.sellPrice || 0);
+
+    return `
+        <div class="invoice-document" style="--invoice-accent:${accent};">
+            <div class="invoice-screen-toolbar">
+                <div class="invoice-toolbar-chip">Nr: ${invoiceNumber}</div>
+                <div class="invoice-toolbar-chip">${status.label}</div>
+            </div>
+            <div class="invoice-hero">
+                <div>
+                    <div class="invoice-brand-mark">${(profile.businessName || 'H').slice(0, 1)}</div>
+                    <div class="invoice-brand-copy">
+                        <h2>${profile.businessName}</h2>
+                        <p>${profile.legalName}</p>
+                    </div>
+                </div>
+                <div class="invoice-status-pill" style="color:${status.color};border-color:${status.color};">${status.label}</div>
+            </div>
+            <div class="invoice-meta-grid">
+                <div class="invoice-meta-card">
+                    <span class="invoice-meta-label">Nga</span>
+                    <strong>${profile.businessName}</strong>
+                    <p>${profile.address}</p>
+                    <p>${profile.phone}</p>
+                    <p>${profile.email}</p>
+                </div>
+                <div class="invoice-meta-card">
+                    <span class="invoice-meta-label">Për</span>
+                    <strong>${client ? client.name : 'Klient i përgjithshëm'}</strong>
+                    <p>${client && client.address ? client.address : 'Adresa nuk është vendosur'}</p>
+                    <p>${client && client.phone ? client.phone : 'Pa telefon'}</p>
+                    <p>${client && client.email ? client.email : 'Pa email'}</p>
+                </div>
+                <div class="invoice-meta-card invoice-meta-compact">
+                    <span class="invoice-meta-label">Detaje Fature</span>
+                    <p><strong>Nr. Fature:</strong> ${invoiceNumber}</p>
+                    <p><strong>Data:</strong> ${formatReportDate(sale.date)}</p>
+                    <p><strong>Afati:</strong> ${dueLabel}</p>
+                    <p><strong>Lokacioni:</strong> ${sale.location || '-'}</p>
+                </div>
+            </div>
+            <table class="invoice-table-pro">
+                <thead>
+                    <tr>
+                        <th>Produkti</th>
+                        <th>Sasia</th>
+                        <th>Çmimi</th>
+                        <th>Zbritja</th>
+                        <th>Totali</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <strong>${product.name}</strong>
+                            <span>${sale.note ? sale.note : 'Hurma premium'}</span>
+                        </td>
+                        <td>${sale.quantity}</td>
+                        <td>${unitPrice} ден</td>
+                        <td>${sale.discount ? sale.discount + '%' : '-'}</td>
+                        <td>${sale.sellTotal} ден</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="invoice-summary-grid">
+                <div class="invoice-terms-card">
+                    <h4>Kushte & shënime</h4>
+                    <p>${profile.paymentTerms}</p>
+                    <p>${profile.footerNote}</p>
+                </div>
+                <div class="invoice-totals-card">
+                    <div class="invoice-total-row"><span>Nëntotali</span><strong>${sale.sellTotal} ден</strong></div>
+                    <div class="invoice-total-row"><span>Paguar</span><strong>${paid} ден</strong></div>
+                    <div class="invoice-total-row ${remaining > 0 ? 'is-due' : 'is-clear'}"><span>Mbetet</span><strong>${remaining} ден</strong></div>
+                    <div class="invoice-total-row invoice-grand-total"><span>Total Fature</span><strong>${sale.sellTotal} ден</strong></div>
+                    <div class="invoice-payment-meta">
+                        <p><strong>Statusi:</strong> ${status.label}</p>
+                        <p><strong>Metoda:</strong> ${sale.payMethod ? _payMethodLabel(sale.payMethod) : ((sale.paymentType || 'cash') === 'cash' ? 'Cash' : 'Faturë')}</p>
+                        <p><strong>Data pagesës:</strong> ${payDateLabel}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="invoice-footer-pro">
+                <div>
+                    <span class="invoice-meta-label">Kontakt</span>
+                    <p>${profile.phone}</p>
+                    <p>${profile.email}</p>
+                </div>
+                <div>
+                    <span class="invoice-meta-label">Konfirmim</span>
+                    <p>Dokument i gjeneruar nga sistemi Hurma App</p>
+                    <p>Ju faleminderit për bashkëpunimin</p>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function downloadInvoicePdf() {
+    if (currentInvoiceSaleIndex === null || currentInvoiceSaleIndex === undefined) return;
+    const model = buildInvoiceModel(currentInvoiceSaleIndex);
+    if (!model) return;
+    // Bug #15 guard: jsPDF mund të mos jetë ngarkuar
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+        if (typeof showToast === 'function') showToast('jsPDF nuk u ngarkua!', 'error');
+        return;
+    }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const accent = (model.profile.accentColor || '#8b5a2b').replace('#', '');
+    const accentRgb = [parseInt(accent.slice(0, 2), 16), parseInt(accent.slice(2, 4), 16), parseInt(accent.slice(4, 6), 16)];
+
+    doc.setFillColor(...accentRgb);
+    doc.rect(0, 0, 210, 24, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(19);
+    doc.text(model.profile.businessName, 14, 15);
+    doc.setFontSize(10);
+    doc.text(model.profile.legalName, 14, 21);
+
+    doc.setTextColor(40, 40, 40);
+    doc.setFontSize(11);
+    doc.text(`Nr. Fature: ${model.invoiceNumber}`, 14, 34);
+    doc.text(`Data: ${formatReportDate(model.sale.date)}`, 14, 40);
+    doc.text(`Afati: ${model.sale.dueDate ? formatReportDate(model.sale.dueDate) : 'Menjëherë'}`, 14, 46);
+    doc.text(`Statusi: ${model.status.label}`, 140, 34);
+    doc.text(`Klienti: ${model.client ? model.client.name : 'Klient i përgjithshëm'}`, 140, 40);
+    doc.text(`Lokacioni: ${model.sale.location || '-'}`, 140, 46);
+
+    doc.autoTable({
+        startY: 56,
+        head: [['Produkti', 'Sasia', 'Çmimi', 'Zbritja', 'Totali']],
+        body: [[
+            model.product.name,
+            String(model.sale.quantity),
+            `${model.sale.quantity > 0 ? Math.round((model.sale.sellTotal || 0) / model.sale.quantity) : (model.product.sellPrice || 0)} ден`,
+            model.sale.discount ? `${model.sale.discount}%` : '-',
+            `${model.sale.sellTotal} ден`
+        ]],
+        theme: 'grid',
+        headStyles: { fillColor: accentRgb, textColor: [255, 255, 255] },
+        styles: { fontSize: 10 }
+    });
+
+    const y = doc.lastAutoTable.finalY + 12;
+    doc.setFontSize(10);
+    doc.text(`Paguar: ${model.paid} ден`, 14, y);
+    doc.text(`Mbetet: ${model.remaining} ден`, 14, y + 6);
+    doc.text(`Metoda: ${model.sale.payMethod ? _payMethodLabel(model.sale.payMethod) : ((model.sale.paymentType || 'cash') === 'cash' ? 'Cash' : 'Faturë')}`, 14, y + 12);
+
+    doc.setFontSize(11);
+    doc.text('Kushte & Shënime', 120, y);
+    doc.setFontSize(9);
+    doc.text(model.profile.paymentTerms, 120, y + 6, { maxWidth: 70 });
+    doc.text(model.profile.footerNote, 120, y + 18, { maxWidth: 70 });
+
+    doc.setDrawColor(...accentRgb);
+    doc.line(14, 278, 196, 278);
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`${model.profile.businessName} • ${model.profile.phone} • ${model.profile.email}`, 105, 284, { align: 'center' });
+    doc.save(`Invoice_${model.invoiceNumber}.pdf`);
+}
+
+function openInvoiceBrandingSettings() {
+    const profile = getInvoiceProfile();
+    openModal('Invoice Branding', `
+        <div class="form-group"><label>Business Name:</label><input type="text" id="invoice-business-name" value="${profile.businessName}"></div>
+        <div class="form-group"><label>Legal Name:</label><input type="text" id="invoice-legal-name" value="${profile.legalName}"></div>
+        <div class="form-group"><label>Telefon:</label><input type="text" id="invoice-phone" value="${profile.phone}"></div>
+        <div class="form-group"><label>Email:</label><input type="text" id="invoice-email" value="${profile.email}"></div>
+        <div class="form-group"><label>Adresa:</label><input type="text" id="invoice-address" value="${profile.address}"></div>
+        <div class="form-group"><label>Ngjyra kryesore:</label><input type="color" id="invoice-accent" value="${profile.accentColor || '#8b5a2b'}"></div>
+        <div class="form-group"><label>Kushtet e pagesës:</label><textarea id="invoice-payment-terms">${profile.paymentTerms || ''}</textarea></div>
+        <div class="form-group"><label>Footer note:</label><textarea id="invoice-footer-note">${profile.footerNote || ''}</textarea></div>
+        <button class="btn btn-primary" onclick="saveInvoiceBrandingSettings()" style="width:100%;"><i class="fas fa-save"></i> Ruaj Branding</button>
+    `);
+}
+
+function saveInvoiceBrandingSettings() {
+    state.invoiceProfile = {
+        businessName: document.getElementById('invoice-business-name').value,
+        legalName: document.getElementById('invoice-legal-name').value,
+        phone: document.getElementById('invoice-phone').value,
+        email: document.getElementById('invoice-email').value,
+        address: document.getElementById('invoice-address').value,
+        accentColor: document.getElementById('invoice-accent').value,
+        paymentTerms: document.getElementById('invoice-payment-terms').value,
+        footerNote: document.getElementById('invoice-footer-note').value
+    };
+    saveState();
+    closeModal();
+    showToast('Invoice branding u ruajt', 'success');
 }
 
 // ===================== CHARTS =====================
@@ -4461,6 +6075,59 @@ function updateCharts() {
 // ===================== HELPERS =====================
 function getProduct(id) {
     return PRODUCTS.find(p => p.id === id) || PRODUCTS[0];
+}
+
+function getClientById(clientId) {
+    return (state.clients || []).find(c => c.id === clientId) || null;
+}
+
+function getClientActivityMeta(clientId) {
+    const sales = (state.sales || []).filter(s => s.clientId === clientId);
+    const payments = (state.clientPayments || []).filter(p => p.clientId === clientId && p.status !== 'cancelled');
+    const visits = (state.clientVisits || []).filter(v => v.clientId === clientId);
+    const dates = [
+        ...sales.map(s => s.date),
+        ...payments.map(p => p.date),
+        ...visits.map(v => v.date)
+    ].filter(Boolean).sort();
+    const lastActivity = dates.length > 0 ? dates[dates.length - 1] : '';
+    const daysSince = lastActivity ? Math.floor((Date.now() - new Date(lastActivity).getTime()) / 86400000) : null;
+    return { sales, payments, visits, lastActivity, daysSince };
+}
+
+function calculateClientScore(clientId) {
+    const client = getClientById(clientId);
+    if (!client) return 0;
+    const { sales, payments, daysSince } = getClientActivityMeta(clientId);
+    const totalPurchases = sales.reduce((sum, sale) => sum + (sale.sellTotal || 0), 0);
+    const totalPaid = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+    let score = 40;
+    score += Math.min(25, Math.round(totalPurchases / 2000));
+    score += Math.min(20, Math.round(totalPaid / 2000));
+    score -= Math.min(30, Math.round((client.debt || 0) / 500));
+    if (daysSince !== null) {
+        if (daysSince <= 7) score += 10;
+        else if (daysSince >= 30) score -= 15;
+    }
+    if ((client.debt || 0) === 0) score += 10;
+    return Math.max(0, Math.min(100, score));
+}
+
+function getClientStatusInfo(clientId) {
+    const client = getClientById(clientId);
+    if (!client) return { label: 'N/A', color: 'var(--text-secondary)' };
+    const score = calculateClientScore(clientId);
+    const { daysSince } = getClientActivityMeta(clientId);
+    if ((client.debt || 0) >= 10000) return { label: 'Kritik', color: 'var(--danger)' };
+    if ((client.debt || 0) >= 5000 || (daysSince !== null && daysSince >= 30)) return { label: 'Në rrezik', color: 'var(--warning)' };
+    if (score >= 75) return { label: 'Premium', color: 'var(--success)' };
+    if (score >= 50) return { label: 'Aktiv', color: 'var(--primary)' };
+    return { label: 'Pasiv', color: '#7f8c8d' };
+}
+
+function clientStatusBadge(clientId) {
+    const info = getClientStatusInfo(clientId);
+    return `<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:${info.color}22;color:${info.color};font-weight:700;font-size:0.78rem;">${info.label}</span>`;
 }
 
 function openModal(title, bodyHtml) {
@@ -5227,29 +6894,25 @@ function updateProduct(id) {
 }
 
 function deleteProduct(id) {
-    if (!confirm('Delete this product? This cannot be undone.')) return;
-
-    // Check if product is used in any sales
-    const usedInSales = state.sales.some(s => s.productId === id);
-    if (usedInSales) {
-        showToast('Cannot delete: product is used in sales history', 'error');
-        return;
-    }
-
-    const productIndex = PRODUCTS.findIndex(p => p.id === id);
-    if (productIndex === -1) return;
-
-    const productName = PRODUCTS[productIndex].name;
-    PRODUCTS.splice(productIndex, 1);
-    state.customProducts = [...PRODUCTS];
-    delete state.stock[id];
-
-    saveState();
-    closeModal();
-    refreshProducts();
-    populateProductSelects();
-    showToast('Product deleted successfully', 'success');
-    logActivity('Product Deleted', `Deleted product: ${productName}`);
+    modalConfirm('Fshi këtë produkt? Kjo nuk mund të kthehet!', function() {
+        var usedInSales = state.sales.some(function(s) { return s.productId === id; });
+        if (usedInSales) {
+            showToast('Nuk mund të fshihet: produkti përdoret në historinë e shitjeve', 'error');
+            return;
+        }
+        var productIndex = PRODUCTS.findIndex(function(p) { return p.id === id; });
+        if (productIndex === -1) return;
+        var productName = PRODUCTS[productIndex].name;
+        PRODUCTS.splice(productIndex, 1);
+        state.customProducts = PRODUCTS.slice();
+        delete state.stock[id];
+        saveState();
+        closeModal();
+        refreshProducts();
+        populateProductSelects();
+        showToast('Produkti u fshi!', 'success');
+        logActivity('Product Deleted', 'Deleted product: ' + productName);
+    });
 }
 
 function refreshProducts() {
@@ -5838,17 +7501,14 @@ function updatePreset(id) {
 }
 
 function deletePreset(id) {
-    if (!confirm('Delete this preset?')) return;
-
-    const index = state.salePresets.findIndex(p => p.id === id);
-    if (index >= 0) {
-        state.salePresets.splice(index, 1);
-    }
-
-    saveState();
-    closeModal();
-    refreshDashboard();
-    showToast('Preset deleted', 'success');
+    modalConfirm('Fshi këtë preset?', function() {
+        var index = state.salePresets.findIndex(function(p) { return p.id === id; });
+        if (index >= 0) state.salePresets.splice(index, 1);
+        saveState();
+        closeModal();
+        refreshDashboard();
+        showToast('Preset u fshi!', 'success');
+    });
 }
 
 function executePreset(id) {
@@ -6076,6 +7736,46 @@ function refreshSettingsUI() {
     html += '<button class="btn" onclick="generateAgingReport()" style="margin:5px;">Aging Report</button>';
     html += '<button class="btn" onclick="generatePLReport()" style="margin:5px;">P&L Report</button>';
 
+    html += '<h3 style="margin-top:25px;"><i class="fas fa-sync-alt"></i> Përditësimi i Aplikacionit</h3>';
+    html += '<div style="padding:10px;background:#eef7ff;border-left:4px solid #3498db;border-radius:6px;margin:5px;">';
+    html += '<p style="margin:0 0 8px;">Nëse butonat ose funksionet e reja nuk punojnë, pastro cache-n dhe rifresko aplikacionin:</p>';
+    html += '<button class="btn" style="background:#3498db;color:white;" onclick="forceUpdateApp()"><i class="fas fa-sync-alt"></i> Pastro Cache & Rifresko</button>';
+    html += '<small style="display:block;margin-top:6px;color:#666;">Shkurtore: <kbd>Shift + Ctrl/Cmd + U</kbd></small>';
+    html += '</div>';
+
+    // Storage & Backup Health
+    try {
+        var stats = computeStorageStats();
+        var pct = Math.min(100, Math.round(stats.sizeKB / 50 )); // 5MB ~ 100%
+        var barColor = pct < 60 ? '#27ae60' : (pct < 85 ? '#f39c12' : '#e74c3c');
+        var lastBk = (state.autoBackup && state.autoBackup.lastBackup) ? new Date(state.autoBackup.lastBackup) : null;
+        var daysSince = lastBk ? Math.floor((Date.now() - lastBk.getTime()) / 86400000) : null;
+        var bkWarn = daysSince === null || daysSince >= 7;
+
+        html += '<h3 style="margin-top:25px;"><i class="fas fa-database"></i> Hapësira & Siguria</h3>';
+        html += '<div style="padding:10px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;margin:5px;">';
+        html += '<div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>Hapësira e përdorur:</span><strong>' + stats.sizeMB + ' MB</strong></div>';
+        html += '<div style="background:#eee;border-radius:10px;overflow:hidden;height:10px;margin-bottom:10px;">';
+        html += '<div style="background:' + barColor + ';height:100%;width:' + pct + '%;transition:width .3s;"></div>';
+        html += '</div>';
+        html += '<div style="font-size:0.9em;color:#555;">';
+        html += '📦 Produkte: <b>' + stats.products + '</b> · 💰 Shitje: <b>' + stats.sales + '</b> · 👥 Klientë: <b>' + stats.clients + '</b><br>';
+        html += '🚚 Dërgesa: <b>' + stats.deliveries + '</b> · 📷 POD foto: <b>' + stats.podPhotos + '</b> · 📍 Me GPS: <b>' + stats.podGPS + '</b>';
+        html += '</div>';
+        if (stats.sizeKB > 4000) {
+            html += '<div style="margin-top:10px;padding:8px;background:#fff4e6;border-left:4px solid #e67e22;border-radius:4px;font-size:0.9em;">';
+            html += '⚠️ Hapësira po mbushet. Bëni backup dhe konsidero heqjen e foto-ve të vjetra të POD.';
+            html += '</div>';
+        }
+        html += '<div style="margin-top:10px;padding:8px;background:' + (bkWarn ? '#ffe6e6' : '#e6f7e6') + ';border-left:4px solid ' + (bkWarn ? '#e74c3c' : '#27ae60') + ';border-radius:4px;font-size:0.9em;">';
+        if (daysSince === null) html += '🛑 Nuk keni bërë kurrë backup! ';
+        else if (bkWarn) html += '⚠️ Backup-i i fundit: <b>' + daysSince + ' ditë më parë</b>. ';
+        else html += '✅ Backup-i i fundit: ' + daysSince + ' ditë më parë. ';
+        html += '<button class="btn btn-sm" style="background:#3498db;color:white;margin-left:8px;" onclick="exportBackup(); state.autoBackup = state.autoBackup || {}; state.autoBackup.lastBackup = new Date().toISOString(); saveState(); refreshSettingsUI();"><i class="fas fa-download"></i> Bëj Backup Tani</button>';
+        html += '</div>';
+        html += '</div>';
+    } catch(e) { /* silent */ }
+
     html += '<h3 style="margin-top:25px; color:var(--danger);"><i class="fas fa-exclamation-triangle"></i> Reset & Pastrim</h3>';
     html += '<button class="btn btn-reset-open" onclick="openResetCenter()" style="margin:5px;"><i class="fas fa-trash-alt"></i> Hap Reset Center</button>';
 
@@ -6085,193 +7785,206 @@ function refreshSettingsUI() {
 // ===================== RESET FUNCTIONS =====================
 
 // Helper: Double confirmation - must type RESET to confirm
-function confirmReset(sectionName) {
-    return confirm(`A jeni i sigurt qe deshironi te beni RESET te "${sectionName}"?\n\nKjo nuk mund te kthehet mbrapa!`);
+function confirmReset(sectionName, onYes) {
+    modalConfirm('A jeni i sigurt qe deshironi te beni RESET te <strong>"' + sectionName + '"</strong>?<br><br>Kjo nuk mund te kthehet mbrapa!', onYes);
 }
 
 // 1. Reset Shitjet
 function resetSales() {
-    if (!confirmReset('Shitjet')) return;
-    state.sales = [];
-    saveState();
-    refreshAll();
-    showToast('Shitjet u fshin me sukses', 'success');
-    logActivity('RESET', 'Reset i te gjitha shitjeve');
+    confirmReset('Shitjet', function() {
+        state.sales = [];
+        saveState();
+        refreshAll();
+        showToast('Shitjet u fshin me sukses', 'success');
+        logActivity('RESET', 'Reset i te gjitha shitjeve');
+    });
 }
 
 // 2. Reset Stoku
 function resetStock() {
-    if (!confirmReset('Stoku')) return;
-    PRODUCTS.forEach(p => { state.stock[p.id] = 0; });
-    state.stockBatches = [];
-    saveState();
-    refreshAll();
-    showToast('Stoku u zerua me sukses', 'success');
-    logActivity('RESET', 'Reset i stokut');
+    confirmReset('Stoku', function() {
+            PRODUCTS.forEach(p => { state.stock[p.id] = 0; });
+        state.stockBatches = [];
+        saveState();
+        refreshAll();
+        showToast('Stoku u zerua me sukses', 'success');
+        logActivity('RESET', 'Reset i stokut');
+    });
 }
 
 // 3. Reset Klientet
 function resetClients() {
-    if (!confirmReset('Klientet')) return;
-    state.clients = [];
-    state.clientPayments = [];
-    state.pinnedClients = [];
-    saveState();
-    refreshAll();
-    showToast('Klientet u fshin me sukses', 'success');
-    logActivity('RESET', 'Reset i te gjitha klienteve');
+    confirmReset('Klientet', function() {
+            state.clients = [];
+        state.clientPayments = [];
+        state.pinnedClients = [];
+        saveState();
+        refreshAll();
+        showToast('Klientet u fshin me sukses', 'success');
+        logActivity('RESET', 'Reset i te gjitha klienteve');
+    });
 }
 
 // 4. Reset vetem Borxhet e Klienteve (pa fshire klientet)
 function resetClientDebts() {
-    if (!confirmReset('Borxhet e Klienteve')) return;
-    state.clients.forEach(c => { c.debt = 0; });
-    state.sales.forEach(s => {
-        if (s.paymentType === 'invoice_60' && !s.invoicePaid) {
-            s.invoicePaid = true;
-        }
+    confirmReset('Borxhet e Klienteve', function() {
+            state.clients.forEach(c => { c.debt = 0; });
+        state.sales.forEach(s => {
+            if (s.paymentType === 'invoice_60' && !s.invoicePaid) {
+                s.invoicePaid = true;
+            }
+        });
+        saveState();
+        refreshAll();
+        showToast('Borxhet e klienteve u zeruan', 'success');
+        logActivity('RESET', 'Reset i borxheve te klienteve');
     });
-    saveState();
-    refreshAll();
-    showToast('Borxhet e klienteve u zeruan', 'success');
-    logActivity('RESET', 'Reset i borxheve te klienteve');
 }
 
 // 5. Reset Llogaria Fatoni
 function resetFaton() {
-    if (!confirmReset('Llogaria e Fatonit')) return;
-    state.fatonPurchases = [];
-    state.fatonPayments = [];
-    state.fatonProfitCollections = [];
-    state.fatonProfitOwed = [];
-    state.fatonDebtHistory = [];
-    saveState();
-    refreshAll();
-    showToast('Llogaria e Fatonit u resetua', 'success');
-    logActivity('RESET', 'Reset i llogarise se Fatonit');
+    confirmReset('Llogaria e Fatonit', function() {
+            state.fatonPurchases = [];
+        state.fatonPayments = [];
+        state.fatonProfitCollections = [];
+        state.fatonProfitOwed = [];
+        state.fatonDebtHistory = [];
+        saveState();
+        refreshAll();
+        showToast('Llogaria e Fatonit u resetua', 'success');
+        logActivity('RESET', 'Reset i llogarise se Fatonit');
+    });
 }
 
 // 6. Reset Porosite
 function resetOrders() {
-    if (!confirmReset('Porosite')) return;
-    state.orders = [];
-    saveState();
-    refreshAll();
-    showToast('Porosite u fshin me sukses', 'success');
-    logActivity('RESET', 'Reset i porosive');
+    confirmReset('Porosite', function() {
+            state.orders = [];
+        saveState();
+        refreshAll();
+        showToast('Porosite u fshin me sukses', 'success');
+        logActivity('RESET', 'Reset i porosive');
+    });
 }
 
 // 7. Reset Kthimet
 function resetReturns() {
-    if (!confirmReset('Kthimet')) return;
-    state.returns = [];
-    saveState();
-    refreshAll();
-    showToast('Kthimet u fshin me sukses', 'success');
-    logActivity('RESET', 'Reset i kthimeve');
+    confirmReset('Kthimet', function() {
+            state.returns = [];
+        saveState();
+        refreshAll();
+        showToast('Kthimet u fshin me sukses', 'success');
+        logActivity('RESET', 'Reset i kthimeve');
+    });
 }
 
 // 8. Reset Shpenzimet
 function resetExpenses() {
-    if (!confirmReset('Shpenzimet')) return;
-    state.expenses = [];
-    saveState();
-    refreshAll();
-    showToast('Shpenzimet u fshin me sukses', 'success');
-    logActivity('RESET', 'Reset i shpenzimeve');
+    confirmReset('Shpenzimet', function() {
+            state.expenses = [];
+        saveState();
+        refreshAll();
+        showToast('Shpenzimet u fshin me sukses', 'success');
+        logActivity('RESET', 'Reset i shpenzimeve');
+    });
 }
 
 // 9. Reset Arka Ditore
 function resetCashDrawer() {
-    if (!confirmReset('Arka Ditore')) return;
-    state.cashDrawer = [];
-    saveState();
-    refreshCashDrawer();
-    showToast('Arka ditore u resetua', 'success');
-    logActivity('RESET', 'Reset i arkes ditore');
+    confirmReset('Arka Ditore', function() {
+            state.cashDrawer = [];
+        saveState();
+        refreshCashDrawer();
+        showToast('Arka ditore u resetua', 'success');
+        logActivity('RESET', 'Reset i arkes ditore');
+    });
 }
 
 // 10. Reset Log Aktivitetesh
 function resetActivityLog() {
-    if (!confirmReset('Log Aktivitetesh')) return;
-    state.activityLog = [];
-    saveState();
-    refreshActivityLog();
-    showToast('Logu i aktiviteteve u pastrua', 'success');
+    confirmReset('Log Aktivitetesh', function() {
+            state.activityLog = [];
+        saveState();
+        refreshActivityLog();
+        showToast('Logu i aktiviteteve u pastrua', 'success');
+    });
 }
 
 // 11. Reset Raporte Javore
 function resetWeeklyReports() {
-    if (!confirmReset('Raportet Javore')) return;
-    state.weeklyReports = [];
-    saveState();
-    refreshAll();
-    showToast('Raportet javore u fshin', 'success');
-    logActivity('RESET', 'Reset i raporteve javore');
+    confirmReset('Raportet Javore', function() {
+            state.weeklyReports = [];
+        saveState();
+        refreshAll();
+        showToast('Raportet javore u fshin', 'success');
+        logActivity('RESET', 'Reset i raporteve javore');
+    });
 }
 
 // 12. Reset Kontakte
 function resetContacts() {
-    if (!confirmReset('Kontaktet')) return;
-    state.contacts = [];
-    saveState();
-    refreshAll();
-    showToast('Kontaktet u fshin me sukses', 'success');
-    logActivity('RESET', 'Reset i kontakteve');
+    confirmReset('Kontaktet', function() {
+            state.contacts = [];
+        saveState();
+        refreshAll();
+        showToast('Kontaktet u fshin me sukses', 'success');
+        logActivity('RESET', 'Reset i kontakteve');
+    });
 }
 
 // 13. Reset Shenime
 function resetNotes() {
-    if (!confirmReset('Shenimet')) return;
-    state.notes = [];
-    saveState();
-    refreshAll();
-    showToast('Shenimet u fshin me sukses', 'success');
-    logActivity('RESET', 'Reset i shenimeve');
+    confirmReset('Shenimet', function() {
+            state.notes = [];
+        saveState();
+        refreshAll();
+        showToast('Shenimet u fshin me sukses', 'success');
+        logActivity('RESET', 'Reset i shenimeve');
+    });
 }
 
 // 14. Reset Qellimet
 function resetTargets() {
-    if (!confirmReset('Qellimet')) return;
-    state.targets = [];
-    saveState();
-    refreshAll();
-    showToast('Qellimet u fshin me sukses', 'success');
-    logActivity('RESET', 'Reset i qellimeve');
+    confirmReset('Qellimet', function() {
+            state.targets = [];
+        saveState();
+        refreshAll();
+        showToast('Qellimet u fshin me sukses', 'success');
+        logActivity('RESET', 'Reset i qellimeve');
+    });
 }
 
 // 15. Reset Preset-et
 function resetPresets() {
-    if (!confirmReset('Preset-et e shitjeve')) return;
-    state.salePresets = [];
-    saveState();
-    refreshAll();
-    showToast('Preset-et u fshin me sukses', 'success');
-    logActivity('RESET', 'Reset i preset-eve');
+    confirmReset('Preset-et e shitjeve', function() {
+            state.salePresets = [];
+        saveState();
+        refreshAll();
+        showToast('Preset-et u fshin me sukses', 'success');
+        logActivity('RESET', 'Reset i preset-eve');
+    });
 }
 
 // 16. Reset Fitimi
 function resetProfit() {
-    if (!confirmReset('Fitimi & Ndarja')) return;
-    // Zero out profit from all sales
-    state.sales.forEach(s => { s.profit = 0; });
-    // Reset Faton profit tracking
-    state.fatonProfitOwed = [];
-    state.fatonProfitCollections = [];
-    // Reset profit split to default 50/50
-    state.profitSplit = { owner: 50, partner: 50 };
-    saveState();
-    refreshAll();
-    showToast('Fitimi u resetua me sukses', 'success');
-    logActivity('RESET', 'Reset i fitimit dhe ndarjes');
+    confirmReset('Fitimi & Ndarja', function() {
+            // Zero out profit from all sales
+        state.sales.forEach(s => { s.profit = 0; });
+        // Reset Faton profit tracking
+        state.fatonProfitOwed = [];
+        state.fatonProfitCollections = [];
+        // Reset profit split to default 50/50
+        state.profitSplit = { owner: 50, partner: 50 };
+        saveState();
+        refreshAll();
+        showToast('Fitimi u resetua me sukses', 'success');
+        logActivity('RESET', 'Reset i fitimit dhe ndarjes');
+    });
 }
 
 // 17. RESET I PLOTE
 function resetAll() {
-    if (!confirm('A jeni i sigurt qe deshironi te fshini TE GJITHA TE DHENAT?\n\nKjo nuk mund te kthehet mbrapa!')) return;
-    const typed = prompt('Shkruani RESET per te konfirmuar fshirjen totale:');
-    if (typed !== 'RESET') { showToast('Reset u anulua', 'info'); return; }
-
+    modalConfirm('⚠️ A jeni i sigurt që dëshironi të fshini <strong>TË GJITHA TË DHËNAT</strong>?<br><br>Kjo nuk mund të kthehet mbrapa!<br><br><small>Do të bëhet backup automatik para fshirjes.</small>', function() {
     exportBackup();
 
     localStorage.removeItem('hurma-state');
@@ -6304,6 +8017,7 @@ function resetAll() {
     populateProductSelects();
     populateLocationSelects();
     showToast('Aplikacioni u resetua plotesisht!', 'success');
+    });
 }
 
 // Open Reset Center modal
@@ -6418,6 +8132,11 @@ function exportToExcel(headers, rows, filename) {
 
 // Core PDF export
 function exportToPDF(title, headers, rows, filename, orientation) {
+    // Bug #15 guard: jsPDF mund të mos jetë ngarkuar (CDN i rënë / offline start). Shfaq toast në vend të crash-it.
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+        if (typeof showToast === 'function') showToast('jsPDF nuk u ngarkua! Provo më vonë ose kontrollo internetin.', 'error');
+        return;
+    }
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: orientation || 'portrait' });
     doc.setFontSize(16);
@@ -6437,25 +8156,236 @@ function exportToPDF(title, headers, rows, filename, orientation) {
     showToast('PDF u shkarkua: ' + filename + '.pdf', 'success');
 }
 
-// Core Word export
+// Core Word export - Professional layout
 function exportToWord(title, headers, rows, filename) {
-    let html = '<html><head><meta charset="utf-8"><style>body{font-family:Calibri,sans-serif;}table{border-collapse:collapse;width:100%;margin-top:15px;}th,td{border:1px solid #ccc;padding:8px 10px;text-align:left;font-size:11px;}th{background:#2c3e50;color:white;}tr:nth-child(even){background:#f5f5f5;}</style></head><body>';
-    html += '<h2>' + title + '</h2>';
-    html += '<p style="color:#777;font-size:11px;">Hurma App - ' + new Date().toLocaleDateString('sq-AL') + '</p>';
-    html += '<table><thead><tr>';
-    headers.forEach(h => html += '<th>' + h + '</th>');
-    html += '</tr></thead><tbody>';
-    rows.forEach(r => {
-        html += '<tr>';
-        r.forEach(cell => html += '<td>' + (cell !== null && cell !== undefined ? cell : '') + '</td>');
-        html += '</tr>';
+    var profile = typeof getInvoiceProfile === 'function' ? getInvoiceProfile() : {};
+    var bizName = (profile.businessName) || 'Hurma App';
+    var accent = (profile.accentColor) || '#2c7a4b';
+    var accentDark = '#1a5c35';
+    var dateNow = new Date();
+    var dateStr = dateNow.toLocaleDateString('sq-AL', { day: 'numeric', month: 'long', year: 'numeric' });
+    var timeStr = dateNow.toLocaleTimeString('sq-AL', { hour: '2-digit', minute: '2-digit' });
+    var totalRows = rows.length;
+
+    // Detect numeric columns for summary
+    var numericCols = [];
+    if (rows.length > 0) {
+        headers.forEach(function(h, idx) {
+            var numCount = 0;
+            rows.forEach(function(r) {
+                var val = (r[idx] || '').toString().replace(/[^\d.-]/g, '');
+                if (val && !isNaN(parseFloat(val))) numCount++;
+            });
+            if (numCount > rows.length * 0.5) numericCols.push(idx);
+        });
+    }
+
+    // Calculate totals for numeric columns
+    var colTotals = {};
+    numericCols.forEach(function(idx) {
+        var sum = 0;
+        rows.forEach(function(r) {
+            var val = parseFloat((r[idx] || '').toString().replace(/[^\d.-]/g, ''));
+            if (!isNaN(val)) sum += val;
+        });
+        colTotals[idx] = sum;
     });
-    html += '</tbody></table></body></html>';
-    const blob = new Blob(['\ufeff' + html], { type: 'application/msword' });
-    const link = document.createElement('a');
+
+    var h = '';
+    h += '<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">';
+    h += '<head><meta charset="utf-8"><title>' + title + '</title>';
+    h += '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom><w:DoNotOptimizeForBrowser/></w:WordDocument></xml><![endif]-->';
+    h += '<style>';
+    h += '@page { size: A4; margin: 1.5cm 2cm; }';
+    h += 'body { font-family: Calibri, Segoe UI, Arial, sans-serif; color: #2c3e50; margin: 0; padding: 0; font-size: 10pt; line-height: 1.5; }';
+    h += 'table { border-collapse: collapse; width: 100%; }';
+    h += 'p { margin: 0 0 4px 0; }';
+
+    // Top banner
+    h += '.top-banner { background-color: ' + accent + '; padding: 22px 35px; }';
+    h += '.top-banner * { color: white !important; }';
+    h += '.top-banner .biz-name { font-size: 22pt; font-weight: bold; letter-spacing: 1px; margin: 0; }';
+    h += '.top-banner .biz-sub { font-size: 9pt; opacity: 0.85; margin-top: 2px; }';
+    h += '.top-banner .report-title { font-size: 20pt; font-weight: bold; text-align: right; letter-spacing: 2px; text-transform: uppercase; }';
+    h += '.top-banner .report-detail { font-size: 9pt; text-align: right; opacity: 0.9; }';
+
+    // Content area
+    h += '.content { padding: 20px 35px; }';
+
+    // Summary cards
+    h += '.summary-box { border: 1px solid #e0e0e0; padding: 14px 18px; vertical-align: top; text-align: center; }';
+    h += '.summary-box .s-label { font-size: 7pt; text-transform: uppercase; letter-spacing: 2px; color: ' + accent + '; font-weight: bold; margin-bottom: 5px; }';
+    h += '.summary-box .s-value { font-size: 18pt; font-weight: bold; color: #2c3e50; }';
+    h += '.summary-box .s-sub { font-size: 8pt; color: #95a5a6; margin-top: 2px; }';
+
+    // Data table
+    h += '.data-table { margin-top: 20px; border: 1px solid #ddd; }';
+    h += '.data-table th { background-color: ' + accent + '; color: white; padding: 10px 12px; text-align: left; font-size: 8.5pt; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; border: none; }';
+    h += '.data-table td { padding: 9px 12px; border-bottom: 1px solid #eee; font-size: 9.5pt; }';
+    h += '.data-table .row-alt td { background-color: #fafbfc; }';
+    h += '.data-table .row-num { text-align: center; color: #95a5a6; font-size: 8pt; width: 30px; }';
+    h += '.data-table .total-row td { border-top: 3px solid ' + accent + '; font-weight: bold; background-color: #f8f9fa; font-size: 10pt; }';
+
+    // Footer
+    h += '.doc-footer { margin-top: 30px; border-top: 3px solid ' + accent + '; padding-top: 12px; text-align: center; }';
+    h += '.doc-footer .footer-biz { font-size: 9pt; color: ' + accent + '; font-weight: bold; }';
+    h += '.doc-footer .footer-info { font-size: 8pt; color: #95a5a6; }';
+    h += '.doc-footer .footer-note { font-size: 8pt; color: #bdc3c7; font-style: italic; margin-top: 5px; }';
+
+    // Watermark
+    h += '.watermark { color: #f0f0f0; font-size: 60pt; text-align: center; font-weight: bold; letter-spacing: 10px; margin: -30px 0; }';
+
+    h += '</style></head><body>';
+
+    // ===== TOP BANNER =====
+    h += '<table class="top-banner" cellpadding="0" cellspacing="0"><tr>';
+    h += '<td style="width:55%; vertical-align:middle;">';
+    h += '<p class="biz-name">\ud83c\udf34 ' + bizName + '</p>';
+    h += '<p class="biz-sub">' + (profile.legalName || 'Premium Dates Trading') + '</p>';
+    if (profile.address) h += '<p class="biz-sub">' + profile.address + '</p>';
+    h += '</td>';
+    h += '<td style="width:45%; vertical-align:middle;">';
+    h += '<p class="report-title">RAPORT</p>';
+    h += '<p class="report-detail"><strong>' + title + '</strong></p>';
+    h += '<p class="report-detail">Data: ' + dateStr + '</p>';
+    h += '<p class="report-detail">Ora: ' + timeStr + '</p>';
+    h += '</td>';
+    h += '</tr></table>';
+
+    // ===== CONTENT =====
+    h += '<div class="content">';
+
+    // ===== SUMMARY CARDS =====
+    h += '<table cellpadding="0" cellspacing="0" style="margin-top:18px;"><tr>';
+    // Total rows card
+    h += '<td class="summary-box" style="width:25%;">';
+    h += '<div class="s-label">Total Rreshta</div>';
+    h += '<div class="s-value">' + totalRows + '</div>';
+    h += '<div class="s-sub">regjistrime</div>';
+    h += '</td>';
+
+    // Show up to 3 numeric column summaries
+    var summaryShown = 0;
+    numericCols.forEach(function(idx) {
+        if (summaryShown >= 3) return;
+        h += '<td class="summary-box" style="width:25%;">';
+        h += '<div class="s-label">' + headers[idx] + '</div>';
+        h += '<div class="s-value">' + Math.round(colTotals[idx]).toLocaleString('sq-AL') + '</div>';
+        h += '<div class="s-sub">total</div>';
+        h += '</td>';
+        summaryShown++;
+    });
+
+    // Fill remaining cards
+    while (summaryShown < 3) {
+        h += '<td class="summary-box" style="width:25%; border:none;">&nbsp;</td>';
+        summaryShown++;
+    }
+    h += '</tr></table>';
+
+    // ===== DATE & FILTER INFO =====
+    h += '<table cellpadding="0" cellspacing="0" style="margin-top:15px; background:#f8f9fa; border:1px solid #eee; padding:10px;">';
+    h += '<tr><td style="padding:10px 15px;">';
+    h += '<span style="font-size:8pt; text-transform:uppercase; letter-spacing:2px; color:' + accent + '; font-weight:bold;">Informata Raportit</span><br>';
+    h += '<span style="font-size:9pt; color:#7f8c8d;">Titulli: <strong style="color:#2c3e50;">' + title + '</strong></span>';
+    h += ' &nbsp;|&nbsp; <span style="font-size:9pt; color:#7f8c8d;">Kolonat: <strong style="color:#2c3e50;">' + headers.length + '</strong></span>';
+    h += ' &nbsp;|&nbsp; <span style="font-size:9pt; color:#7f8c8d;">Rreshtat: <strong style="color:#2c3e50;">' + totalRows + '</strong></span>';
+    h += ' &nbsp;|&nbsp; <span style="font-size:9pt; color:#7f8c8d;">Gjeneruar: <strong style="color:#2c3e50;">' + dateStr + ' ' + timeStr + '</strong></span>';
+    h += '</td></tr></table>';
+
+    // ===== DATA TABLE =====
+    h += '<table class="data-table" cellpadding="0" cellspacing="0">';
+    h += '<thead><tr>';
+    h += '<th class="row-num">#</th>';
+    headers.forEach(function(hdr) {
+        h += '<th>' + hdr + '</th>';
+    });
+    h += '</tr></thead>';
+    h += '<tbody>';
+    rows.forEach(function(r, i) {
+        h += '<tr' + (i % 2 === 1 ? ' class="row-alt"' : '') + '>';
+        h += '<td class="row-num">' + (i + 1) + '</td>';
+        r.forEach(function(cell, ci) {
+            var isNum = numericCols.indexOf(ci) !== -1;
+            var style = isNum ? ' style="text-align:right; font-weight:500;"' : '';
+            h += '<td' + style + '>' + (cell !== null && cell !== undefined ? cell : '') + '</td>';
+        });
+        h += '</tr>';
+    });
+
+    // Totals row
+    if (numericCols.length > 0 && rows.length > 1) {
+        h += '<tr class="total-row">';
+        h += '<td class="row-num" style="font-weight:bold; color:' + accent + ';">\u03a3</td>';
+        headers.forEach(function(hdr, ci) {
+            if (ci === 0 && numericCols.indexOf(0) === -1) {
+                h += '<td style="border-top:3px solid ' + accent + '; font-weight:bold; color:' + accent + ';">TOTALI</td>';
+            } else if (colTotals[ci] !== undefined) {
+                var suffix = '';
+                // Detect if values have 'den' suffix
+                if (rows.length > 0) {
+                    var sampleVal = (rows[0][ci] || '').toString();
+                    if (sampleVal.indexOf('den') !== -1) suffix = ' den';
+                    else if (sampleVal.indexOf('%') !== -1) suffix = '%';
+                }
+                h += '<td style="border-top:3px solid ' + accent + '; text-align:right; font-weight:bold; color:' + accent + ';">' + Math.round(colTotals[ci]).toLocaleString('sq-AL') + suffix + '</td>';
+            } else {
+                h += '<td style="border-top:3px solid ' + accent + ';">&nbsp;</td>';
+            }
+        });
+        h += '</tr>';
+    }
+
+    h += '</tbody></table>';
+
+    // ===== NOTES SECTION =====
+    h += '<table cellpadding="0" cellspacing="0" style="margin-top:20px;"><tr>';
+    h += '<td style="width:60%; vertical-align:top; padding-right:20px;">';
+    h += '<p style="font-size:8pt; text-transform:uppercase; letter-spacing:2px; color:' + accent + '; font-weight:bold; margin-bottom:6px;">Shenime</p>';
+    h += '<div style="border:1px dashed #ddd; padding:15px; min-height:50px; font-size:9pt; color:#95a5a6;">';
+    h += 'Ky dokument eshte gjeneruar automatikisht nga ' + bizName + '. Te dhenat jane te sakta deri ne momentin e gjenerimit te raportit.';
+    h += '</div>';
+    h += '</td>';
+    h += '<td style="width:40%; vertical-align:top;">';
+    h += '<p style="font-size:8pt; text-transform:uppercase; letter-spacing:2px; color:' + accent + '; font-weight:bold; margin-bottom:6px;">Nenshkrimi</p>';
+    h += '<div style="border-bottom:1px solid #bdc3c7; margin-top:45px; padding-bottom:5px;">';
+    h += '<p style="font-size:8pt; color:#95a5a6; text-align:center;">Nenshkrimi i Pergjegjesit</p>';
+    h += '</div>';
+    h += '</td>';
+    h += '</tr></table>';
+
+    // ===== FOOTER =====
+    h += '<div class="doc-footer">';
+    h += '<table cellpadding="0" cellspacing="0"><tr>';
+    h += '<td style="text-align:left; width:33%;">';
+    h += '<span class="footer-info">Raport: ' + title + '</span><br>';
+    h += '<span class="footer-info">' + filename + '.doc</span>';
+    h += '</td>';
+    h += '<td style="text-align:center; width:34%;">';
+    h += '<span class="footer-biz">\ud83c\udf34 ' + bizName + '</span><br>';
+    if (profile.address) h += '<span class="footer-info">' + profile.address + '</span><br>';
+    h += '<span class="footer-info">' + (profile.phone || '') + (profile.email ? ' | ' + profile.email : '') + '</span>';
+    h += '</td>';
+    h += '<td style="text-align:right; width:33%;">';
+    h += '<span class="footer-info">' + dateStr + '</span><br>';
+    h += '<span class="footer-info">' + timeStr + '</span>';
+    h += '</td>';
+    h += '</tr></table>';
+    h += '<p class="footer-note">' + (profile.footerNote || 'Faleminderit per bashkepunimin! Ju mirepresim perseri.') + '</p>';
+    h += '<p class="footer-info" style="margin-top:5px;">Dokument i gjeneruar automatikisht nga ' + bizName + ' | Faqe 1</p>';
+    h += '</div>';
+
+    h += '</div>'; // close content
+    h += '</body></html>';
+
+    // Download
+    var blob = new Blob(['\ufeff' + h], { type: 'application/msword' });
+    var link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = filename + '.doc';
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
     URL.revokeObjectURL(link.href);
     showToast('Word u shkarkua: ' + filename + '.doc', 'success');
 }
@@ -6528,7 +8458,20 @@ function exportClients(format) {
 // Orders export
 function exportOrders(format) {
     const headers = ['Data', 'Klienti', 'Produkti', 'Sasia', 'Statusi', 'Shenimet'];
-    const rows = state.orders.map(o => [o.date, o.clientName || '-', o.product || '-', o.quantity, o.status || 'pending', o.notes || '-']);
+    const rows = (state.orders || []).map(o => {
+        // Përkthe clientId → emër klienti (fusha reale është clientId, jo clientName)
+        const client = o.clientId ? (state.clients.find(c => c.id === o.clientId) || {}) : {};
+        // Përkthe productId → emër produkti (fusha reale është productId, jo product)
+        const prod = o.productId ? getProduct(o.productId) : null;
+        return [
+            o.date || '-',
+            client.name || o.clientName || '-',      // mbështet edhe formate të vjetra
+            (prod && prod.name) || o.product || '-', // mbështet edhe formate të vjetra
+            o.quantity || 0,
+            o.status || 'pending',
+            o.note || o.notes || '-'                 // fusha reale është "note" (njëjës)
+        ];
+    });
     const fname = 'Porosite_' + new Date().toISOString().split('T')[0];
     if (format === 'excel') exportToExcel(headers, rows, fname);
     else if (format === 'pdf') exportToPDF('Porosite', headers, rows, fname);
@@ -6565,8 +8508,26 @@ function exportFaton(format) {
 
 // Reports export
 function exportReports(format) {
-    const headers = ['Java', 'Fillimi', 'Mbarimi', 'Shitje', 'Fitimi', 'Shpenzime'];
-    const rows = (state.weeklyReports || []).map(r => [r.weekNumber, r.startDate, r.endDate, r.totalSales + ' den', r.totalProfit + ' den', r.totalExpenses + ' den']);
+    const headers = ['Java', 'Fillimi', 'Mbarimi', 'Shitje (den)', 'Fitimi (den)', 'Shpenzime (den)'];
+    const rows = (state.weeklyReports || []).map((r, i) => {
+        // Llogarit shpenzimet e javës nga state.expenses (filtron sipas datës së raportit)
+        const weekStart = r.weekStart || '';
+        const weekEnd = r.weekEnd || '';
+        const weekExp = (state.expenses || [])
+            .filter(e => {
+                const d = e.date || '';
+                return weekStart && weekEnd && d >= weekStart && d <= weekEnd;
+            })
+            .reduce((s, e) => s + (e.amount || 0), 0);
+        return [
+            i + 1,                                  // Java (numri radhor)
+            weekStart || '-',                       // Fillimi (fusha reale: weekStart)
+            weekEnd || '-',                         // Mbarimi (fusha reale: weekEnd)
+            (r.totalRevenue || 0) + ' den',         // Vlera reale e shitjeve (jo numri)
+            (r.totalProfit || 0) + ' den',          // Fitimi
+            weekExp + ' den'                        // Shpenzimet e llogaritura për atë javë
+        ];
+    });
     const fname = 'Raportet_' + new Date().toISOString().split('T')[0];
     if (format === 'excel') exportToExcel(headers, rows, fname);
     else if (format === 'pdf') exportToPDF('Raportet Javore', headers, rows, fname);
@@ -6599,9 +8560,17 @@ function exportBalance(format) {
 // Returns export
 function exportReturns(format) {
     const headers = ['Data', 'Produkti', 'Sasia', 'Arsyeja', 'Klienti'];
-    const rows = state.returns.map(r => {
+    const rows = (state.returns || []).map(r => {
         const p = getProduct(r.productId);
-        return [r.date, p.name, r.quantity, r.reason || '-', r.clientName || '-'];
+        // Përkthe clientId → emër klienti (fusha reale: clientId, jo clientName)
+        const client = r.clientId ? (state.clients.find(c => c.id === r.clientId) || {}) : {};
+        return [
+            r.date || '-',
+            (p && p.name) || '-',                       // fallback nëse produkti s'ekziston (ndryshe merr gabim runtime)
+            r.quantity || 0,
+            r.reason || '-',
+            client.name || r.clientName || '-'          // përkthim nga clientId (mbështet formate të vjetra)
+        ];
     });
     const fname = 'Kthimet_' + new Date().toISOString().split('T')[0];
     if (format === 'excel') exportToExcel(headers, rows, fname);
@@ -6611,8 +8580,14 @@ function exportReturns(format) {
 
 // Contacts export
 function exportContacts(format) {
-    const headers = ['Emri', 'Telefoni', 'Roli', 'Shenimet'];
-    const rows = state.contacts.map(c => [c.name, c.phone || '-', c.role || '-', c.notes || '-']);
+    const headers = ['Emri', 'Telefoni', 'Email', 'Roli', 'Shenimet'];
+    const rows = (state.contacts || []).map(c => [
+        c.name || '-',
+        c.phone || '-',
+        c.email || '-',                          // email i shtuar (kishte munguar fare)
+        c.role || '-',
+        c.note || c.notes || '-'                 // fusha reale: note (njëjës)
+    ]);
     const fname = 'Kontaktet_' + new Date().toISOString().split('T')[0];
     if (format === 'excel') exportToExcel(headers, rows, fname);
     else if (format === 'pdf') exportToPDF('Kontaktet', headers, rows, fname);
@@ -6621,8 +8596,12 @@ function exportContacts(format) {
 
 // Notes export
 function exportNotes(format) {
-    const headers = ['Data', 'Teksti', 'Kategoria'];
-    const rows = state.notes.map(n => [n.date, n.text, n.category || '-']);
+    const headers = ['Data', 'Titulli', 'Permbajtja'];
+    const rows = (state.notes || []).map(n => [
+        n.date || '-',
+        n.title || n.text || '-',               // fusha reale: title (mbështet formate të vjetra me "text")
+        n.content || '-'                         // fusha reale: content
+    ]);
     const fname = 'Shenimet_' + new Date().toISOString().split('T')[0];
     if (format === 'excel') exportToExcel(headers, rows, fname);
     else if (format === 'pdf') exportToPDF('Shenimet', headers, rows, fname);
@@ -6631,8 +8610,21 @@ function exportNotes(format) {
 
 // Targets export
 function exportTargets(format) {
-    const headers = ['Qellimi', 'Afati', 'Statusi'];
-    const rows = state.targets.map(t => [t.text, t.deadline || '-', t.completed ? 'Perfunduar' : 'Aktiv']);
+    const headers = ['Qellimi', 'Pershkrimi', 'Muaji', 'Progresi', 'Qellimi (goal)', 'Statusi'];
+    const rows = (state.targets || []).map(t => {
+        const current = t.current || 0;
+        const goal = t.goal || 0;
+        const pct = goal > 0 ? Math.round((current / goal) * 100) : 0;
+        const done = goal > 0 && current >= goal;
+        return [
+            t.title || t.text || '-',               // fusha reale: title (jo text)
+            t.description || '-',                   // fusha që mungonte fare
+            t.month || t.deadline || '-',           // fusha reale: month (jo deadline)
+            current + ' / ' + goal + ' (' + pct + '%)',
+            goal,
+            done ? 'Perfunduar' : 'Aktiv'           // llogaritur nga current >= goal (s'ka fushë completed)
+        ];
+    });
     const fname = 'Qellimet_' + new Date().toISOString().split('T')[0];
     if (format === 'excel') exportToExcel(headers, rows, fname);
     else if (format === 'pdf') exportToPDF('Qellimet', headers, rows, fname);
@@ -6641,8 +8633,14 @@ function exportTargets(format) {
 
 // Expenses export
 function exportExpenses(format) {
-    const headers = ['Data', 'Shuma', 'Kategoria', 'Shenim'];
-    const rows = state.expenses.map(e => [e.date, e.amount + ' den', e.category || '-', e.note || '-']);
+    const headers = ['Data', 'Pershkrimi', 'Shuma', 'Kategoria', 'I ndare me Orhanin'];
+    const rows = (state.expenses || []).map(e => [
+        e.date || '-',
+        e.description || e.note || '-',           // fusha reale: description (jo note)
+        (e.amount || 0) + ' den',
+        e.category || '-',
+        e.shared ? 'Po' : 'Jo'                     // fusha "shared" e cila mungonte fare nga eksporti
+    ]);
     const fname = 'Shpenzimet_' + new Date().toISOString().split('T')[0];
     if (format === 'excel') exportToExcel(headers, rows, fname);
     else if (format === 'pdf') exportToPDF('Shpenzimet', headers, rows, fname);
@@ -6651,8 +8649,33 @@ function exportExpenses(format) {
 
 // Cash Drawer export
 function exportCashDrawer(format) {
-    const headers = ['Data', 'Cash Fillestar', 'Shitje', 'Shpenzime', 'Bilanci Pritur', 'Aktual', 'Diferenca'];
-    const rows = state.cashDrawer.map(d => [d.date, d.startingCash + ' den', d.sales + ' den', d.expenses + ' den', d.expected + ' den', d.actual + ' den', d.difference + ' den']);
+    const headers = ['Data', 'Cash Fillestar', 'Shitje Cash', 'Pagesa Fatonit', 'Shpenzime', 'Bilanci Pritur', 'Shenim'];
+    // Arka ditore ruan vetëm {date, startingCash, note}. Shitjet/shpenzimet/bilanci llogariten dinamikisht nga të dhënat e asaj date.
+    const rows = (state.cashDrawer || []).slice()
+        .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+        .map(d => {
+            const date = d.date || '';
+            const cashSales = (state.sales || [])
+                .filter(s => s.date === date && (s.paymentType || 'cash') === 'cash')
+                .reduce((sum, s) => sum + (s.sellTotal || 0), 0);
+            const fatonPay = (state.fatonPayments || [])
+                .filter(f => f.date === date)
+                .reduce((sum, f) => sum + (f.amount || 0), 0);
+            const exp = (state.expenses || [])
+                .filter(e => e.date === date)
+                .reduce((sum, e) => sum + (e.amount || 0), 0);
+            const startingCash = d.startingCash || 0;
+            const expected = startingCash + cashSales - fatonPay - exp;
+            return [
+                date || '-',
+                startingCash + ' den',
+                cashSales + ' den',
+                fatonPay + ' den',
+                exp + ' den',
+                expected + ' den',
+                d.note || '-'
+            ];
+        });
     const fname = 'ArkaDitore_' + new Date().toISOString().split('T')[0];
     if (format === 'excel') exportToExcel(headers, rows, fname);
     else if (format === 'pdf') exportToPDF('Arka Ditore', headers, rows, fname, 'landscape');
@@ -6662,10 +8685,24 @@ function exportCashDrawer(format) {
 // Activity Log export
 function exportActivityLog(format) {
     const headers = ['Data & Ora', 'Lloji', 'Mesazhi'];
-    const rows = (state.activityLog || []).map(a => [a.date, a.type, a.message]);
+    const rows = (state.activityLog || []).slice().reverse().map(a => {
+        // Use the correct fields that logActivity() actually writes
+        let when = '';
+        if (a.timestamp) {
+            try { when = new Date(a.timestamp).toLocaleString('sq-AL'); }
+            catch (e) { when = String(a.timestamp); }
+        } else if (a.date) {
+            when = a.date + (a.time ? ' ' + a.time : '');
+        } else if (a.time) {
+            when = a.time;
+        }
+        const type = a.type || a.action || 'general';
+        const text = a.text || a.details || a.message || a.action || '';
+        return [when, type, text];
+    });
     const fname = 'Aktiviteti_' + new Date().toISOString().split('T')[0];
     if (format === 'excel') exportToExcel(headers, rows, fname);
-    else if (format === 'pdf') exportToPDF('Log Aktivitetesh', headers, rows, fname);
+    else if (format === 'pdf') exportToPDF('Log Aktivitetesh', headers, rows, fname, 'landscape');
     else exportToWord('Log Aktivitetesh', headers, rows, fname);
 }
 
@@ -6986,6 +9023,11 @@ function generateClientReceipt(clientId, amount) {
     const client = state.clients.find(c => c.id === clientId);
     if (!client) return;
 
+    // Bug #15 guard: jsPDF mund të mos jetë ngarkuar
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+        if (typeof showToast === 'function') showToast('jsPDF nuk u ngarkua!', 'error');
+        return;
+    }
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const today = new Date().toLocaleDateString('sq-AL');
@@ -7305,40 +9347,253 @@ function showClientPaymentHistory(clientId) {
 
 // Feature 15: Client statement PDF
 function generateClientStatement(clientId) {
-    const client = state.clients.find(c => c.id === clientId);
-    if (!client) return;
-    const payments = (state.clientPayments || []).filter(p => p.clientId === clientId);
-    const sales = state.sales.filter(s => s.clientId === clientId);
+    openClientHistoryReport(clientId);
+}
 
+function escapeReportHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function formatReportDate(value) {
+    if (!value) return '-';
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return value;
+    return parsed.toLocaleDateString('sq-AL');
+}
+
+function normalizeHistoryFilters(filters) {
+    return {
+        fromDate: filters && filters.fromDate ? filters.fromDate : '',
+        toDate: filters && filters.toDate ? filters.toDate : ''
+    };
+}
+
+function readMarketHistoryFilters() {
+    return {
+        fromDate: document.getElementById('market-history-date-from')?.value || '',
+        toDate: document.getElementById('market-history-date-to')?.value || ''
+    };
+}
+
+function buildClientHistoryReport(clientId, filters) {
+    const client = state.clients.find(c => c.id === clientId);
+    if (!client) return null;
+    const normalizedFilters = normalizeHistoryFilters(filters);
+    const inRange = (date) => {
+        if (!date) return false;
+        if (normalizedFilters.fromDate && date < normalizedFilters.fromDate) return false;
+        if (normalizedFilters.toDate && date > normalizedFilters.toDate) return false;
+        return true;
+    };
+
+    const payments = (state.clientPayments || [])
+        .filter(p => p.clientId === clientId)
+        .filter(p => inRange(p.date || ''))
+        .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+        .map(p => ({
+            date: p.date || '',
+            amount: p.amount || 0,
+            method: p.method || 'Cash'
+        }));
+
+    const sales = state.sales
+        .filter(s => s.clientId === clientId)
+        .filter(s => inRange(s.date || ''))
+        .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+        .map(s => {
+            const product = getProduct(s.productId);
+            return {
+                date: s.date || '',
+                product: `${product ? product.name : 'Produkt'}${s.quantity ? ' x' + s.quantity : ''}`,
+                total: s.sellTotal || 0
+            };
+        });
+
+    const latestDates = [...payments.map(p => p.date), ...sales.map(s => s.date)].filter(Boolean);
+    const reportDate = latestDates.length > 0
+        ? latestDates.sort().slice(-1)[0]
+        : new Date().toISOString().split('T')[0];
+
+    return {
+        client,
+        reportDate,
+        debt: client.debt || 0,
+        filters: normalizedFilters,
+        payments,
+        sales
+    };
+}
+
+function getClientHistoryReportDocument(clientId, filters) {
+    const report = buildClientHistoryReport(clientId, filters);
+    if (!report) return '';
+
+    const rangeLabel = report.filters.fromDate || report.filters.toDate
+        ? `Periudha: ${report.filters.fromDate ? formatReportDate(report.filters.fromDate) : 'Fillimi'} - ${report.filters.toDate ? formatReportDate(report.filters.toDate) : 'Sot'}`
+        : '';
+
+    const paymentsRows = report.payments.map(payment => `
+        <tr>
+            <td>${escapeReportHtml(payment.date)}</td>
+            <td>${escapeReportHtml(payment.amount)} den</td>
+            <td>${escapeReportHtml(payment.method)}</td>
+        </tr>
+    `).join('') || `
+        <tr>
+            <td colspan="3">Nuk ka pagesa për këtë periudhë.</td>
+        </tr>
+    `;
+
+    const salesRows = report.sales.map(sale => `
+        <tr>
+            <td>${escapeReportHtml(sale.date)}</td>
+            <td>${escapeReportHtml(sale.product)}</td>
+            <td>${escapeReportHtml(sale.total)} den</td>
+        </tr>
+    `).join('') || `
+        <tr>
+            <td colspan="3">Nuk ka blerje për këtë periudhë.</td>
+        </tr>
+    `;
+
+    return `
+        <div class="market-history-report">
+            <div class="market-history-paper">
+                <h2>Hurma App - Historiku i ${escapeReportHtml(report.client.name)}</h2>
+                <p class="market-history-meta">Data: ${escapeReportHtml(formatReportDate(report.reportDate))} | Borxhi: ${escapeReportHtml(report.debt)} den</p>
+                ${rangeLabel ? `<p class="market-history-range">${escapeReportHtml(rangeLabel)}</p>` : ''}
+
+                <div class="market-history-section">
+                    <h3>Pagesat</h3>
+                    <table class="market-history-table">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Shuma</th>
+                                <th>Metoda</th>
+                            </tr>
+                        </thead>
+                        <tbody>${paymentsRows}</tbody>
+                    </table>
+                </div>
+
+                <div class="market-history-section">
+                    <h3>Blerjet</h3>
+                    <table class="market-history-table">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Produkti</th>
+                                <th>Totali</th>
+                            </tr>
+                        </thead>
+                        <tbody>${salesRows}</tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function openClientHistoryReport(clientId, filters) {
+    const normalizedFilters = filters || readMarketHistoryFilters();
+    const report = buildClientHistoryReport(clientId, normalizedFilters);
+    if (!report) return;
+    const waButton = report.client.phone && report.debt > 0
+        ? `<button class="btn btn-success" onclick="sendClientMarketHistoryWhatsApp('${clientId}')"><i class="fab fa-whatsapp"></i> Kujtesë WhatsApp</button>`
+        : '';
+
+    openModal('Historiku i Marketit', `
+        <div class="market-history-actions">
+            <input type="date" id="market-history-date-from" value="${normalizedFilters.fromDate || ''}">
+            <input type="date" id="market-history-date-to" value="${normalizedFilters.toDate || ''}">
+            <button class="btn btn-secondary" onclick="openClientHistoryReport('${clientId}', readMarketHistoryFilters())"><i class="fas fa-filter"></i> Apliko</button>
+            ${waButton}
+            <button class="btn btn-primary" onclick="downloadClientHistoryPdf('${clientId}', readMarketHistoryFilters())"><i class="fas fa-file-pdf"></i> PDF</button>
+            <button class="btn btn-secondary" onclick="printClientHistory('${clientId}', readMarketHistoryFilters())"><i class="fas fa-print"></i> Printo</button>
+        </div>
+        ${getClientHistoryReportDocument(clientId, normalizedFilters)}
+    `);
+}
+
+function downloadClientHistoryPdf(clientId, filters) {
+    const report = buildClientHistoryReport(clientId, filters || readMarketHistoryFilters());
+    if (!report) return;
+
+    // Bug #15 guard: jsPDF mund të mos jetë ngarkuar
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+        if (typeof showToast === 'function') showToast('jsPDF nuk u ngarkua!', 'error');
+        return;
+    }
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    doc.setFontSize(16); doc.setTextColor(44, 62, 80);
-    doc.text('LLOGARIA E KLIENTIT', 105, 18, { align: 'center' });
-    doc.setFontSize(10); doc.setTextColor(120);
-    doc.text('Hurma App - ' + new Date().toLocaleDateString('sq-AL'), 105, 25, { align: 'center' });
+    doc.setFontSize(16);
+    doc.setTextColor(20, 20, 20);
+    doc.text(`Hurma App - Historiku i ${report.client.name}`, 14, 18);
+    doc.setFontSize(10);
+    doc.text(`Data: ${formatReportDate(report.reportDate)} | Borxhi: ${report.debt} den`, 14, 26);
+    if (report.filters.fromDate || report.filters.toDate) {
+        doc.text(`Periudha: ${report.filters.fromDate ? formatReportDate(report.filters.fromDate) : 'Fillimi'} - ${report.filters.toDate ? formatReportDate(report.filters.toDate) : 'Sot'}`, 14, 32);
+    }
 
-    let y = 35;
-    doc.setFontSize(12); doc.setTextColor(0);
-    doc.text('Klienti: ' + client.name, 20, y); y += 7;
-    if (client.phone) { doc.text('Tel: ' + client.phone, 20, y); y += 7; }
-    doc.text('Borxhi aktual: ' + client.debt + ' den', 20, y); y += 10;
-
-    // All transactions
-    const events = [];
-    sales.forEach(s => { events.push({ date: s.date, type: 'Blerje', desc: getProduct(s.productId).name + ' x' + s.quantity, debit: s.sellTotal, credit: 0 }); });
-    payments.forEach(p => { events.push({ date: p.date, type: 'Pagese', desc: (p.method || 'Cash') + (p.note ? ' - ' + p.note : ''), debit: 0, credit: p.amount }); });
-    events.sort((a, b) => a.date.localeCompare(b.date));
-
-    const headers = ['Data', 'Lloji', 'Pershkrim', 'Debi', 'Kredi', 'Bilanci'];
-    let balance = 0;
-    const rows = events.map(e => {
-        balance += e.debit - e.credit;
-        return [e.date, e.type, e.desc, e.debit > 0 ? e.debit + '' : '', e.credit > 0 ? e.credit + '' : '', balance + ''];
+    doc.setFontSize(12);
+    doc.text('Pagesat', 14, report.filters.fromDate || report.filters.toDate ? 44 : 38);
+    doc.autoTable({
+        startY: report.filters.fromDate || report.filters.toDate ? 48 : 42,
+        head: [['Data', 'Shuma', 'Metoda']],
+        body: report.payments.length > 0 ? report.payments.map(payment => [payment.date, `${payment.amount} den`, payment.method]) : [['-', 'Nuk ka pagesa', '-']],
+        styles: { fontSize: 9, lineColor: [220, 220, 220], lineWidth: 0.1 },
+        headStyles: { fillColor: [245, 245, 245], textColor: [90, 90, 90] },
+        theme: 'grid'
     });
 
-    doc.autoTable({ head: [headers], body: rows, startY: y, styles: { fontSize: 8 }, headStyles: { fillColor: [44, 62, 80] } });
-    doc.save('Statement_' + client.name.replace(/\s+/g, '_') + '.pdf');
-    showToast('Statement PDF u shkarkua', 'success');
+    const salesStartY = (doc.lastAutoTable ? doc.lastAutoTable.finalY : 42) + 16;
+    doc.setFontSize(12);
+    doc.text('Blerjet', 14, salesStartY);
+    doc.autoTable({
+        startY: salesStartY + 4,
+        head: [['Data', 'Produkti', 'Totali']],
+        body: report.sales.length > 0 ? report.sales.map(sale => [sale.date, sale.product, `${sale.total} den`]) : [['-', 'Nuk ka blerje', '-']],
+        styles: { fontSize: 9, lineColor: [220, 220, 220], lineWidth: 0.1 },
+        headStyles: { fillColor: [245, 245, 245], textColor: [90, 90, 90] },
+        theme: 'grid'
+    });
+
+    doc.save('Historiku_' + report.client.name.replace(/\s+/g, '_') + '.pdf');
+    showToast('Historiku PDF u shkarkua', 'success');
+}
+
+function sendClientMarketHistoryWhatsApp(clientId) {
+    const filters = readMarketHistoryFilters();
+    const report = buildClientHistoryReport(clientId, filters);
+    if (!report) return;
+    if (!report.client.phone) {
+        showToast('Klienti nuk ka numër telefoni', 'error');
+        return;
+    }
+
+    const totalPayments = report.payments.reduce((sum, payment) => sum + payment.amount, 0);
+    const totalSales = report.sales.reduce((sum, sale) => sum + sale.total, 0);
+    const rangeLine = report.filters.fromDate || report.filters.toDate
+        ? `Periudha: ${report.filters.fromDate ? formatReportDate(report.filters.fromDate) : 'Fillimi'} - ${report.filters.toDate ? formatReportDate(report.filters.toDate) : 'Sot'}\n`
+        : '';
+    const text =
+`Pershendetje ${report.client.name},
+
+Ju dergojme nje permbledhje te llogarise suaj nga Hurma App.
+${rangeLine}Pagesa ne periudhe: ${totalPayments} den
+Blerje ne periudhe: ${totalSales} den
+Borxhi aktual: ${report.debt} den
+
+Ju lutem na kontaktoni per pagesen e mbetur.
+Faleminderit!`;
+    const phone = report.client.phone.replace(/[^0-9]/g, '');
+    window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(text), '_blank');
 }
 
 // Feature 16: Client payment installments
@@ -7542,11 +9797,26 @@ function showWeeklyPaymentReport() {
 
 // Feature 28: Export client payments CSV
 function exportClientPaymentsCSV() {
+    // Bug #16: RFC 4180 CSV escape — thonjëzat brenda vlerës duhet dyfishuar, përndryshe CSV thyhet
+    function csvEsc(v) {
+        var s = (v === null || v === undefined) ? '' : String(v);
+        if (s.indexOf('"') !== -1 || s.indexOf(',') !== -1 || s.indexOf('\n') !== -1 || s.indexOf('\r') !== -1) {
+            s = '"' + s.replace(/"/g, '""') + '"';
+        }
+        return s;
+    }
     const payments = (state.clientPayments || []).filter(p => p.status !== 'cancelled');
     let csv = 'Data,Klienti,Shuma,Metoda,Shenim,Statusi\n';
     payments.forEach(p => {
-        const client = state.clients.find(c => c.id === p.clientId);
-        csv += p.date + ',"' + (client ? client.name : '-') + '",' + p.amount + ',' + (p.method || 'Cash') + ',"' + (p.note || '') + '",' + (p.status || 'active') + '\n';
+        const client = (state.clients || []).find(c => c.id === p.clientId);
+        csv += [
+            csvEsc(p.date || ''),
+            csvEsc(client ? client.name : '-'),
+            csvEsc(p.amount || 0),
+            csvEsc(p.method || 'Cash'),
+            csvEsc(p.note || ''),
+            csvEsc(p.status || 'active')
+        ].join(',') + '\n';
     });
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -7557,26 +9827,55 @@ function exportClientPaymentsCSV() {
 }
 
 // Feature 29: Print client history
-function printClientHistory(clientId) {
-    const client = state.clients.find(c => c.id === clientId);
-    if (!client) return;
-    const payments = (state.clientPayments || []).filter(p => p.clientId === clientId);
-    const sales = state.sales.filter(s => s.clientId === clientId);
-
-    let html = '<html><head><style>body{font-family:Arial;font-size:12px;}table{width:100%;border-collapse:collapse;margin:10px 0;}th,td{border:1px solid #ccc;padding:6px;text-align:left;}th{background:#2c3e50;color:white;}</style></head><body>';
-    html += '<h2>Hurma App - Historiku i ' + client.name + '</h2>';
-    html += '<p>Data: ' + new Date().toLocaleDateString('sq-AL') + ' | Borxhi: ' + client.debt + ' den</p>';
-    html += '<h3>Pagesat</h3><table><tr><th>Data</th><th>Shuma</th><th>Metoda</th></tr>';
-    payments.forEach(p => html += '<tr><td>' + p.date + '</td><td>' + p.amount + ' den</td><td>' + (p.method || 'Cash') + '</td></tr>');
-    html += '</table>';
-    html += '<h3>Blerjet</h3><table><tr><th>Data</th><th>Produkti</th><th>Totali</th></tr>';
-    sales.forEach(s => html += '<tr><td>' + s.date + '</td><td>' + getProduct(s.productId).name + '</td><td>' + s.sellTotal + ' den</td></tr>');
-    html += '</table></body></html>';
+function printClientHistory(clientId, filters) {
+    const reportHtml = getClientHistoryReportDocument(clientId, filters || readMarketHistoryFilters());
+    if (!reportHtml) return;
+    const html = `
+        <html>
+            <head>
+                <title>Historiku i Marketit</title>
+                <link rel="stylesheet" href="style.css">
+                <style>
+                    body { background:#f4f1eb; margin:0; padding:24px; }
+                    .market-history-report { padding:0; }
+                    .market-history-paper { box-shadow:none; border:1px solid #d8d1c7; }
+                </style>
+            </head>
+            <body>${reportHtml}</body>
+        </html>
+    `;
 
     const win = window.open('', '_blank');
     win.document.write(html);
     win.document.close();
     win.print();
+}
+
+function openMarketHistoryReportSelector() {
+    const clients = [...(state.clients || [])].sort((a, b) => a.name.localeCompare(b.name));
+    if (clients.length === 0) {
+        showToast('Nuk ka klientë të regjistruar', 'info');
+        return;
+    }
+
+    const options = clients.map(client =>
+        `<option value="${client.id}">${escapeReportHtml(client.name)}${client.debt ? ` - ${client.debt} den borxh` : ''}</option>`
+    ).join('');
+
+    openModal('Zgjidh marketin', `
+        <div class="form-group">
+            <label>Zgjidh klientin / marketin:</label>
+            <select id="market-history-client">${options}</select>
+        </div>
+        <div class="market-history-actions" style="justify-content:flex-start;margin-bottom:12px;">
+            <input type="date" id="market-history-date-from">
+            <input type="date" id="market-history-date-to">
+        </div>
+        <div class="market-history-actions">
+            <button class="btn btn-primary" onclick="openClientHistoryReport(document.getElementById('market-history-client').value, readMarketHistoryFilters())"><i class="fas fa-eye"></i> Shiko raportin</button>
+            <button class="btn btn-secondary" onclick="downloadClientHistoryPdf(document.getElementById('market-history-client').value, readMarketHistoryFilters())"><i class="fas fa-file-pdf"></i> PDF</button>
+        </div>
+    `);
 }
 
 // Feature 30: Auto-register cash sale as payment
@@ -7628,6 +9927,11 @@ function globalSearch(query) {
     state.contacts.filter(c => (c.name && c.name.toLowerCase().includes(query)) || (c.phone && c.phone.includes(query))).slice(0, 2).forEach(c => {
         html += `<div class="search-result-item" onclick="navigateTo('contacts');hideSearchResults();">
             <i class="fas fa-address-book"></i><div><div class="sr-name">${c.name}</div><div class="sr-detail">${c.phone || ''}</div></div><span class="sr-type">Kontakt</span></div>`;
+    });
+
+    // Search distribution shops
+    (state.distShops || []).filter(function(s) { return (s.name && s.name.toLowerCase().includes(query)) || (s.phone && s.phone.includes(query)); }).slice(0, 3).forEach(function(s) {
+        html += '<div class="search-result-item" onclick="navigateTo(\'distribution\');hideSearchResults();"><i class="fas fa-store"></i><div><div class="sr-name">' + s.name + '</div><div class="sr-detail">' + (s.address || '') + '</div></div><span class="sr-type">Dyqan Dist.</span></div>';
     });
 
     if (!html) html = '<div class="search-result-item"><i class="fas fa-info-circle"></i><div class="sr-name">Asnjë rezultat</div></div>';
@@ -7950,6 +10254,11 @@ function generateDailyReport() {
 
 function exportDailyReportPDF() {
     const today = new Date().toISOString().split('T')[0];
+    // Bug #15 guard: jsPDF mund të mos jetë ngarkuar
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+        if (typeof showToast === 'function') showToast('jsPDF nuk u ngarkua!', 'error');
+        return;
+    }
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     doc.setFontSize(18);
@@ -8026,6 +10335,10 @@ function openClient360(clientId) {
     const openInvoices = sales.filter(s => s.paymentType === 'invoice_60' && !s.invoicePaid);
     const notes = state.notes.filter(n => n.linkedClient === clientId);
     const orders = state.orders.filter(o => o.clientId === clientId);
+    const clientTasks = (state.clientTasks || []).filter(task => task.clientId === clientId);
+    const clientVisits = (state.clientVisits || []).filter(visit => visit.clientId === clientId);
+    const score = calculateClientScore(clientId);
+    const status = getClientStatusInfo(clientId);
 
     let html = `<div class="panel-360-grid">
         <div class="panel-360-card"><div class="p360-value">${totalPurchases} ден</div><div class="p360-label">Blerje totale</div></div>
@@ -8034,6 +10347,8 @@ function openClient360(clientId) {
         <div class="panel-360-card"><div class="p360-value" style="color:var(--danger)">${client.debt || 0} ден</div><div class="p360-label">Borxhi aktual</div></div>
         <div class="panel-360-card"><div class="p360-value">${sales.length}</div><div class="p360-label">Nr. shitjeve</div></div>
         <div class="panel-360-card"><div class="p360-value">${openInvoices.length}</div><div class="p360-label">Fatura hapura</div></div>
+        <div class="panel-360-card"><div class="p360-value" style="color:${status.color}">${status.label}</div><div class="p360-label">Statusi</div></div>
+        <div class="panel-360-card"><div class="p360-value">${score}/100</div><div class="p360-label">Client Score</div></div>
     </div>`;
 
     // Contact info
@@ -8041,6 +10356,8 @@ function openClient360(clientId) {
     if (client.phone) html += `<button class="btn btn-sm" style="background:#25D366;color:white;" onclick="sendWhatsApp('${client.phone}','Përshëndetje ${client.name}')"><i class="fab fa-whatsapp"></i> WhatsApp</button> `;
     html += `<button class="btn btn-sm btn-success" onclick="openQuickCollectModal('${clientId}');closeSidePanel()"><i class="fas fa-hand-holding-usd"></i> Mbledh Pagesë</button> `;
     html += `<button class="btn btn-sm btn-info" onclick="generateClientStatement('${clientId}')"><i class="fas fa-file-alt"></i> Pasqyrë</button>`;
+    html += ` <button class="btn btn-sm btn-primary" onclick="openClientTaskModal('${clientId}');closeSidePanel()"><i class="fas fa-list-check"></i> Task</button>`;
+    html += ` <button class="btn btn-sm btn-secondary" onclick="openClientVisitModal('${clientId}');closeSidePanel()"><i class="fas fa-route"></i> Vizitë</button>`;
     html += '</div>';
 
     // Last 5 sales
@@ -8059,43 +10376,100 @@ function openClient360(clientId) {
         html += '</tbody></table></div>';
     }
 
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:12px;">';
+    html += `<div class="target-card"><h4>Task-et</h4>${clientTasks.length > 0 ? `<ul style="padding-left:18px;line-height:1.6;">${clientTasks.slice(0,4).map(task => `<li>${task.title} <span style="color:var(--text-secondary);">(${task.status === 'done' ? 'kryer' : (task.dueDate || 'pa afat')})</span></li>`).join('')}</ul>` : '<p style="color:var(--text-secondary);">Nuk ka task-e.</p>'}</div>`;
+    html += `<div class="target-card"><h4>Vizitat</h4>${clientVisits.length > 0 ? `<ul style="padding-left:18px;line-height:1.6;">${clientVisits.slice(0,4).map(visit => `<li>${visit.date || '-'}${visit.purpose ? ' - ' + visit.purpose : ''}${visit.nextVisitDate ? ` <span style="color:var(--text-secondary);">(tjetër: ${visit.nextVisitDate})</span>` : ''}</li>`).join('')}</ul>` : '<p style="color:var(--text-secondary);">Nuk ka vizita.</p>'}</div>`;
+    html += '</div>';
+
     openSidePanel(client.name + ' - 360°', html);
 }
 
 // Feature 9: Tab Badges
+function _formatBadgeNum(n) {
+    if (n >= 1000000) return (n / 1000000).toFixed(1).replace('.0', '') + 'M';
+    if (n >= 1000) return (n / 1000).toFixed(1).replace('.0', '') + 'k';
+    return '' + n;
+}
+
+function _numToWordsAL(num) {
+    if (num === 0) return 'zero';
+    var ones = ['', 'nje', 'dy', 'tre', 'kater', 'pese', 'gjashte', 'shtate', 'tete', 'nente'];
+    var teens = ['dhjete', 'njembedhjete', 'dymbedhjete', 'trembedhjete', 'katermbedhjete', 'pesembedhjete', 'gjashtemedhjete', 'shtatemedhjete', 'tetemedhjete', 'nentemedhjete'];
+    var tens = ['', 'dhjete', 'njezet', 'tridhjete', 'dyzet', 'pesedhjete', 'gjashtedhjete', 'shtatedhjete', 'tetedhjete', 'nentedhjete'];
+    var result = '';
+    num = Math.abs(Math.round(num));
+    if (num >= 1000000) {
+        var millions = Math.floor(num / 1000000);
+        result += (millions === 1 ? 'nje milion' : ones[millions] + ' milion') + ' ';
+        num %= 1000000;
+    }
+    if (num >= 1000) {
+        var thousands = Math.floor(num / 1000);
+        if (thousands === 1) result += 'nje mije ';
+        else if (thousands < 10) result += ones[thousands] + ' mije ';
+        else if (thousands < 20) result += teens[thousands - 10] + ' mije ';
+        else result += tens[Math.floor(thousands / 10)] + ' e ' + ones[thousands % 10] + ' mije ';
+        num %= 1000;
+    }
+    if (num >= 100) {
+        var hundreds = Math.floor(num / 100);
+        result += (hundreds === 1 ? 'njeqind' : ones[hundreds] + 'qind') + ' ';
+        num %= 100;
+    }
+    if (num >= 10 && num < 20) {
+        result += teens[num - 10];
+    } else if (num >= 20) {
+        result += tens[Math.floor(num / 10)];
+        if (num % 10 > 0) result += ' e ' + ones[num % 10];
+    } else if (num > 0) {
+        result += ones[num];
+    }
+    return result.trim();
+}
+
 function updateTabBadges() {
     const today = new Date().toISOString().split('T')[0];
 
-    // Sales badge - today's sales count
-    const todaySales = state.sales.filter(s => s.date === today).length;
-    setBadge('badge-sales', todaySales);
+    // Sales badge - total sales count (always visible)
+    setBadge('badge-sales', state.sales.length, true);
 
-    // Stock badge - low stock count
-    const lowStock = PRODUCTS.filter(p => (state.stock[p.id] || 0) < 5).length;
-    setBadge('badge-stock', lowStock);
+    // Stock badge - total stock units (always visible)
+    var totalStock = 0;
+    PRODUCTS.forEach(function(p) { totalStock += (state.stock[p.id] || 0); });
+    setBadge('badge-stock', totalStock, true);
 
-    // Clients badge - clients with debt
-    const debtClients = state.clients.filter(c => c.debt > 0).length;
-    setBadge('badge-clients', debtClients);
+    // Clients badge - total clients (always visible)
+    setBadge('badge-clients', state.clients.length, true);
 
-    // Orders badge - pending orders
-    const pendingOrders = state.orders.filter(o => o.status === 'pending').length;
-    setBadge('badge-orders', pendingOrders);
+    // Orders badge - total orders (always visible)
+    setBadge('badge-orders', state.orders.length, true);
 
-    // Faton badge - debt indicator
-    const fatonDebt = calcTotalOwedToFaton();
-    setBadge('badge-faton', fatonDebt > 0 ? 1 : 0);
+    // Faton badge - debt amount
+    var fatonDebt = calcTotalOwedToFaton();
+    setBadge('badge-faton', fatonDebt, true);
 
-    // Returns badge
-    const recentReturns = state.returns.filter(r => r.date === today).length;
-    setBadge('badge-returns', recentReturns);
+    // Returns badge - total returns (always visible)
+    setBadge('badge-returns', state.returns.length, true);
+
+    // Invoices badge - unpaid invoices count
+    var unpaidInvoices = state.sales.filter(function(s) {
+        return (s.paymentType === 'invoice_60' || s.paymentType === 'invoice_30' || s.paymentType === 'invoice_90') && !s.invoicePaid;
+    }).length;
+    setBadge('badge-invoices', unpaidInvoices, true);
+
+    // Distribution badge - unpaid deliveries
+    var distDebts = (state.distDeliveries || []).filter(function(d) { return !d.paid; }).length;
+    setBadge('badge-distribution', distDebts, true);
 }
 
-function setBadge(id, count) {
-    const badge = document.getElementById(id);
+function setBadge(id, count, alwaysShow) {
+    var badge = document.getElementById(id);
     if (!badge) return;
     if (count > 0) {
-        badge.textContent = count > 99 ? '99+' : count;
+        badge.textContent = _formatBadgeNum(count);
+        badge.classList.remove('hidden');
+    } else if (alwaysShow) {
+        badge.textContent = '0';
         badge.classList.remove('hidden');
     } else {
         badge.classList.add('hidden');
@@ -8833,6 +11207,11 @@ function showProfitByClient() {
 
 // ADV-15: Beautiful Monthly PDF Report
 function generateMonthlyPDF() {
+    // Bug #15 guard: jsPDF mund të mos jetë ngarkuar
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+        if (typeof showToast === 'function') showToast('jsPDF nuk u ngarkua!', 'error');
+        return;
+    }
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const now = new Date();
@@ -9110,6 +11489,7 @@ function openReportsHub() {
     html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">';
 
     const reports = [
+        { name: 'Historiku i Marketit', icon: 'fa-file-lines', color: '#795548', action: 'setTimeout(openMarketHistoryReportSelector, 0)' },
         { name: 'Raport Ditor', icon: 'fa-calendar-day', color: '#3498db', action: 'generateDailyReport()' },
         { name: 'Raport Mujor PDF', icon: 'fa-file-pdf', color: '#e74c3c', action: 'generateMonthlyPDF()' },
         { name: 'Raport Javor WhatsApp', icon: 'fa-whatsapp', color: '#25D366', action: 'generateWeeklyWhatsAppReport()' },
@@ -9688,7 +12068,9 @@ function duplicateSale(saleIndex) {
             <label>Mënyra e pagesës:</label>
             <select id="sale-payment-type">
                 <option value="cash" ${(sale.paymentType || 'cash') === 'cash' ? 'selected' : ''}>Cash</option>
+                <option value="invoice_30" ${sale.paymentType === 'invoice_30' ? 'selected' : ''}>Faturë 30 ditë</option>
                 <option value="invoice_60" ${sale.paymentType === 'invoice_60' ? 'selected' : ''}>Faturë 60 ditë</option>
+                <option value="invoice_90" ${sale.paymentType === 'invoice_90' ? 'selected' : ''}>Faturë 90 ditë</option>
             </select>
         </div>
         <div class="form-group">
@@ -9977,20 +12359,9 @@ function updateSidebarStats() {
     const todayProfit = todaySales.reduce((sum, s) => sum + s.profit, 0);
     const totalClientDebt = state.clients.reduce((sum, c) => sum + (c.debt || 0), 0);
 
-    // Today sales count badge
-    let salesBadge = document.getElementById('sidebar-today-sales-badge');
-    if (!salesBadge) {
-        const navSales = document.querySelector('.nav-item[data-page="sales"]');
-        if (navSales) {
-            navSales.style.position = 'relative';
-            salesBadge = document.createElement('span');
-            salesBadge.id = 'sidebar-today-sales-badge';
-            salesBadge.className = 'nav-badge';
-            salesBadge.style.cssText = 'position:absolute;top:4px;right:4px;background:var(--primary);color:white;border-radius:50%;min-width:18px;height:18px;font-size:0.65rem;display:flex;align-items:center;justify-content:center;font-weight:700;';
-            navSales.appendChild(salesBadge);
-        }
-    }
-    if (salesBadge) salesBadge.textContent = todaySales.length;
+    // Remove legacy duplicate sales badge if exists
+    var oldSalesBadge = document.getElementById('sidebar-today-sales-badge');
+    if (oldSalesBadge) oldSalesBadge.remove();
 
     // Today profit badge
     let profitBadge = document.getElementById('sidebar-today-profit-badge');
@@ -12332,7 +14703,7 @@ function recoverFromIndexedDB() {
                Pagesat: <strong>${(saved.clientPayments||[]).length}</strong></p>
             <p style="color:#e74c3c; margin-top:12px;">Kjo do te zevendesoje te dhenat aktuale!</p>
             <div style="display:flex; gap:10px; margin-top:16px; justify-content:flex-end;">
-                <button onclick="document.getElementById('hurma-modal')?.remove();"
+                <button onclick="closeModal();"
                     style="background:#ccc; border:none; padding:10px 20px; border-radius:6px; cursor:pointer;">Anulo</button>
                 <button onclick="
                     Object.keys(state).forEach(k => delete state[k]);
@@ -12341,7 +14712,7 @@ function recoverFromIndexedDB() {
                     logActivity('recovery','Rikuperim i te dhenave nga IndexedDB');
                     saveState();
                     showToast('Te dhenat u rimorran! Faqja po ringarkohet...','success');
-                    document.getElementById('hurma-modal')?.remove();
+                    closeModal();
                     setTimeout(() => location.reload(), 1000);
                 " style="background:#e74c3c; color:#fff; border:none; padding:10px 20px; border-radius:6px; cursor:pointer;">Rimorro</button>
             </div>
@@ -12395,7 +14766,7 @@ function compressOldData() {
         <p>Totali: <strong>${totalOld.toFixed(2)} MKD</strong>, Fitimi: <strong>${profitOld.toFixed(2)} MKD</strong></p>
         <p style="color:#e67e22; margin-top:8px;">Keto shitje do te zhvendosen ne arkiv (nuk fshihen, ruhen si permbledhje).</p>
         <div style="display:flex; gap:10px; margin-top:16px; justify-content:flex-end;">
-            <button onclick="document.getElementById('hurma-modal')?.remove();"
+            <button onclick="closeModal();"
                 style="background:#ccc; border:none; padding:10px 20px; border-radius:6px; cursor:pointer;">Anulo</button>
             <button onclick="
                 if (!state.archivedSales) state.archivedSales = [];
@@ -12404,7 +14775,7 @@ function compressOldData() {
                 saveState();
                 showToast('${oldSales.length} shitje u arkivuan me sukses!','success');
                 logActivity('archive','Kompresi: ' + window._oldSalesBuffer.length + ' shitje u arkivuan');
-                document.getElementById('hurma-modal')?.remove();
+                closeModal();
             " style="background:#e67e22; color:#fff; border:none; padding:10px 20px; border-radius:6px; cursor:pointer;">Arkivo</button>
         </div>
     `);
@@ -12453,11 +14824,11 @@ function checkStorageSpace() {
                 <p style="color:#e74c3c; font-weight:bold;">Hapesira e ruajtjes eshte ${pct}% e mbushur (${usedKB} KB)!</p>
                 <p style="margin:12px 0;">Ndermerni veprim menjehere per te shmangur humbjen e te dhenave.</p>
                 <div style="display:flex; flex-direction:column; gap:10px; margin-top:16px;">
-                    <button onclick="archiveOldData(); document.getElementById('hurma-modal')?.remove();"
+                    <button onclick="archiveOldData();"
                         style="background:#e67e22; color:#fff; border:none; padding:12px; border-radius:8px; cursor:pointer; font-size:15px;">
                         Arkivo te Dhenat e Vjetra
                     </button>
-                    <button onclick="downloadJSONBackup(); document.getElementById('hurma-modal')?.remove();"
+                    <button onclick="downloadJSONBackup(); closeModal();"
                         style="background:#2196F3; color:#fff; border:none; padding:12px; border-radius:8px; cursor:pointer; font-size:15px;">
                         Shkarko Backup JSON
                     </button>
@@ -12498,9 +14869,9 @@ function archiveOldData() {
         </ul>
         <p style="color:#e67e22;">Keto do te zhvendosen ne arkiv (mund te rikthehen me vone).</p>
         <div style="display:flex; gap:10px; margin-top:16px; justify-content:flex-end;">
-            <button onclick="document.getElementById('hurma-modal')?.remove();"
+            <button onclick="closeModal();"
                 style="background:#ccc; border:none; padding:10px 20px; border-radius:6px; cursor:pointer;">Anulo</button>
-            <button onclick="_doArchiveOldData(); document.getElementById('hurma-modal')?.remove();"
+            <button onclick="_doArchiveOldData(); closeModal();"
                 style="background:#e67e22; color:#fff; border:none; padding:10px 20px; border-radius:6px; cursor:pointer;">Arkivo</button>
         </div>
     `);
@@ -12570,11 +14941,11 @@ function viewArchive() {
             <p>Fitimi total: <strong>${totalProfit.toFixed(2)} MKD</strong></p>
             <p>Pagesat totale: <strong>${totalPayments.toFixed(2)} MKD</strong></p>
             <div style="display:flex; gap:10px; margin-top:16px; justify-content:flex-end;">
-                <button onclick="restoreFromArchive(); document.getElementById('hurma-modal')?.remove();"
+                <button onclick="restoreFromArchive();"
                     style="background:#4CAF50; color:#fff; border:none; padding:10px 20px; border-radius:6px; cursor:pointer;">
                     Rikthe te Dhenat
                 </button>
-                <button onclick="document.getElementById('hurma-modal')?.remove();"
+                <button onclick="closeModal();"
                     style="background:#ccc; border:none; padding:10px 20px; border-radius:6px; cursor:pointer;">Mbyll</button>
             </div>
         </div>
@@ -12596,7 +14967,7 @@ function restoreFromArchive() {
         </ul>
         <p style="color:#e74c3c;">Keto do te shtohen tek te dhenat aktuale.</p>
         <div style="display:flex; gap:10px; margin-top:16px; justify-content:flex-end;">
-            <button onclick="document.getElementById('hurma-modal')?.remove();"
+            <button onclick="closeModal();"
                 style="background:#ccc; border:none; padding:10px 20px; border-radius:6px; cursor:pointer;">Anulo</button>
             <button onclick="
                 state.sales = (state.sales || []).concat(state.archive.sales || []);
@@ -12607,7 +14978,7 @@ function restoreFromArchive() {
                 refreshAll();
                 showToast('Te dhenat u rikthyen nga arkivi!','success');
                 logActivity('restore','Rikthim i te dhenave nga arkivi');
-                document.getElementById('hurma-modal')?.remove();
+                closeModal();
             " style="background:#4CAF50; color:#fff; border:none; padding:10px 20px; border-radius:6px; cursor:pointer;">Rikthe</button>
         </div>
     `);
@@ -12717,37 +15088,34 @@ function findDuplicates() {
         </table>
         </div>
         <div style="margin-top:16px; text-align:right;">
-            <button onclick="document.getElementById('hurma-modal')?.remove();"
+            <button onclick="closeModal();"
                 style="background:#ccc; border:none; padding:10px 20px; border-radius:6px; cursor:pointer;">Mbyll</button>
         </div>
     `);
 }
 
 function _deleteDupSale(idx) {
-    if (!confirm('Fshi kete shitje duplikate?')) return;
-    state.sales.splice(idx, 1);
-    saveState();
-    showToast('Shitja duplikate u fshi.', 'success');
-    document.getElementById('hurma-modal')?.remove();
-    findDuplicates();
+    modalConfirm('Fshi këtë shitje duplikate?', function() {
+        state.sales.splice(idx, 1);
+        saveState();
+        showToast('Shitja duplikate u fshi.', 'success');
+    });
 }
 
 function _deleteDupClient(idx) {
-    if (!confirm('Fshi kete klient duplikat?')) return;
-    state.clients.splice(idx, 1);
-    saveState();
-    showToast('Klienti duplikat u fshi.', 'success');
-    document.getElementById('hurma-modal')?.remove();
-    findDuplicates();
+    modalConfirm('Fshi këtë klient duplikat?', function() {
+        state.clients.splice(idx, 1);
+        saveState();
+        showToast('Klienti duplikat u fshi.', 'success');
+    });
 }
 
 function _deleteDupPayment(idx) {
-    if (!confirm('Fshi kete pagese duplikate?')) return;
-    state.clientPayments.splice(idx, 1);
-    saveState();
-    showToast('Pagesa duplikate u fshi.', 'success');
-    document.getElementById('hurma-modal')?.remove();
-    findDuplicates();
+    modalConfirm('Fshi këtë pagesë duplikate?', function() {
+        state.clientPayments.splice(idx, 1);
+        saveState();
+        showToast('Pagesa duplikate u fshi.', 'success');
+    });
 }
 
 
@@ -12824,19 +15192,19 @@ function showStorageDashboard() {
             </div>
 
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                <button onclick="archiveOldData(); document.getElementById('hurma-modal')?.remove();"
+                <button onclick="archiveOldData();"
                     style="background:#e67e22; color:#fff; border:none; padding:10px; border-radius:8px; cursor:pointer; font-size:13px;">
                     Arkivo te Vjetrat
                 </button>
-                <button onclick="downloadJSONBackup(); document.getElementById('hurma-modal')?.remove();"
+                <button onclick="downloadJSONBackup(); closeModal();"
                     style="background:#2196F3; color:#fff; border:none; padding:10px; border-radius:8px; cursor:pointer; font-size:13px;">
                     Shkarko Backup
                 </button>
-                <button onclick="findDuplicates(); document.getElementById('hurma-modal')?.remove();"
+                <button onclick="findDuplicates();"
                     style="background:#9C27B0; color:#fff; border:none; padding:10px; border-radius:8px; cursor:pointer; font-size:13px;">
                     Pastro Duplikate
                 </button>
-                <button onclick="oneClickBackup(); document.getElementById('hurma-modal')?.remove();"
+                <button onclick="oneClickBackup();"
                     style="background:#4CAF50; color:#fff; border:none; padding:10px; border-radius:8px; cursor:pointer; font-size:13px;">
                     Backup 1-Klik
                 </button>
@@ -12927,22 +15295,22 @@ function showVersionHistory() {
 }
 
 function restoreVersion(n) {
-    const raw = localStorage.getItem('hurma_version_' + n);
+    var raw = localStorage.getItem('hurma_version_' + n);
     if (!raw) { showToast('Versioni nuk u gjet!', 'error'); return; }
-    if (!confirm('A jeni i sigurt? Të dhënat aktuale do të zëvendësohen me versionin e zgjedhur.')) return;
-    try {
-        const snap = JSON.parse(raw);
-        Object.keys(state).forEach(k => delete state[k]);
-        Object.assign(state, snap.data);
-        if (!state.activityLog) state.activityLog = [];
-        logActivity('version', 'Version #' + n + ' u rikthye');
-        saveState();
-        showToast('Versioni u rikthye me sukses!', 'success');
-        document.getElementById('hurma-modal')?.remove();
-        setTimeout(() => location.reload(), 800);
-    } catch(e) {
-        showToast('Gabim gjatë rikthimit: ' + e.message, 'error');
-    }
+    modalConfirm('A jeni i sigurt? Të dhënat aktuale do të zëvendësohen me versionin e zgjedhur.', function() {
+        try {
+            var snap = JSON.parse(raw);
+            Object.keys(state).forEach(function(k) { delete state[k]; });
+            Object.assign(state, snap.data);
+            if (!state.activityLog) state.activityLog = [];
+            logActivity('version', 'Version #' + n + ' u rikthye');
+            saveState();
+            showToast('Versioni u rikthye me sukses!', 'success');
+            setTimeout(function() { location.reload(); }, 800);
+        } catch(e) {
+            showToast('Gabim gjatë rikthimit: ' + e.message, 'error');
+        }
+    });
 }
 
 
@@ -13003,7 +15371,7 @@ function _doEncryptDownload() {
     saveState();
     logActivity('backup', 'Backup i enkriptuar u shkarkua');
     showToast('Backup i enkriptuar u shkarkua!', 'success');
-    document.getElementById('hurma-modal')?.remove();
+    closeModal();
 }
 
 function openDecryptRestoreModal() {
@@ -13036,15 +15404,16 @@ function _doDecryptRestore() {
             const decrypted = decryptData(e.target.result.trim(), pw);
             const data = JSON.parse(decrypted);
             if (!data.sales && !data.clients && !data.stock) throw new Error('Te dhena te pavlefshme');
-            if (!confirm('A jeni i sigurt? Të dhënat aktuale do të zëvendësohen.')) return;
-            Object.keys(state).forEach(k => delete state[k]);
-            Object.assign(state, data);
-            if (!state.activityLog) state.activityLog = [];
-            logActivity('backup', 'Rikthim nga backup i enkriptuar');
-            saveState();
-            showToast('Të dhënat u rikthyen me sukses!', 'success');
-            document.getElementById('hurma-modal')?.remove();
-            setTimeout(() => location.reload(), 800);
+            modalConfirm('A jeni i sigurt? Të dhënat aktuale do të zëvendësohen.', function() {
+                Object.keys(state).forEach(k => delete state[k]);
+                Object.assign(state, data);
+                if (!state.activityLog) state.activityLog = [];
+                logActivity('backup', 'Rikthim nga backup i enkriptuar');
+                saveState();
+                showToast('Të dhënat u rikthyen me sukses!', 'success');
+                closeModal();
+                setTimeout(() => location.reload(), 800);
+            });
         } catch(err) {
             showToast('Gabim: fjalëkalim i gabuar ose skedar i korruptuar!', 'error');
         }
@@ -13124,13 +15493,14 @@ function _importSyncCode() {
         const json = decodeURIComponent(escape(atob(code)));
         const data = JSON.parse(json);
         if (!data.sales && !data.clients && !data.stock) throw new Error('Te dhena te pavlefshme');
-        if (!confirm('A jeni i sigurt? Të dhënat aktuale do të zëvendësohen me të dhënat nga pajisja tjetër.')) return;
-        Object.assign(state, data);
-        saveState();
-        logActivity('sync', 'Sinkronizim i importuar nga pajisje tjetër');
-        showToast('Sinkronizimi u krye me sukses!', 'success');
-        document.getElementById('hurma-modal')?.remove();
-        setTimeout(() => location.reload(), 800);
+        modalConfirm('A jeni i sigurt? Të dhënat aktuale do të zëvendësohen me të dhënat nga pajisja tjetër.', function() {
+            Object.assign(state, data);
+            saveState();
+            logActivity('sync', 'Sinkronizim i importuar nga pajisje tjetër');
+            showToast('Sinkronizimi u krye me sukses!', 'success');
+            closeModal();
+            setTimeout(() => location.reload(), 800);
+        });
     } catch(err) {
         showToast('Kodi është i pavlefshëm ose i korruptuar!', 'error');
     }
@@ -13198,22 +15568,21 @@ function _previewImportFile(input) {
 function _doImport(mode) {
     if (!_pendingImportData) { showToast('Nuk ka të dhëna për importim!', 'error'); return; }
     if (mode === 'replace') {
-        if (!confirm('KUJDES: Kjo do të fshijë të gjitha të dhënat aktuale dhe i zëvendëson me të importuarit. Vazhdoni?')) return;
-        // Save version before replacing
-        if (typeof saveVersion === 'function') saveVersion();
-        // Fully replace state (clear old keys first)
-        Object.keys(state).forEach(k => delete state[k]);
-        Object.assign(state, _pendingImportData);
+        modalConfirm('KUJDES: Kjo do të fshijë të gjitha të dhënat aktuale dhe i zëvendëson me të importuarit. Vazhdoni?', function() {
+            if (typeof saveVersion === 'function') saveVersion();
+            Object.keys(state).forEach(k => delete state[k]);
+            Object.assign(state, _pendingImportData);
+            if (!state.activityLog) state.activityLog = [];
+            logActivity('import', 'Importim i plotë nga skedar JSON');
+            saveState();
+            showToast('Importimi u krye me sukses!', 'success');
+            closeModal();
+            setTimeout(() => location.reload(), 800);
+        });
     } else {
         importFromJSON(_pendingImportData);
         return;
     }
-    if (!state.activityLog) state.activityLog = [];
-    logActivity('import', 'Importim i plotë nga skedar JSON');
-    saveState();
-    showToast('Importimi u krye me sukses!', 'success');
-    document.getElementById('hurma-modal')?.remove();
-    setTimeout(() => location.reload(), 800);
 }
 
 function importFromJSON(data) {
@@ -13240,7 +15609,7 @@ function importFromJSON(data) {
     saveState();
     logActivity('import', 'Bashkim i të dhënave nga skedar JSON - ' + added + ' rekorde të reja');
     showToast('Bashkimi u krye! ' + added + ' rekorde të reja u shtuan.', 'success');
-    document.getElementById('hurma-modal')?.remove();
+    closeModal();
     setTimeout(() => location.reload(), 800);
 }
 
@@ -13393,7 +15762,7 @@ function repairData() {
     saveState();
     logActivity('repair', 'Riparim automatik i të dhënave - ' + fixed + ' probleme u rregulluan');
     showToast(fixed + ' probleme u rregulluan automatikisht!', 'success');
-    document.getElementById('hurma-modal')?.remove();
+    closeModal();
     setTimeout(() => validateData(), 300);
 }
 
@@ -13907,19 +16276,21 @@ function restoreFromTrash(trashId) {
 }
 
 function permanentDeleteFromTrash(trashId) {
-    if (!confirm('Fshirje përfundimtare — nuk mund të kthehet! Vazhdo?')) return;
-    state.trash = state.trash.filter(t => t.id !== trashId);
-    saveState();
-    showToast('U fshi përgjithmonë', 'info');
-    showTrashBin();
+    modalConfirm('Fshirje përfundimtare — nuk mund të kthehet! Vazhdo?', function() {
+        state.trash = state.trash.filter(t => t.id !== trashId);
+        saveState();
+        showToast('U fshi përgjithmonë', 'info');
+        showTrashBin();
+    });
 }
 
 function emptyTrash() {
-    if (!confirm('Zbraz gjithë koshin? Kjo nuk mund të kthehet!')) return;
-    state.trash = [];
-    saveState();
-    showToast('Koshi u zbraz', 'info');
-    closeModal();
+    modalConfirm('Zbraz gjithë koshin? Kjo nuk mund të kthehet!', function() {
+        state.trash = [];
+        saveState();
+        showToast('Koshi u zbraz', 'info');
+        closeModal();
+    });
 }
 
 // === FEATURE 3: Version History me Preview ===
@@ -14190,18 +16561,19 @@ function showHourlySnapshots() {
 function restoreHourlySnapshot(hourKey) {
     const snap = (state.hourlySnapshots || []).find(s => s.hour === hourKey);
     if (!snap || !snap.stateJson) { showToast('Ky snapshot nuk ka të dhëna!', 'error'); return; }
-    if (!confirm('Rikthe snapshot-in e orës ' + new Date(snap.date).toLocaleString('sq-AL') + '?')) return;
-    autoBackupBeforeRestore();
-    try {
-        const data = JSON.parse(snap.stateJson);
-        Object.keys(state).forEach(k => delete state[k]);
-        Object.assign(state, data);
-        if (!state.activityLog) state.activityLog = [];
-        logActivity('snapshot_restore', 'Rikthim nga snapshot: ' + snap.hour);
-        saveState();
-        showToast('Snapshot u rikthye!', 'success');
-        setTimeout(() => location.reload(), 800);
-    } catch(e) { showToast('Gabim: ' + e.message, 'error'); }
+    modalConfirm('Rikthe snapshot-in e orës ' + new Date(snap.date).toLocaleString('sq-AL') + '?', function() {
+        autoBackupBeforeRestore();
+        try {
+            const data = JSON.parse(snap.stateJson);
+            Object.keys(state).forEach(k => delete state[k]);
+            Object.assign(state, data);
+            if (!state.activityLog) state.activityLog = [];
+            logActivity('snapshot_restore', 'Rikthim nga snapshot: ' + snap.hour);
+            saveState();
+            showToast('Snapshot u rikthye!', 'success');
+            setTimeout(() => location.reload(), 800);
+        } catch(e) { showToast('Gabim: ' + e.message, 'error'); }
+    });
 }
 
 // Start hourly snapshots
@@ -14663,21 +17035,74 @@ function _registerServiceWorker() {
         .then(reg => {
             _swRegistration = reg;
 
-            // Kur gjendet update i ri, shfaq bannerin
+            // Auto-apply i updateve që butonat e rinj të punojnë menjëherë
+            var reloading = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (reloading) return;
+                reloading = true;
+                showToast('Aplikacioni u përditësua — duke rifreskuar...', 'info');
+                setTimeout(() => window.location.reload(), 400);
+            });
+
+            // Kur gjendet update i ri, aktivizoje automatikisht
             reg.addEventListener('updatefound', () => {
                 const newWorker = reg.installing;
+                if (!newWorker) return;
                 newWorker.addEventListener('statechange', () => {
-                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                        document.getElementById('pwa-update-banner').style.display = 'block';
+                    if (newWorker.state === 'installed') {
+                        if (navigator.serviceWorker.controller) {
+                            // Update i ri gati — shty atë të marrë kontrollin
+                            try { newWorker.postMessage({ type: 'SKIP_WAITING' }); } catch(e) {}
+                            var banner = document.getElementById('pwa-update-banner');
+                            if (banner) banner.style.display = 'block';
+                        }
                     }
                 });
             });
 
             // Kontrollo update menjëherë
             reg.update();
+            // Kontrollo periodikisht (çdo 30 min) për versione të reja
+            setInterval(() => { try { reg.update(); } catch(e) {} }, 30 * 60 * 1000);
         })
         .catch(err => console.warn('SW regjistrim dështoi:', err));
 }
+
+// ---- Pastrim total i cache-s + rifreskim (recovery manual nga përdoruesi) ----
+// Thirret me Shift+Ctrl+U ose nga butoni te Settings
+function forceUpdateApp() {
+    if (!confirm('Pastro të gjitha cache-t dhe rifresko aplikacionin?\n(Të dhënat e ruajtura lokalisht NUK preken)')) return;
+    var promises = [];
+    // 1) Ç'regjistro të gjitha SW-të
+    if ('serviceWorker' in navigator) {
+        promises.push(navigator.serviceWorker.getRegistrations().then(function(regs) {
+            return Promise.all(regs.map(function(r) { return r.unregister(); }));
+        }));
+    }
+    // 2) Pastro të gjitha cache-t (Cache API)
+    if (window.caches && caches.keys) {
+        promises.push(caches.keys().then(function(keys) {
+            return Promise.all(keys.map(function(k) { return caches.delete(k); }));
+        }));
+    }
+    Promise.all(promises).then(function() {
+        showToast('Cache u pastrua. Duke rifreskuar...', 'success');
+        setTimeout(function() {
+            // Hard reload me bypass të cache-s
+            window.location.href = window.location.pathname + '?_t=' + Date.now();
+        }, 500);
+    }).catch(function(err) {
+        showToast('Gabim gjatë pastrimit: ' + err.message, 'error');
+    });
+}
+
+// Shkurtore nga tastiera: Shift+Ctrl+U (ose Shift+Cmd+U në Mac)
+document.addEventListener('keydown', function(e) {
+    if (e.shiftKey && (e.ctrlKey || e.metaKey) && (e.key === 'u' || e.key === 'U')) {
+        e.preventDefault();
+        forceUpdateApp();
+    }
+});
 
 // ---- Ruaj prompt-in "Instalo App" nga browseri ----
 function _setupInstallPrompt() {
@@ -14931,4 +17356,5090 @@ function openPWASettings() {
             </div>
         </div>
     `);
+}
+
+// ===================== ANALYTICS DASHBOARD =====================
+var _analyticsPeriodDays = 30;
+var _analyticsCharts = {};
+
+function setAnalyticsPeriod(days) {
+    _analyticsPeriodDays = days;
+    var label = document.getElementById('analytics-period-label');
+    if (label) label.textContent = days >= 365 ? '1 vit' : days + ' ditët e fundit';
+    // Update active button
+    document.querySelectorAll('.analytics-period-btn').forEach(function(btn) {
+        btn.classList.remove('active');
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-secondary');
+    });
+    var btns = document.querySelectorAll('.analytics-period-btn');
+    btns.forEach(function(btn) {
+        if (btn.textContent.trim() === (days >= 365 ? '1 vit' : days + ' ditë')) {
+            btn.classList.add('active');
+            btn.classList.remove('btn-secondary');
+            btn.classList.add('btn-primary');
+        }
+    });
+    refreshAnalytics();
+}
+
+function refreshAnalytics() {
+    var days = _analyticsPeriodDays || 30;
+    var now = new Date();
+    var startDate = new Date(now);
+    startDate.setDate(startDate.getDate() - days);
+    var startStr = startDate.toISOString().split('T')[0];
+
+    var periodSales = state.sales.filter(function(s) { return s.date >= startStr; });
+
+    _renderAnalyticsKPIs(periodSales, days);
+    _renderTrendChart(periodSales, days);
+    _renderProductChart(periodSales);
+    _renderWeeklyChart();
+    _renderTopClients(periodSales);
+    _renderForecast(days);
+}
+
+function _renderAnalyticsKPIs(periodSales, days) {
+    var container = document.getElementById('analytics-kpi-cards');
+    if (!container) return;
+
+    var totalRevenue = periodSales.reduce(function(s, x) { return s + (x.sellTotal || 0); }, 0);
+    var totalProfit = periodSales.reduce(function(s, x) { return s + (x.profit || 0); }, 0);
+    var avgDaily = days > 0 ? Math.round(totalRevenue / days) : 0;
+    var avgProfit = days > 0 ? Math.round(totalProfit / days) : 0;
+    var totalQty = periodSales.reduce(function(s, x) { return s + (x.quantity || 0); }, 0);
+
+    // Best day
+    var dayTotals = {};
+    periodSales.forEach(function(s) {
+        dayTotals[s.date] = (dayTotals[s.date] || 0) + (s.sellTotal || 0);
+    });
+    var bestDay = '';
+    var bestDayVal = 0;
+    Object.keys(dayTotals).forEach(function(d) {
+        if (dayTotals[d] > bestDayVal) { bestDayVal = dayTotals[d]; bestDay = d; }
+    });
+
+    // Best product
+    var prodTotals = {};
+    periodSales.forEach(function(s) {
+        var p = getProduct(s.productId);
+        var name = p ? p.name : 'N/A';
+        prodTotals[name] = (prodTotals[name] || 0) + (s.profit || 0);
+    });
+    var bestProd = '';
+    var bestProdVal = 0;
+    Object.keys(prodTotals).forEach(function(n) {
+        if (prodTotals[n] > bestProdVal) { bestProdVal = prodTotals[n]; bestProd = n; }
+    });
+
+    // Margin
+    var margin = totalRevenue > 0 ? Math.round((totalProfit / totalRevenue) * 100) : 0;
+
+    var kpis = [
+        { icon: 'fas fa-coins', color: '#667eea', label: 'Qarkullimi Total', value: _formatBadgeNum(totalRevenue) + ' ден' },
+        { icon: 'fas fa-hand-holding-usd', color: '#43e97b', label: 'Fitimi Total', value: _formatBadgeNum(totalProfit) + ' ден' },
+        { icon: 'fas fa-calendar-day', color: '#f093fb', label: 'Mesatarja Ditore', value: avgDaily + ' ден' },
+        { icon: 'fas fa-chart-line', color: '#4facfe', label: 'Fitimi Ditor', value: avgProfit + ' ден' },
+        { icon: 'fas fa-boxes', color: '#fa709a', label: 'Sasia e Shitur', value: totalQty + ' copë' },
+        { icon: 'fas fa-percentage', color: '#a18cd1', label: 'Marzhi', value: margin + '%' },
+        { icon: 'fas fa-star', color: '#f5af19', label: 'Dita më e Mirë', value: bestDay ? new Date(bestDay).toLocaleDateString('sq-AL', {day:'numeric',month:'short'}) + ' (' + bestDayVal + ' ден)' : '-' },
+        { icon: 'fas fa-trophy', color: '#ff6b35', label: 'Produkti Top', value: bestProd || '-' }
+    ];
+
+    container.innerHTML = kpis.map(function(k) {
+        return '<div style="background:white;border-radius:12px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,0.06);text-align:center;border-top:3px solid ' + k.color + ';">' +
+            '<i class="' + k.icon + '" style="font-size:1.4em;color:' + k.color + ';margin-bottom:6px;display:block;"></i>' +
+            '<div style="font-size:0.75em;color:#888;margin-bottom:4px;">' + k.label + '</div>' +
+            '<div style="font-size:1.05em;font-weight:700;color:#333;">' + k.value + '</div>' +
+        '</div>';
+    }).join('');
+}
+
+function _renderTrendChart(periodSales, days) {
+    var ctx = document.getElementById('analytics-trend-chart');
+    if (!ctx) return;
+    if (_analyticsCharts.trend) _analyticsCharts.trend.destroy();
+
+    // Build day-by-day data
+    var labels = [];
+    var revenueData = [];
+    var profitData = [];
+    var now = new Date();
+
+    for (var i = days - 1; i >= 0; i--) {
+        var d = new Date(now);
+        d.setDate(d.getDate() - i);
+        var dateStr = d.toISOString().split('T')[0];
+        var dayLabel = d.toLocaleDateString('sq-AL', { day: 'numeric', month: 'short' });
+        labels.push(dayLabel);
+
+        var daySales = periodSales.filter(function(s) { return s.date === dateStr; });
+        revenueData.push(daySales.reduce(function(s, x) { return s + (x.sellTotal || 0); }, 0));
+        profitData.push(daySales.reduce(function(s, x) { return s + (x.profit || 0); }, 0));
+    }
+
+    _analyticsCharts.trend = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Shitjet (ден)',
+                    data: revenueData,
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102,126,234,0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: days <= 30 ? 3 : 0,
+                    borderWidth: 2
+                },
+                {
+                    label: 'Fitimi (ден)',
+                    data: profitData,
+                    borderColor: '#43e97b',
+                    backgroundColor: 'rgba(67,233,123,0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: days <= 30 ? 3 : 0,
+                    borderWidth: 2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'top' } },
+            scales: {
+                x: { ticks: { maxTicksLimit: days <= 30 ? 15 : 12, font: { size: 10 } } },
+                y: { beginAtZero: true }
+            }
+        }
+    });
+}
+
+function _renderProductChart(periodSales) {
+    var ctx = document.getElementById('analytics-product-chart');
+    if (!ctx) return;
+    if (_analyticsCharts.product) _analyticsCharts.product.destroy();
+
+    var prodData = {};
+    periodSales.forEach(function(s) {
+        var p = getProduct(s.productId);
+        var name = p ? p.name : 'Tjetër';
+        prodData[name] = (prodData[name] || 0) + (s.sellTotal || 0);
+    });
+
+    var sortedProds = Object.keys(prodData).sort(function(a, b) { return prodData[b] - prodData[a]; });
+    var colors = ['#667eea', '#f093fb', '#43e97b', '#4facfe', '#fa709a', '#f5af19', '#a18cd1', '#ff6b35', '#00d2ff', '#e55a2b'];
+
+    _analyticsCharts.product = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: sortedProds,
+            datasets: [{
+                data: sortedProds.map(function(n) { return prodData[n]; }),
+                backgroundColor: colors.slice(0, sortedProds.length),
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 8 } }
+            }
+        }
+    });
+}
+
+function _renderWeeklyChart() {
+    var ctx = document.getElementById('analytics-weekly-chart');
+    if (!ctx) return;
+    if (_analyticsCharts.weekly) _analyticsCharts.weekly.destroy();
+
+    // Last 8 weeks
+    var weeks = [];
+    var now = new Date();
+    for (var w = 7; w >= 0; w--) {
+        var weekStart = new Date(now);
+        weekStart.setDate(weekStart.getDate() - (w * 7) - weekStart.getDay() + 1);
+        var weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekEnd.getDate() + 6);
+        var startStr = weekStart.toISOString().split('T')[0];
+        var endStr = weekEnd.toISOString().split('T')[0];
+
+        var weekSales = state.sales.filter(function(s) { return s.date >= startStr && s.date <= endStr; });
+        var revenue = weekSales.reduce(function(s, x) { return s + (x.sellTotal || 0); }, 0);
+        var profit = weekSales.reduce(function(s, x) { return s + (x.profit || 0); }, 0);
+
+        var label = weekStart.toLocaleDateString('sq-AL', { day: 'numeric', month: 'short' });
+        weeks.push({ label: label, revenue: revenue, profit: profit });
+    }
+
+    _analyticsCharts.weekly = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: weeks.map(function(w) { return w.label; }),
+            datasets: [
+                {
+                    label: 'Shitjet',
+                    data: weeks.map(function(w) { return w.revenue; }),
+                    backgroundColor: 'rgba(102,126,234,0.7)',
+                    borderRadius: 6
+                },
+                {
+                    label: 'Fitimi',
+                    data: weeks.map(function(w) { return w.profit; }),
+                    backgroundColor: 'rgba(67,233,123,0.7)',
+                    borderRadius: 6
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'top' } },
+            scales: { y: { beginAtZero: true }, x: { ticks: { font: { size: 10 } } } }
+        }
+    });
+}
+
+function _renderTopClients(periodSales) {
+    var container = document.getElementById('analytics-top-clients');
+    if (!container) return;
+
+    var clientData = {};
+    periodSales.forEach(function(s) {
+        if (!s.clientId) return;
+        var c = state.clients.find(function(c) { return c.id === s.clientId; });
+        if (!c) return;
+        if (!clientData[c.id]) clientData[c.id] = { name: c.name, revenue: 0, profit: 0, count: 0, phone: c.phone || '' };
+        clientData[c.id].revenue += (s.sellTotal || 0);
+        clientData[c.id].profit += (s.profit || 0);
+        clientData[c.id].count++;
+    });
+
+    var sorted = Object.values(clientData).sort(function(a, b) { return b.revenue - a.revenue; }).slice(0, 5);
+
+    if (sorted.length === 0) {
+        container.innerHTML = '<p style="color:#999;text-align:center;padding:20px;">Nuk ka shitje me klientë në këtë periudhë</p>';
+        return;
+    }
+
+    var maxRevenue = sorted[0].revenue || 1;
+    var medals = ['🥇', '🥈', '🥉', '4.', '5.'];
+
+    var gradients = [
+        'linear-gradient(135deg,#667eea,#764ba2)',
+        'linear-gradient(135deg,#f093fb,#f5576c)',
+        'linear-gradient(135deg,#4facfe,#00f2fe)',
+        'linear-gradient(135deg,#43e97b,#38f9d7)',
+        'linear-gradient(135deg,#fa709a,#fee140)'
+    ];
+
+    container.innerHTML = sorted.map(function(c, i) {
+        var pct = Math.round((c.revenue / maxRevenue) * 100);
+        var avgOrder = c.count > 0 ? Math.round(c.revenue / c.count) : 0;
+        return '<div style="display:flex;align-items:center;gap:12px;padding:14px 12px;margin-bottom:8px;background:white;border-radius:12px;border-left:4px solid ' + (i === 0 ? '#667eea' : i === 1 ? '#f093fb' : i === 2 ? '#4facfe' : '#ccc') + ';box-shadow:0 1px 4px rgba(0,0,0,0.05);">' +
+            '<div style="min-width:40px;height:40px;border-radius:50%;background:' + gradients[i] + ';display:flex;align-items:center;justify-content:center;color:white;font-size:1.1em;font-weight:800;">' + (i + 1) + '</div>' +
+            '<div style="flex:1;">' +
+                '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
+                    '<strong style="font-size:1em;">' + c.name + '</strong>' +
+                    '<span style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:3px 10px;border-radius:15px;font-size:0.85em;font-weight:700;">' + _formatBadgeNum(c.revenue) + ' ден</span>' +
+                '</div>' +
+                '<div style="background:#f0f0f0;border-radius:6px;height:10px;overflow:hidden;margin-bottom:6px;">' +
+                    '<div style="background:' + gradients[i] + ';height:100%;width:' + pct + '%;border-radius:6px;transition:width 0.6s ease;"></div>' +
+                '</div>' +
+                '<div style="display:flex;justify-content:space-between;font-size:0.78em;color:#888;">' +
+                    '<span><i class="fas fa-shopping-bag" style="color:#667eea;"></i> ' + c.count + ' porosi</span>' +
+                    '<span><i class="fas fa-calculator" style="color:#f093fb;"></i> Mesatare: ' + avgOrder + ' ден</span>' +
+                    '<span style="color:#43e97b;font-weight:700;"><i class="fas fa-coins"></i> Fitim: ' + _formatBadgeNum(c.profit) + ' ден</span>' +
+                '</div>' +
+            '</div>' +
+        '</div>';
+    }).join('');
+}
+
+function _renderForecast(currentDays) {
+    var container = document.getElementById('analytics-forecast');
+    if (!container) return;
+
+    // Calculate average daily from last 14 days
+    var now = new Date();
+    var twoWeeksAgo = new Date(now);
+    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+    var twoWeeksStr = twoWeeksAgo.toISOString().split('T')[0];
+
+    var recentSales = state.sales.filter(function(s) { return s.date >= twoWeeksStr; });
+    var recentRevenue = recentSales.reduce(function(s, x) { return s + (x.sellTotal || 0); }, 0);
+    var recentProfit = recentSales.reduce(function(s, x) { return s + (x.profit || 0); }, 0);
+    var recentQty = recentSales.reduce(function(s, x) { return s + (x.quantity || 0); }, 0);
+
+    var avgDailyRev = Math.round(recentRevenue / 14);
+    var avgDailyProfit = Math.round(recentProfit / 14);
+    var avgDailyQty = Math.round((recentQty / 14) * 10) / 10;
+
+    var forecastWeekRev = avgDailyRev * 7;
+    var forecastWeekProfit = avgDailyProfit * 7;
+    var forecastWeekQty = Math.round(avgDailyQty * 7);
+
+    // Month forecast
+    var forecastMonthRev = avgDailyRev * 30;
+    var forecastMonthProfit = avgDailyProfit * 30;
+
+    // Trend indicator (compare last 7 days vs previous 7 days)
+    var oneWeekAgo = new Date(now);
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    var oneWeekStr = oneWeekAgo.toISOString().split('T')[0];
+    var prevWeekStr = new Date(now.getTime() - 14 * 86400000).toISOString().split('T')[0];
+
+    var thisWeekRev = state.sales.filter(function(s) { return s.date >= oneWeekStr; }).reduce(function(s, x) { return s + (x.sellTotal || 0); }, 0);
+    var prevWeekRev = state.sales.filter(function(s) { return s.date >= prevWeekStr && s.date < oneWeekStr; }).reduce(function(s, x) { return s + (x.sellTotal || 0); }, 0);
+
+    var trendPct = prevWeekRev > 0 ? Math.round(((thisWeekRev - prevWeekRev) / prevWeekRev) * 100) : 0;
+    var trendIcon = trendPct >= 0 ? '📈' : '📉';
+    var trendColor = trendPct >= 0 ? '#43e97b' : '#e74c3c';
+    var trendText = trendPct >= 0 ? '+' + trendPct + '%' : trendPct + '%';
+
+    container.innerHTML = '' +
+        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;">' +
+            '<div style="background:white;border-radius:12px;padding:16px;text-align:center;">' +
+                '<div style="font-size:2em;margin-bottom:6px;">📅</div>' +
+                '<div style="font-size:0.8em;color:#888;">Parashikimi Javor</div>' +
+                '<div style="font-size:1.3em;font-weight:800;color:#667eea;">' + forecastWeekRev + ' ден</div>' +
+                '<div style="font-size:0.8em;color:#43e97b;font-weight:600;">Fitim: ' + forecastWeekProfit + ' ден</div>' +
+                '<div style="font-size:0.75em;color:#999;">' + forecastWeekQty + ' copë</div>' +
+            '</div>' +
+            '<div style="background:white;border-radius:12px;padding:16px;text-align:center;">' +
+                '<div style="font-size:2em;margin-bottom:6px;">📆</div>' +
+                '<div style="font-size:0.8em;color:#888;">Parashikimi Mujor</div>' +
+                '<div style="font-size:1.3em;font-weight:800;color:#764ba2;">' + forecastMonthRev + ' ден</div>' +
+                '<div style="font-size:0.8em;color:#43e97b;font-weight:600;">Fitim: ' + forecastMonthProfit + ' ден</div>' +
+            '</div>' +
+            '<div style="background:white;border-radius:12px;padding:16px;text-align:center;">' +
+                '<div style="font-size:2em;margin-bottom:6px;">' + trendIcon + '</div>' +
+                '<div style="font-size:0.8em;color:#888;">Trendi (javë me javë)</div>' +
+                '<div style="font-size:1.3em;font-weight:800;color:' + trendColor + ';">' + trendText + '</div>' +
+                '<div style="font-size:0.75em;color:#999;">Kjo javë: ' + thisWeekRev + ' ден vs ' + prevWeekRev + ' ден</div>' +
+            '</div>' +
+        '</div>';
+}
+
+// ===================== INVOICES REGISTRY PAGE =====================
+
+function _getInvoiceStatus(sale) {
+    var pType = sale.paymentType || 'cash';
+    var isInvoice = pType.indexOf('invoice') !== -1;
+    var paid = sale.paidAmount || (sale.invoicePaid ? (sale.sellTotal || 0) : 0);
+    var total = sale.sellTotal || 0;
+
+    // Check if corrective
+    if (sale.isCorrective || sale.correctedBy) return { key: 'corrective', label: '🔄 Korrektive', color: '#9b59b6', bg: '#f3e5f5' };
+
+    if (sale.invoicePaid || paid >= total) return { key: 'paid', label: '✅ Paguar', color: '#27ae60', bg: '#e8f5e9' };
+
+    // Check overdue
+    if (isInvoice && sale.dueDate) {
+        var today = new Date().toISOString().split('T')[0];
+        if (sale.dueDate < today && !sale.invoicePaid) return { key: 'overdue', label: '🔴 Vonuar', color: '#e74c3c', bg: '#fce4ec' };
+    }
+
+    if (paid > 0 && paid < total) return { key: 'partial', label: '⏳ Pjesërisht', color: '#f39c12', bg: '#fff8e1' };
+
+    if (pType === 'cash' && !isInvoice) return { key: 'paid', label: '✅ Cash', color: '#27ae60', bg: '#e8f5e9' };
+
+    return { key: 'unpaid', label: '❌ Papaguar', color: '#e74c3c', bg: '#fce4ec' };
+}
+
+function _calcDueDate(sale) {
+    if (sale.dueDate) return sale.dueDate;
+    var pType = sale.paymentType || 'cash';
+    var days = 0;
+    if (pType === 'invoice_30') days = 30;
+    else if (pType === 'invoice_60') days = 60;
+    else if (pType === 'invoice_90') days = 90;
+    if (days > 0 && sale.date) {
+        var d = new Date(sale.date);
+        d.setDate(d.getDate() + days);
+        return d.toISOString().split('T')[0];
+    }
+    return null;
+}
+
+function refreshInvoicesPage() {
+    // Populate client filter
+    var clientSelect = document.getElementById('inv-filter-client');
+    if (clientSelect && clientSelect.options.length <= 1) {
+        state.clients.forEach(function(c) {
+            var opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = c.name;
+            clientSelect.appendChild(opt);
+        });
+    }
+
+    var statusFilter = document.getElementById('inv-filter-status') ? document.getElementById('inv-filter-status').value : '';
+    var clientFilter = document.getElementById('inv-filter-client') ? document.getElementById('inv-filter-client').value : '';
+    var dateFrom = document.getElementById('inv-filter-from') ? document.getElementById('inv-filter-from').value : '';
+    var dateTo = document.getElementById('inv-filter-to') ? document.getElementById('inv-filter-to').value : '';
+    var searchVal = document.getElementById('inv-filter-search') ? document.getElementById('inv-filter-search').value.toLowerCase() : '';
+
+    // Build invoices from all sales
+    var invoices = state.sales.map(function(s, idx) {
+        var product = getProduct(s.productId);
+        var client = s.clientId ? state.clients.find(function(c) { return c.id === s.clientId; }) : null;
+        var status = _getInvoiceStatus(s);
+        var dueDate = _calcDueDate(s);
+        var paid = s.paidAmount || (s.invoicePaid ? (s.sellTotal || 0) : 0);
+        var invNum = getInvoiceNumber(idx, s);
+        return {
+            idx: idx,
+            sale: s,
+            product: product,
+            client: client,
+            status: status,
+            dueDate: dueDate,
+            paid: paid,
+            remaining: Math.max(0, (s.sellTotal || 0) - paid),
+            invNum: invNum
+        };
+    }).reverse();
+
+    // Apply filters
+    invoices = invoices.filter(function(inv) {
+        if (statusFilter && inv.status.key !== statusFilter) return false;
+        if (clientFilter && (!inv.sale.clientId || inv.sale.clientId !== clientFilter)) return false;
+        if (dateFrom && inv.sale.date < dateFrom) return false;
+        if (dateTo && inv.sale.date > dateTo) return false;
+        if (searchVal) {
+            var haystack = (inv.invNum + ' ' + (inv.product ? inv.product.name : '') + ' ' + (inv.client ? inv.client.name : '')).toLowerCase();
+            if (haystack.indexOf(searchVal) === -1) return false;
+        }
+        return true;
+    });
+
+    // Stats
+    _renderInvoiceStats(invoices);
+
+    // Count label
+    var countLabel = document.getElementById('invoices-count-label');
+    if (countLabel) countLabel.textContent = invoices.length + ' fatura';
+
+    // Render list
+    var container = document.getElementById('invoices-list-container');
+    if (!container) return;
+
+    if (invoices.length === 0) {
+        container.innerHTML = '<div style="text-align:center;padding:40px;color:#999;"><i class="fas fa-file-invoice" style="font-size:3em;margin-bottom:12px;display:block;opacity:0.3;"></i><p>Nuk u gjetën fatura me këto filtra</p></div>';
+        return;
+    }
+
+    container.innerHTML = invoices.map(function(inv) {
+        var pctPaid = inv.sale.sellTotal > 0 ? Math.round((inv.paid / inv.sale.sellTotal) * 100) : 0;
+        var dueDateStr = inv.dueDate ? new Date(inv.dueDate).toLocaleDateString('sq-AL', { day: 'numeric', month: 'short', year: 'numeric' }) : '-';
+        var dateStr = new Date(inv.sale.date).toLocaleDateString('sq-AL', { day: 'numeric', month: 'short', year: 'numeric' });
+
+        return '<div style="background:white;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 6px rgba(0,0,0,0.06);border-left:4px solid ' + inv.status.color + ';">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">' +
+                '<div>' +
+                    '<span style="font-weight:700;font-size:0.95em;color:#2c3e50;">' + inv.invNum + '</span>' +
+                    '<span style="background:' + inv.status.bg + ';color:' + inv.status.color + ';padding:2px 8px;border-radius:10px;font-size:0.75em;font-weight:600;margin-left:8px;">' + inv.status.label + '</span>' +
+                '</div>' +
+                '<span style="font-size:0.8em;color:#999;">' + dateStr + '</span>' +
+            '</div>' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:8px;">' +
+                '<div>' +
+                    '<strong style="font-size:0.9em;">' + (inv.product ? inv.product.name : 'N/A') + '</strong>' +
+                    '<span style="color:#888;font-size:0.85em;"> x' + inv.sale.quantity + '</span>' +
+                '</div>' +
+                '<div style="text-align:right;">' +
+                    '<strong style="font-size:1.1em;color:#2c3e50;">' + inv.sale.sellTotal + ' ден</strong>' +
+                '</div>' +
+            '</div>' +
+            (inv.client ? '<div style="font-size:0.8em;color:#667eea;margin-bottom:6px;"><i class="fas fa-user"></i> ' + inv.client.name + (inv.client.phone ? ' • ' + inv.client.phone : '') + '</div>' : '') +
+            '<div style="background:#f0f0f0;border-radius:6px;height:6px;overflow:hidden;margin-bottom:6px;">' +
+                '<div style="background:' + inv.status.color + ';height:100%;width:' + pctPaid + '%;border-radius:6px;transition:width 0.4s;"></div>' +
+            '</div>' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">' +
+                '<div style="font-size:0.78em;color:#888;">' +
+                    'Paguar: <strong style="color:#27ae60;">' + inv.paid + ' ден</strong>' +
+                    (inv.remaining > 0 ? ' • Mbetet: <strong style="color:#e74c3c;">' + inv.remaining + ' ден</strong>' : '') +
+                    (inv.dueDate ? ' • Afati: ' + dueDateStr : '') +
+                '</div>' +
+                '<div style="display:flex;gap:4px;">' +
+                    '<button class="btn btn-sm" onclick="generateInvoice(' + inv.idx + ')" style="background:#3498db;color:white;border:none;padding:5px 8px;border-radius:6px;font-size:0.75em;" title="Shiko Faturën"><i class="fas fa-eye"></i></button>' +
+                    '<button class="btn btn-sm" onclick="exportInvoicePDF(' + inv.idx + ')" style="background:#e74c3c;color:white;border:none;padding:5px 8px;border-radius:6px;font-size:0.75em;" title="Shkarko PDF"><i class="fas fa-file-pdf"></i></button>' +
+                    '<button class="btn btn-sm" onclick="exportInvoiceWord(' + inv.idx + ')" style="background:#2b579a;color:white;border:none;padding:5px 8px;border-radius:6px;font-size:0.75em;" title="Shkarko Word"><i class="fas fa-file-word"></i></button>' +
+                    '<button class="btn btn-sm" onclick="sendInvoiceWhatsApp(' + inv.idx + ')" style="background:#25d366;color:white;border:none;padding:5px 8px;border-radius:6px;font-size:0.75em;" title="Dërgo WhatsApp"><i class="fab fa-whatsapp"></i></button>' +
+                    (inv.status.key !== 'paid' && inv.status.key !== 'corrective' ? '<button class="btn btn-sm" onclick="quickMarkPaid(' + inv.idx + ')" style="background:#27ae60;color:white;border:none;padding:5px 8px;border-radius:6px;font-size:0.75em;" title="Shëno Paguar"><i class="fas fa-check"></i></button>' : '') +
+                    (inv.status.key !== 'corrective' ? '<button class="btn btn-sm" onclick="createCorrectiveInvoice(' + inv.idx + ')" style="background:#9b59b6;color:white;border:none;padding:5px 8px;border-radius:6px;font-size:0.75em;" title="Faturë Korrektive"><i class="fas fa-undo"></i></button>' : '') +
+                '</div>' +
+            '</div>' +
+        '</div>';
+    }).join('');
+}
+
+function _renderInvoiceStats(invoices) {
+    var container = document.getElementById('invoice-stats-cards');
+    if (!container) return;
+
+    var totalAmount = 0, totalPaid = 0, totalUnpaid = 0, totalOverdue = 0;
+    var countPaid = 0, countUnpaid = 0, countPartial = 0, countOverdue = 0, countCorrective = 0;
+
+    invoices.forEach(function(inv) {
+        totalAmount += (inv.sale.sellTotal || 0);
+        totalPaid += inv.paid;
+        if (inv.status.key === 'paid') countPaid++;
+        else if (inv.status.key === 'unpaid') { countUnpaid++; totalUnpaid += inv.remaining; }
+        else if (inv.status.key === 'partial') { countPartial++; totalUnpaid += inv.remaining; }
+        else if (inv.status.key === 'overdue') { countOverdue++; totalOverdue += inv.remaining; }
+        else if (inv.status.key === 'corrective') countCorrective++;
+    });
+
+    var stats = [
+        { icon: 'fas fa-file-invoice', color: '#3498db', label: 'Gjithsej', value: invoices.length, sub: _formatBadgeNum(totalAmount) + ' ден' },
+        { icon: 'fas fa-check-circle', color: '#27ae60', label: 'Paguar', value: countPaid, sub: _formatBadgeNum(totalPaid) + ' ден' },
+        { icon: 'fas fa-clock', color: '#f39c12', label: 'Pjesërisht', value: countPartial, sub: '' },
+        { icon: 'fas fa-times-circle', color: '#e74c3c', label: 'Papaguar', value: countUnpaid, sub: _formatBadgeNum(totalUnpaid) + ' ден' },
+        { icon: 'fas fa-exclamation-triangle', color: '#c0392b', label: 'Vonuar', value: countOverdue, sub: _formatBadgeNum(totalOverdue) + ' ден' },
+        { icon: 'fas fa-undo', color: '#9b59b6', label: 'Korrektive', value: countCorrective, sub: '' }
+    ];
+
+    container.innerHTML = stats.map(function(s) {
+        return '<div style="background:white;border-radius:10px;padding:12px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,0.06);border-top:3px solid ' + s.color + ';">' +
+            '<i class="' + s.icon + '" style="color:' + s.color + ';font-size:1.2em;margin-bottom:4px;display:block;"></i>' +
+            '<div style="font-size:1.3em;font-weight:800;color:#2c3e50;">' + s.value + '</div>' +
+            '<div style="font-size:0.7em;color:#888;">' + s.label + '</div>' +
+            (s.sub ? '<div style="font-size:0.7em;color:' + s.color + ';font-weight:600;margin-top:2px;">' + s.sub + '</div>' : '') +
+        '</div>';
+    }).join('');
+}
+
+function createNewInvoice() {
+    // Open sale modal with invoice payment type preselected
+    openSaleModal();
+    setTimeout(function() {
+        var payType = document.getElementById('sale-payment-type');
+        if (payType) {
+            payType.value = 'invoice_60';
+            if (typeof payType.onchange === 'function') payType.onchange();
+        }
+    }, 200);
+}
+
+function exportInvoicePDF(saleIndex) {
+    var model = buildInvoiceModel(saleIndex);
+    if (!model) { showToast('Fatura nuk u gjet!', 'error'); return; }
+
+    var invoiceHtml = renderInvoiceHtml(model);
+
+    // Get invoice CSS
+    var invoiceStyles = '';
+    var styleSheets = document.querySelectorAll('link[rel="stylesheet"][href*="style.css"]');
+    
+    var win = window.open('', '_blank');
+    if (!win) { showToast('Lejo pop-up për ta shkarkuar PDF-in!', 'error'); return; }
+
+    win.document.write('<!DOCTYPE html><html><head><title>Fatura ' + model.invoiceNumber + '</title>');
+    win.document.write('<link rel="stylesheet" href="style.css">');
+    win.document.write('<style>');
+    win.document.write('body{margin:0;padding:20px;font-family:Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;}');
+    win.document.write('.invoice-screen-toolbar{display:none !important;}');
+    win.document.write('@media print { body{padding:0;} .no-print{display:none !important;} }');
+    win.document.write('</style></head><body>');
+    win.document.write(invoiceHtml);
+    win.document.write('<div class="no-print" style="text-align:center;margin-top:20px;padding:20px;">');
+    win.document.write('<button onclick="window.print()" style="background:#3498db;color:white;border:none;padding:12px 30px;border-radius:8px;font-size:1em;font-weight:700;cursor:pointer;margin-right:10px;"><i class="fas fa-print"></i> Printo / Ruaj si PDF</button>');
+    win.document.write('<button onclick="window.close()" style="background:#95a5a6;color:white;border:none;padding:12px 30px;border-radius:8px;font-size:1em;cursor:pointer;">Mbyll</button>');
+    win.document.write('</div>');
+    win.document.write('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">');
+    win.document.write('</body></html>');
+    win.document.close();
+
+    showToast('Fatura u hap — kliko "Printo" pastaj "Save as PDF"', 'info');
+    logActivity('invoice_pdf', 'Eksport PDF: ' + model.invoiceNumber);
+}
+
+function sendInvoiceWhatsApp(saleIndex) {
+    var sale = state.sales[saleIndex];
+    if (!sale) return;
+    var product = getProduct(sale.productId);
+    var client = sale.clientId ? state.clients.find(function(c) { return c.id === sale.clientId; }) : null;
+    var invNum = getInvoiceNumber(saleIndex, sale);
+    var status = _getInvoiceStatus(sale);
+    var paid = sale.paidAmount || (sale.invoicePaid ? sale.sellTotal : 0);
+    var remaining = Math.max(0, sale.sellTotal - paid);
+    var dueDate = _calcDueDate(sale);
+
+    var msg = '📄 *FATURË: ' + invNum + '*\n\n';
+    msg += '📦 Produkti: ' + (product ? product.name : 'N/A') + ' x' + sale.quantity + '\n';
+    msg += '💰 Totali: ' + sale.sellTotal + ' ден\n';
+    if (paid > 0 && paid < sale.sellTotal) msg += '✅ Paguar: ' + paid + ' ден\n❌ Mbetet: ' + remaining + ' ден\n';
+    if (dueDate) msg += '📅 Afati: ' + dueDate + '\n';
+    msg += '📊 Statusi: ' + status.label + '\n\n';
+    msg += 'Faleminderit! — ' + getInvoiceProfile().businessName;
+
+    if (client && client.phone) {
+        var cleanPhone = client.phone.replace(/[^0-9+]/g, '');
+        window.open('https://wa.me/' + cleanPhone + '?text=' + encodeURIComponent(msg), '_blank');
+        showToast('WhatsApp u hap!', 'success');
+    } else {
+        // Copy to clipboard
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(msg);
+            showToast('Mesazhi u kopjua — ngjiseni në WhatsApp', 'info');
+        } else {
+            openModal('Mesazhi i Faturës', '<textarea style="width:100%;height:200px;font-size:0.9em;" readonly>' + msg + '</textarea>');
+        }
+    }
+}
+
+function createCorrectiveInvoice(originalIndex) {
+    var sale = state.sales[originalIndex];
+    if (!sale) return;
+    var product = getProduct(sale.productId);
+
+    modalConfirm('Krijo faturë korrektive (storno) për:<br><strong>' + (product ? product.name : '') + ' x' + sale.quantity + ' — ' + sale.sellTotal + ' ден</strong><br><br>Kjo do ta anulojë faturën origjinale.', function() {
+        // Mark original as corrected
+        sale.correctedBy = Date.now();
+        sale.invoicePaid = true;
+        sale.paidAmount = sale.sellTotal;
+
+        // Reverse client debt if applicable
+        if (sale.clientId && sale.isDebt) {
+            var client = state.clients.find(function(c) { return c.id === sale.clientId; });
+            if (client) client.debt = Math.max(0, client.debt - sale.sellTotal);
+        }
+
+        // Reverse stock
+        state.stock[sale.productId] = (state.stock[sale.productId] || 0) + sale.quantity;
+
+        // Create corrective entry
+        var corrective = {
+            productId: sale.productId,
+            quantity: -sale.quantity,
+            buyPrice: sale.buyPrice || 0,
+            sellPrice: sale.sellPrice || 0,
+            sellTotal: -sale.sellTotal,
+            profit: -(sale.profit || 0),
+            date: new Date().toISOString().split('T')[0],
+            paymentType: sale.paymentType,
+            clientId: sale.clientId || null,
+            location: sale.location || '',
+            note: 'Faturë korrektive për ' + getInvoiceNumber(originalIndex, sale),
+            isCorrective: true,
+            originalSaleIndex: originalIndex,
+            invoicePaid: true,
+            paidAmount: 0,
+            discount: 0
+        };
+        state.sales.push(corrective);
+
+        // Record history
+        if (!sale.paymentHistory) sale.paymentHistory = [];
+        sale.paymentHistory.push({
+            date: new Date().toISOString(),
+            action: 'corrective',
+            note: 'Faturë korrektive — storno'
+        });
+
+        saveState();
+        refreshAll();
+        refreshInvoicesPage();
+        showToast('Fatura korrektive u krijua me sukses!', 'success');
+        logActivity('corrective_invoice', 'Storno: ' + getInvoiceNumber(originalIndex, sale));
+    });
+}
+
+// ===================== EXPORT INVOICE AS WORD (.doc) =====================
+function exportInvoiceWord(saleIndex) {
+    var sale = state.sales[saleIndex];
+    if (!sale) { showToast('Fatura nuk u gjet!', 'error'); return; }
+
+    var product = getProduct(sale.productId);
+    var client = sale.clientId ? state.clients.find(function(c) { return c.id === sale.clientId; }) : null;
+    var profile = getInvoiceProfile();
+    var invNum = getInvoiceNumber(saleIndex, sale);
+    var paid = sale.paidAmount || (sale.invoicePaid ? sale.sellTotal : 0);
+    var remaining = Math.max(0, (sale.sellTotal || 0) - paid);
+    var dueDate = _calcDueDate(sale);
+    var accent = profile.accentColor || '#8b5a2b';
+    var accentDark = '#5a3a1a';
+    var accentLight = accent + '15';
+    var unitPrice = sale.quantity > 0 ? Math.round((sale.sellTotal || 0) / sale.quantity) : (product ? product.sellPrice : 0);
+    var buyPrice = product ? product.buyPrice : 0;
+    var dateStr = sale.date ? new Date(sale.date).toLocaleDateString('sq-AL', { day: 'numeric', month: 'long', year: 'numeric' }) : '-';
+    var dateShort = sale.date ? new Date(sale.date).toLocaleDateString('sq-AL') : '-';
+    var dueDateStr = dueDate ? new Date(dueDate).toLocaleDateString('sq-AL', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Menjehere';
+    var paidDateStr = (sale.invoicePaidDate || sale.payDate) ? new Date(sale.invoicePaidDate || sale.payDate).toLocaleDateString('sq-AL', { day: 'numeric', month: 'long', year: 'numeric' }) : '-';
+    var pctPaid = sale.sellTotal > 0 ? Math.round((paid / sale.sellTotal) * 100) : 0;
+    var today = new Date().toLocaleDateString('sq-AL', { day: 'numeric', month: 'long', year: 'numeric' });
+    var timeNow = new Date().toLocaleTimeString('sq-AL', { hour: '2-digit', minute: '2-digit' });
+    var daysLeft = dueDate ? Math.ceil((new Date(dueDate) - new Date()) / (1000*60*60*24)) : 0;
+
+    // Profit calculations
+    var profitPerUnit = unitPrice - buyPrice;
+    var totalCost = buyPrice * sale.quantity;
+    var totalProfit = sale.sellTotal - totalCost;
+    if (sale.discount) { totalProfit = sale.sellTotal - totalCost; }
+    var marginPct = sale.sellTotal > 0 ? Math.round((totalProfit / sale.sellTotal) * 100) : 0;
+    var ownerPct = state.profitSplit ? state.profitSplit.owner : 50;
+    var partnerPct = state.profitSplit ? state.profitSplit.partner : 50;
+    var ownerProfit = Math.round(totalProfit * ownerPct / 100);
+    var partnerProfit = Math.round(totalProfit * partnerPct / 100);
+    var partnerName = state.partnerName || 'Orhan';
+
+    // Faton debt calculation
+    var fatonDebt = totalCost;
+
+    var stampColor, stampText, stampBg, stampIcon;
+    if (sale.isCorrective) { stampColor = '#9b59b6'; stampText = 'STORNO / KORREKTIVE'; stampBg = '#f3e5f5'; stampIcon = 'STORNO'; }
+    else if (sale.invoicePaid || paid >= sale.sellTotal) { stampColor = '#1e8449'; stampText = 'E PAGUAR'; stampBg = '#d5f5e3'; stampIcon = 'PAGUAR'; }
+    else if (paid > 0 && paid < sale.sellTotal) { stampColor = '#d68910'; stampText = 'PJESERISHT E PAGUAR'; stampBg = '#fef9e7'; stampIcon = 'PJESERISHT'; }
+    else { stampColor = '#c0392b'; stampText = 'E PAPAGUAR'; stampBg = '#fdedec'; stampIcon = 'PAPAGUAR'; }
+
+    var payMethodLabel = 'Cash';
+    var payMethodIcon = 'Parave te gatshme';
+    var pm = sale.payMethod || sale.paymentType || 'cash';
+    if (pm === 'bank') { payMethodLabel = 'Transfer Bankar'; payMethodIcon = 'Transfer bankar'; }
+    else if (pm === 'mobile') { payMethodLabel = 'Mobile Payment'; payMethodIcon = 'Pagese mobile'; }
+    else if (pm === 'card') { payMethodLabel = 'Karte'; payMethodIcon = 'Pagese me karte'; }
+    else if (pm === 'invoice_30') { payMethodLabel = 'Fature 30 dite'; payMethodIcon = 'Fature me afat 30 dite'; }
+    else if (pm === 'invoice_60') { payMethodLabel = 'Fature 60 dite'; payMethodIcon = 'Fature me afat 60 dite'; }
+    else if (pm === 'invoice_90') { payMethodLabel = 'Fature 90 dite'; payMethodIcon = 'Fature me afat 90 dite'; }
+
+    // Client analysis
+    var clientHistory = [];
+    var clientTotalBought = 0, clientTotalOrders = 0, clientTotalDebt = 0, clientAvgOrder = 0;
+    if (client) {
+        var allClientSales = state.sales.filter(function(s) { return s.clientId === client.id; });
+        clientHistory = allClientSales.filter(function(s) { return s !== sale; }).slice(-8).reverse();
+        clientTotalBought = allClientSales.reduce(function(sum, s) { return sum + (s.sellTotal || 0); }, 0);
+        clientTotalOrders = allClientSales.length;
+        clientTotalDebt = client.debt || 0;
+        clientAvgOrder = clientTotalOrders > 0 ? Math.round(clientTotalBought / clientTotalOrders) : 0;
+    }
+
+    // Client loyalty tier
+    var loyaltyTier = 'Standard';
+    var loyaltyColor = '#95a5a6';
+    if (clientTotalOrders >= 50) { loyaltyTier = 'PLATINIUM'; loyaltyColor = '#2c3e50'; }
+    else if (clientTotalOrders >= 20) { loyaltyTier = 'GOLD'; loyaltyColor = '#f39c12'; }
+    else if (clientTotalOrders >= 10) { loyaltyTier = 'SILVER'; loyaltyColor = '#95a5a6'; }
+    else if (clientTotalOrders >= 5) { loyaltyTier = 'BRONZE'; loyaltyColor = '#cd6133'; }
+
+    var h = '';
+    h += '<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">';
+    h += '<head><meta charset="utf-8"><title>Fatura ' + invNum + '</title>';
+    h += '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom><w:DoNotOptimizeForBrowser/></w:WordDocument></xml><![endif]-->';
+    h += '<style>';
+    h += '@page { size: A4; margin: 1cm 1.5cm; }';
+    h += 'body { font-family: Calibri, Segoe UI, Arial, sans-serif; color: #2c3e50; margin: 0; padding: 0; font-size: 10pt; line-height: 1.4; }';
+    h += 'table { border-collapse: collapse; width: 100%; }';
+    h += 'p { margin: 0 0 3px 0; }';
+
+    // Top banner - gradient effect via layered cells
+    h += '.top-banner { background-color: ' + accent + '; padding: 0; }';
+    h += '.top-banner td { padding: 20px 30px; }';
+    h += '.top-banner * { color: white !important; }';
+
+    // Section headers
+    h += '.section-hdr { font-size: 7.5pt; text-transform: uppercase; letter-spacing: 2.5px; color: ' + accent + '; font-weight: bold; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 2px solid ' + accent + '; display: inline-block; }';
+    h += '.section-hdr-line { border-bottom: 1px solid #eee; padding-bottom: 8px; margin-bottom: 12px; }';
+
+    // Card styles
+    h += '.card { border: 1px solid #e8e8e8; padding: 14px 16px; vertical-align: top; }';
+    h += '.card-accent { border-left: 4px solid ' + accent + '; }';
+    h += '.card-title { font-size: 7pt; text-transform: uppercase; letter-spacing: 2px; color: ' + accent + '; font-weight: bold; margin-bottom: 6px; }';
+    h += '.card-value { font-size: 18pt; font-weight: bold; color: #2c3e50; }';
+    h += '.card-sub { font-size: 8pt; color: #95a5a6; margin-top: 2px; }';
+
+    // Data table
+    h += '.data-tbl { border: 1px solid #ddd; margin-top: 15px; }';
+    h += '.data-tbl th { background-color: ' + accent + '; color: white; padding: 10px 12px; font-size: 8pt; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; border: none; }';
+    h += '.data-tbl td { padding: 10px 12px; border-bottom: 1px solid #eee; font-size: 9.5pt; }';
+    h += '.data-tbl .alt td { background-color: #fafbfc; }';
+
+    // Totals
+    h += '.tot-tbl { width: 260px; margin-left: auto; }';
+    h += '.tot-tbl td { padding: 6px 12px; font-size: 9.5pt; }';
+    h += '.tot-grand td { border-top: 3px solid ' + accent + '; font-size: 13pt; font-weight: bold; color: ' + accent + '; padding-top: 8px; }';
+    h += '.tot-paid td { color: #1e8449; font-weight: 600; }';
+    h += '.tot-due td { color: #c0392b; font-weight: bold; font-size: 11pt; }';
+
+    // Progress
+    h += '.prog-out { background-color: #ecf0f1; height: 10px; width: 100%; }';
+    h += '.prog-in { height: 10px; }';
+
+    // Stamp
+    h += '.stamp { display: inline-block; border: 4px double ' + stampColor + '; color: ' + stampColor + '; background: ' + stampBg + '; padding: 8px 24px; font-size: 13pt; font-weight: bold; letter-spacing: 3px; text-transform: uppercase; }';
+
+    // History
+    h += '.hist th { background-color: #f5f6fa; padding: 5px 8px; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 1px; color: #7f8c8d; text-align: left; border-bottom: 1px solid #ddd; }';
+    h += '.hist td { padding: 4px 8px; font-size: 8pt; border-bottom: 1px solid #f0f0f0; }';
+
+    // Metric cards
+    h += '.metric { text-align: center; padding: 10px 8px; border: 1px solid #eee; vertical-align: top; }';
+    h += '.metric .m-val { font-size: 16pt; font-weight: bold; }';
+    h += '.metric .m-lbl { font-size: 7pt; text-transform: uppercase; letter-spacing: 1.5px; color: #95a5a6; margin-bottom: 3px; }';
+    h += '.metric .m-sub { font-size: 7.5pt; color: #bbb; margin-top: 2px; }';
+
+    // Signature
+    h += '.sig-line { border-top: 1px solid #bdc3c7; margin-top: 45px; padding-top: 4px; font-size: 7.5pt; color: #95a5a6; text-align: center; }';
+
+    // Footer
+    h += '.doc-ft { margin-top: 25px; border-top: 3px solid ' + accent + '; padding-top: 10px; text-align: center; }';
+    h += '.doc-ft .ft-biz { font-size: 9pt; color: ' + accent + '; font-weight: bold; }';
+    h += '.doc-ft .ft-info { font-size: 7.5pt; color: #95a5a6; }';
+    h += '.doc-ft .ft-note { font-size: 7.5pt; color: #bdc3c7; font-style: italic; margin-top: 4px; }';
+
+    h += '</style></head><body>';
+
+    // ======================== TOP BANNER ========================
+    h += '<table class="top-banner" cellpadding="0" cellspacing="0"><tr>';
+    h += '<td style="width:50%; vertical-align:middle; padding:20px 30px;">';
+    h += '<p style="font-size:24pt; font-weight:bold; letter-spacing:1px; margin:0;">' + profile.businessName + '</p>';
+    h += '<p style="font-size:9pt; opacity:0.85; margin-top:2px;">' + (profile.legalName || 'Premium Dates Trading') + '</p>';
+    if (profile.address) h += '<p style="font-size:8.5pt; opacity:0.8; margin-top:1px;">' + profile.address + '</p>';
+    if (profile.phone || profile.email) h += '<p style="font-size:8.5pt; opacity:0.8;">' + (profile.phone || '') + (profile.email ? ' | ' + profile.email : '') + '</p>';
+    h += '</td>';
+    h += '<td style="width:50%; vertical-align:middle; text-align:right; padding:20px 30px;">';
+    h += '<p style="font-size:32pt; font-weight:bold; letter-spacing:4px;">FATURE</p>';
+    h += '<table cellpadding="0" cellspacing="0" style="margin-left:auto; width:auto;">';
+    h += '<tr><td style="text-align:right; font-size:8.5pt; padding:1px 8px; opacity:0.8;">Nr. Fatures:</td><td style="text-align:right; font-size:9.5pt; font-weight:bold; padding:1px 0;">' + invNum + '</td></tr>';
+    h += '<tr><td style="text-align:right; font-size:8.5pt; padding:1px 8px; opacity:0.8;">Data:</td><td style="text-align:right; font-size:9pt; padding:1px 0;">' + dateStr + '</td></tr>';
+    h += '<tr><td style="text-align:right; font-size:8.5pt; padding:1px 8px; opacity:0.8;">Printuar:</td><td style="text-align:right; font-size:9pt; padding:1px 0;">' + today + ' ' + timeNow + '</td></tr>';
+    h += '<tr><td style="text-align:right; font-size:8.5pt; padding:1px 8px; opacity:0.8;">Metoda:</td><td style="text-align:right; font-size:9pt; padding:1px 0;">' + payMethodLabel + '</td></tr>';
+    h += '</table>';
+    h += '</td>';
+    h += '</tr></table>';
+
+    // ======================== CONTENT ========================
+    h += '<div style="padding: 18px 30px;">';
+
+    // ===== STATUS BADGE BAR =====
+    h += '<table cellpadding="0" cellspacing="0" style="margin-bottom:15px;"><tr>';
+    h += '<td style="width:70%; vertical-align:middle;">';
+    h += '<span class="stamp">' + stampText + '</span>';
+    if (daysLeft < 0 && !sale.invoicePaid && !sale.isCorrective) {
+        h += ' <span style="color:#c0392b; font-size:9pt; font-weight:bold; margin-left:10px;">' + Math.abs(daysLeft) + ' DITE VONESE!</span>';
+    }
+    h += '</td>';
+    h += '<td style="width:30%; text-align:right; vertical-align:middle;">';
+    h += '<span style="font-size:8pt; color:#7f8c8d;">Ref: ' + (sale.productId || '').toUpperCase() + '-' + saleIndex + '</span>';
+    h += '</td>';
+    h += '</tr></table>';
+
+    // ===== FROM / TO / INVOICE DETAILS (3 columns) =====
+    h += '<table cellpadding="0" cellspacing="0"><tr>';
+
+    // FROM
+    h += '<td class="card card-accent" style="width:32%;">';
+    h += '<div class="card-title">NGA / SHITESI</div>';
+    h += '<p style="font-size:12pt; font-weight:bold; color:#2c3e50; margin-bottom:4px;">' + profile.businessName + '</p>';
+    h += '<p style="font-size:8.5pt; color:#7f8c8d;">' + (profile.address || 'Adresa e biznesit') + '</p>';
+    h += '<p style="font-size:8.5pt; color:#7f8c8d;">Tel: ' + (profile.phone || '-') + '</p>';
+    h += '<p style="font-size:8.5pt; color:#7f8c8d;">Email: ' + (profile.email || '-') + '</p>';
+    if (profile.taxId) h += '<p style="font-size:8.5pt; color:#7f8c8d;">NUI/NIPT: ' + profile.taxId + '</p>';
+    h += '</td>';
+
+    // TO
+    h += '<td class="card card-accent" style="width:32%;">';
+    h += '<div class="card-title">PER / BLERESI</div>';
+    h += '<p style="font-size:12pt; font-weight:bold; color:#2c3e50; margin-bottom:4px;">' + (client ? client.name : 'Klient i pergjithshem') + '</p>';
+    h += '<p style="font-size:8.5pt; color:#7f8c8d;">' + (client && client.address ? client.address : '-') + '</p>';
+    h += '<p style="font-size:8.5pt; color:#7f8c8d;">Tel: ' + (client && client.phone ? client.phone : '-') + '</p>';
+    h += '<p style="font-size:8.5pt; color:#7f8c8d;">Email: ' + (client && client.email ? client.email : '-') + '</p>';
+    if (client && clientTotalOrders > 1) {
+        h += '<p style="font-size:8.5pt; margin-top:5px; padding:3px 8px; background:' + loyaltyColor + '22; color:' + loyaltyColor + '; font-weight:bold; display:inline-block; border-radius:3px;">' + loyaltyTier + ' - ' + clientTotalOrders + ' porosi</p>';
+    }
+    h += '</td>';
+
+    // INVOICE META
+    h += '<td class="card" style="width:36%;">';
+    h += '<div class="card-title">DETAJE FATURE</div>';
+    h += '<table style="width:100%;">';
+    h += '<tr><td style="font-size:8.5pt; color:#7f8c8d; padding:2px 0;">Nr. Fatures:</td><td style="padding:2px 0; font-weight:bold; text-align:right; font-size:9pt;">' + invNum + '</td></tr>';
+    h += '<tr><td style="font-size:8.5pt; color:#7f8c8d; padding:2px 0;">Data shitjes:</td><td style="padding:2px 0; text-align:right; font-size:9pt;">' + dateStr + '</td></tr>';
+    h += '<tr><td style="font-size:8.5pt; color:#7f8c8d; padding:2px 0;">Afati pageses:</td><td style="padding:2px 0; text-align:right; font-weight:bold; font-size:9pt; color:' + (remaining > 0 ? '#c0392b' : '#1e8449') + ';">' + dueDateStr + '</td></tr>';
+    h += '<tr><td style="font-size:8.5pt; color:#7f8c8d; padding:2px 0;">Metoda:</td><td style="padding:2px 0; text-align:right; font-size:9pt;">' + payMethodLabel + '</td></tr>';
+    h += '<tr><td style="font-size:8.5pt; color:#7f8c8d; padding:2px 0;">Lokacioni:</td><td style="padding:2px 0; text-align:right; font-size:9pt;">' + (sale.location || '-') + '</td></tr>';
+    h += '<tr><td style="font-size:8.5pt; color:#7f8c8d; padding:2px 0;">Statusi:</td><td style="padding:2px 0; text-align:right; font-size:9pt; font-weight:bold; color:' + stampColor + ';">' + stampText + '</td></tr>';
+    h += '</table>';
+    h += '</td>';
+    h += '</tr></table>';
+
+    // ===== PRODUCTS TABLE =====
+    h += '<div class="section-hdr-line" style="margin-top:18px;">';
+    h += '<span class="section-hdr">Artikujt / Produktet</span>';
+    h += '</div>';
+    h += '<table class="data-tbl" cellpadding="0" cellspacing="0">';
+    h += '<thead><tr>';
+    h += '<th style="width:25px; text-align:center;">#</th>';
+    h += '<th style="width:35%;">Pershkrimi</th>';
+    h += '<th style="text-align:center; width:50px;">Sasia</th>';
+    h += '<th style="text-align:right; width:75px;">Cmimi/njesi</th>';
+    h += '<th style="text-align:right; width:75px;">Kosto/njesi</th>';
+    h += '<th style="text-align:center; width:55px;">Zbritja</th>';
+    h += '<th style="text-align:right; width:55px;">Fitimi/nj</th>';
+    h += '<th style="text-align:right; width:85px;">Totali</th>';
+    h += '</tr></thead>';
+    h += '<tbody>';
+    h += '<tr>';
+    h += '<td style="text-align:center; color:#bbb; font-size:8pt;">1</td>';
+    h += '<td>';
+    h += '<span style="font-weight:bold; font-size:10pt;">' + (product ? product.name : 'N/A') + '</span>';
+    if (product && product.weight) h += '<span style="color:#bbb; font-size:8pt;"> (' + product.weight + ')</span>';
+    if (sale.note) h += '<br><span style="font-size:7.5pt; color:#95a5a6;">' + sale.note + '</span>';
+    h += '<br><span style="font-size:7pt; color:#bbb;">SKU: ' + (sale.productId || '-').toUpperCase() + ' | Kategoria: Hurma Premium</span>';
+    h += '</td>';
+    h += '<td style="text-align:center; font-weight:bold; font-size:10.5pt;">' + sale.quantity + '</td>';
+    h += '<td style="text-align:right; font-weight:500;">' + unitPrice + ' den</td>';
+    h += '<td style="text-align:right; color:#95a5a6;">' + buyPrice + ' den</td>';
+    h += '<td style="text-align:center;">' + (sale.discount ? sale.discount + '%' : '-') + '</td>';
+    h += '<td style="text-align:right; color:#27ae60; font-weight:600;">' + profitPerUnit + ' den</td>';
+    h += '<td style="text-align:right; font-weight:bold; font-size:10.5pt;">' + sale.sellTotal + ' den</td>';
+    h += '</tr>';
+    h += '</tbody></table>';
+
+    // ===== TOTALS + PAYMENT PROGRESS (side by side) =====
+    h += '<table cellpadding="0" cellspacing="0" style="margin-top:5px;"><tr>';
+
+    // Left: Payment progress + payment details
+    h += '<td style="width:55%; vertical-align:top; padding-right:15px;">';
+
+    // Progress bar
+    h += '<div style="margin-top:10px;">';
+    h += '<p style="font-size:7.5pt; text-transform:uppercase; letter-spacing:1.5px; color:' + accent + '; font-weight:bold; margin-bottom:5px;">Progresi i Pageses</p>';
+    h += '<table class="prog-out" cellpadding="0" cellspacing="0"><tr><td class="prog-in" style="background-color:' + stampColor + '; width:' + pctPaid + '%;"></td><td></td></tr></table>';
+    h += '<p style="font-size:8.5pt; margin-top:3px; color:#7f8c8d;">' + pctPaid + '% e paguar — ' + paid + ' / ' + sale.sellTotal + ' den</p>';
+    h += '</div>';
+
+    // Payment info compact
+    h += '<table cellpadding="0" cellspacing="0" style="margin-top:10px; border:1px solid #eee; width:100%;">';
+    h += '<tr><td style="padding:5px 10px; font-size:8pt; color:#7f8c8d; width:45%;">Metoda:</td><td style="padding:5px 10px; font-size:8.5pt; font-weight:600;">' + payMethodIcon + '</td></tr>';
+    h += '<tr><td style="padding:5px 10px; font-size:8pt; color:#7f8c8d; border-top:1px solid #f5f5f5;">Statusi:</td><td style="padding:5px 10px; font-size:8.5pt; font-weight:bold; color:' + stampColor + '; border-top:1px solid #f5f5f5;">' + stampText + '</td></tr>';
+    if (sale.invoicePaid) h += '<tr><td style="padding:5px 10px; font-size:8pt; color:#7f8c8d; border-top:1px solid #f5f5f5;">Data pageses:</td><td style="padding:5px 10px; font-size:8.5pt; font-weight:600; border-top:1px solid #f5f5f5;">' + paidDateStr + '</td></tr>';
+    h += '<tr><td style="padding:5px 10px; font-size:8pt; color:#7f8c8d; border-top:1px solid #f5f5f5;">Afati:</td><td style="padding:5px 10px; font-size:8.5pt; font-weight:600; border-top:1px solid #f5f5f5;">' + dueDateStr + '</td></tr>';
+    h += '<tr><td style="padding:5px 10px; font-size:8pt; color:#7f8c8d; border-top:1px solid #f5f5f5;">Kushtet:</td><td style="padding:5px 10px; font-size:8.5pt; border-top:1px solid #f5f5f5;">' + (profile.paymentTerms || 'Sipas marreveshjes') + '</td></tr>';
+    h += '</table>';
+
+    // Payment history
+    if (sale.paymentHistory && sale.paymentHistory.length > 0) {
+        h += '<p style="font-size:7.5pt; text-transform:uppercase; letter-spacing:1.5px; color:' + accent + '; font-weight:bold; margin:12px 0 5px 0;">Historiku i Pagesave</p>';
+        h += '<table class="hist" cellpadding="0" cellspacing="0" style="width:100%;">';
+        h += '<thead><tr><th>Data</th><th>Veprimi</th><th>Detaje</th></tr></thead><tbody>';
+        sale.paymentHistory.slice(-8).forEach(function(ph) {
+            var phDate = ph.date ? new Date(ph.date).toLocaleDateString('sq-AL', { day:'numeric', month:'short', year:'numeric' }) : '-';
+            h += '<tr><td>' + phDate + '</td><td>' + (ph.action || '-') + '</td><td>' + (ph.note || ph.amount || '-') + '</td></tr>';
+        });
+        h += '</tbody></table>';
+    }
+    h += '</td>';
+
+    // Right: Totals
+    h += '<td style="width:45%; vertical-align:top;">';
+    h += '<table class="tot-tbl" cellpadding="0" cellspacing="0">';
+    h += '<tr><td style="color:#7f8c8d;">Nentotali:</td><td style="text-align:right;">' + sale.sellTotal + ' den</td></tr>';
+    if (sale.discount) {
+        var discAmt = Math.round(sale.sellTotal * sale.discount / (100 - sale.discount));
+        h += '<tr><td style="color:#7f8c8d;">Zbritja (' + sale.discount + '%):</td><td style="text-align:right; color:#e74c3c;">-' + discAmt + ' den</td></tr>';
+    }
+    h += '<tr><td style="color:#7f8c8d;">Transporti:</td><td style="text-align:right;">0 den</td></tr>';
+    h += '<tr><td style="color:#7f8c8d; border-top:1px solid #eee;">Tatimi (0%):</td><td style="text-align:right; border-top:1px solid #eee;">0 den</td></tr>';
+    h += '<tr class="tot-grand"><td>TOTALI:</td><td style="text-align:right;">' + sale.sellTotal + ' den</td></tr>';
+    if (paid > 0) {
+        h += '<tr class="tot-paid"><td>Paguar:</td><td style="text-align:right;">-' + paid + ' den</td></tr>';
+    }
+    if (remaining > 0) {
+        h += '<tr class="tot-due"><td>MBETET:</td><td style="text-align:right;">' + remaining + ' den</td></tr>';
+    }
+    h += '</table>';
+
+    // Compact amount in words box
+    h += '<div style="border:1px solid #eee; padding:8px 12px; margin-top:10px; background:#fafbfc;">';
+    h += '<p style="font-size:7pt; text-transform:uppercase; color:#95a5a6; letter-spacing:1px;">Shuma me shkronja</p>';
+    h += '<p style="font-size:9pt; font-weight:600; color:#2c3e50;">' + _numToWordsAL(sale.sellTotal) + ' denare</p>';
+    h += '</div>';
+
+    h += '</td></tr></table>';
+
+    // ===== FINANCIAL ANALYSIS - 6 metric cards =====
+    h += '<div class="section-hdr-line" style="margin-top:18px;">';
+    h += '<span class="section-hdr">Analiza Financiare</span>';
+    h += '</div>';
+    h += '<table cellpadding="0" cellspacing="0"><tr>';
+    h += '<td class="metric" style="width:16.6%;"><div class="m-lbl">Kosto Totale</div><div class="m-val" style="color:#e74c3c;">' + totalCost + '</div><div class="m-sub">' + buyPrice + ' x ' + sale.quantity + ' den</div></td>';
+    h += '<td class="metric" style="width:16.6%;"><div class="m-lbl">Shitje Totale</div><div class="m-val" style="color:#2980b9;">' + sale.sellTotal + '</div><div class="m-sub">' + unitPrice + ' x ' + sale.quantity + ' den</div></td>';
+    h += '<td class="metric" style="width:16.6%;"><div class="m-lbl">Fitimi Bruto</div><div class="m-val" style="color:#27ae60;">' + totalProfit + '</div><div class="m-sub">marzha ' + marginPct + '%</div></td>';
+    h += '<td class="metric" style="width:16.6%;"><div class="m-lbl">Fitimi/Njesi</div><div class="m-val" style="color:#8e44ad;">' + profitPerUnit + '</div><div class="m-sub">per cope den</div></td>';
+    h += '<td class="metric" style="width:16.6%;"><div class="m-lbl">Pjesa Elezit</div><div class="m-val" style="color:#2c7a4b;">' + ownerProfit + '</div><div class="m-sub">' + ownerPct + '% fitimi den</div></td>';
+    h += '<td class="metric" style="width:16.6%;"><div class="m-lbl">Pjesa ' + partnerName + '</div><div class="m-val" style="color:#3498db;">' + partnerProfit + '</div><div class="m-sub">' + partnerPct + '% fitimi den</div></td>';
+    h += '</tr></table>';
+
+    // ===== FATON DEBT ROW =====
+    h += '<table cellpadding="0" cellspacing="0" style="margin-top:8px;"><tr>';
+    h += '<td class="metric" style="width:33%; background:#fff3e0; border-color:#f39c12;"><div class="m-lbl">Borxhi ndaj Fatonit</div><div class="m-val" style="color:#e67e22;">' + fatonDebt + ' den</div><div class="m-sub">kostoja e mallit per kete fature</div></td>';
+    h += '<td class="metric" style="width:33%;"><div class="m-lbl">Pagesa per Fatonin</div>';
+    if (pm === 'cash') {
+        h += '<div class="m-val" style="color:#27ae60;">CASH</div><div class="m-sub">paguhet menjehere</div>';
+    } else {
+        h += '<div class="m-val" style="color:#e74c3c;">FATURE</div><div class="m-sub">paguhet kur klienti paguan</div>';
+    }
+    h += '</td>';
+    h += '<td class="metric" style="width:34%;"><div class="m-lbl">ROI (Return on Investment)</div><div class="m-val" style="color:#8e44ad;">' + (totalCost > 0 ? Math.round((totalProfit / totalCost) * 100) : 0) + '%</div><div class="m-sub">kthim nga investimi</div></td>';
+    h += '</tr></table>';
+
+    // ===== TIMELINE - DATES =====
+    h += '<div class="section-hdr-line" style="margin-top:18px;">';
+    h += '<span class="section-hdr">Kronologjia e Fatures</span>';
+    h += '</div>';
+    h += '<table cellpadding="0" cellspacing="0"><tr>';
+    h += '<td class="metric" style="width:25%; border-top:3px solid #3498db;"><div class="m-lbl">Data Shitjes</div><div style="font-size:10pt; font-weight:bold; color:#2c3e50;">' + dateStr + '</div></td>';
+    h += '<td class="metric" style="width:25%; border-top:3px solid ' + (remaining > 0 ? '#e74c3c' : '#27ae60') + ';"><div class="m-lbl">Afati Pageses</div><div style="font-size:10pt; font-weight:bold; color:' + (remaining > 0 ? '#c0392b' : '#1e8449') + ';">' + dueDateStr + '</div></td>';
+    h += '<td class="metric" style="width:25%; border-top:3px solid #27ae60;"><div class="m-lbl">Data Pageses</div><div style="font-size:10pt; font-weight:bold; color:#1e8449;">' + (sale.invoicePaid ? paidDateStr : 'Ende pa paguar') + '</div></td>';
+    h += '<td class="metric" style="width:25%; border-top:3px solid ' + (daysLeft < 0 ? '#c0392b' : daysLeft <= 7 ? '#d68910' : '#1e8449') + ';"><div class="m-lbl">Dite Mbetur</div><div style="font-size:10pt; font-weight:bold; color:' + (daysLeft < 0 ? '#c0392b' : daysLeft <= 7 ? '#d68910' : '#1e8449') + ';">' + (sale.invoicePaid ? 'Perfunduar' : (daysLeft < 0 ? Math.abs(daysLeft) + ' dite vonese' : daysLeft + ' dite')) + '</div></td>';
+    h += '</tr></table>';
+
+    // ===== CLIENT ANALYSIS =====
+    if (client) {
+        h += '<div class="section-hdr-line" style="margin-top:18px;">';
+        h += '<span class="section-hdr">Profili i Klientit: ' + client.name + '</span>';
+        h += '</div>';
+
+        // Client metrics
+        h += '<table cellpadding="0" cellspacing="0"><tr>';
+        h += '<td class="metric" style="width:20%;"><div class="m-lbl">Porosi Totale</div><div class="m-val" style="color:#3498db;">' + clientTotalOrders + '</div></td>';
+        h += '<td class="metric" style="width:20%;"><div class="m-lbl">Blerje Totale</div><div class="m-val" style="color:#27ae60;">' + _formatBadgeNum(clientTotalBought) + '</div><div class="m-sub">den</div></td>';
+        h += '<td class="metric" style="width:20%;"><div class="m-lbl">Mesatarja/Porosi</div><div class="m-val" style="color:#8e44ad;">' + clientAvgOrder + '</div><div class="m-sub">den</div></td>';
+        h += '<td class="metric" style="width:20%;"><div class="m-lbl">Borxhi Aktual</div><div class="m-val" style="color:' + (clientTotalDebt > 0 ? '#e74c3c' : '#27ae60') + ';">' + clientTotalDebt + '</div><div class="m-sub">den</div></td>';
+        h += '<td class="metric" style="width:20%; background:' + loyaltyColor + '15;"><div class="m-lbl">Niveli</div><div class="m-val" style="color:' + loyaltyColor + ';">' + loyaltyTier + '</div></td>';
+        h += '</tr></table>';
+
+        // Client history
+        if (clientHistory.length > 0) {
+            h += '<table class="hist" cellpadding="0" cellspacing="0" style="width:100%; margin-top:8px;">';
+            h += '<thead><tr><th>Data</th><th>Produkti</th><th style="text-align:center;">Sasia</th><th style="text-align:right;">Totali</th><th style="text-align:right;">Fitimi</th><th>Statusi</th></tr></thead><tbody>';
+            clientHistory.forEach(function(cs, ci) {
+                var cp = getProduct(cs.productId);
+                var cStatus = _getInvoiceStatus(cs);
+                var cDate = cs.date ? new Date(cs.date).toLocaleDateString('sq-AL', { day:'numeric', month:'short' }) : '-';
+                var cProfit = cs.profit || 0;
+                h += '<tr' + (ci % 2 === 1 ? ' style="background:#fafbfc;"' : '') + '><td>' + cDate + '</td><td>' + (cp ? cp.name : '-') + '</td><td style="text-align:center;">' + cs.quantity + '</td><td style="text-align:right;">' + cs.sellTotal + ' den</td><td style="text-align:right; color:#27ae60;">' + cProfit + ' den</td><td style="color:' + cStatus.color + '; font-weight:600;">' + cStatus.label + '</td></tr>';
+            });
+            h += '</tbody></table>';
+        }
+    }
+
+    // ===== TERMS & CONDITIONS =====
+    h += '<div style="border-top:2px solid #ecf0f1; margin-top:18px; padding-top:12px;">';
+    h += '<span class="section-hdr">Kushtet dhe Afatet</span>';
+    h += '<div style="font-size:8pt; color:#7f8c8d; line-height:1.6; margin-top:8px; columns:2; column-gap:20px;">';
+    h += '1. Pagesa duhet te behet brenda afatit te caktuar ne kete fature.<br>';
+    h += '2. Per pagesa te vonuara aplikohet interes prej 0.5% ne dite.<br>';
+    h += '3. Malli i shitur nuk kthehet pas 7 ditesh nga data e blerjes.<br>';
+    h += '4. Per ankesa kontaktoni ne numrin: ' + (profile.phone || '-') + '<br>';
+    h += '5. Fatura eshte e vlefshme edhe pa vule nese eshte e firmosur.<br>';
+    h += (profile.paymentTerms ? '6. ' + profile.paymentTerms + '<br>' : '');
+    h += '7. Cmimet jane ne denare (MKD) dhe perfshijne TVSH-ne.<br>';
+    h += '8. Kontestimet duhet te behen brenda 3 diteve pune.<br>';
+    h += '</div>';
+    h += '</div>';
+
+    // ===== SIGNATURE AREA =====
+    h += '<table cellpadding="0" cellspacing="0" style="margin-top:30px;"><tr>';
+    h += '<td style="width:30%; padding:0 12px;">';
+    h += '<div class="sig-line">Nenshkrimi i Shitesit<br><strong style="color:#2c3e50;">' + profile.businessName + '</strong></div>';
+    h += '</td>';
+    h += '<td style="width:30%; padding:0 12px;">';
+    h += '<div class="sig-line">Nenshkrimi i Bleresit<br><strong style="color:#2c3e50;">' + (client ? client.name : '________________') + '</strong></div>';
+    h += '</td>';
+    h += '<td style="width:20%; padding:0 12px;">';
+    h += '<div class="sig-line">Vula e Biznesit<br><strong style="color:#2c3e50;">[VULA]</strong></div>';
+    h += '</td>';
+    h += '<td style="width:20%; padding:0 12px;">';
+    h += '<div class="sig-line">Data e Nenshkrimit<br><strong style="color:#2c3e50;">____/____/________</strong></div>';
+    h += '</td>';
+    h += '</tr></table>';
+
+    // ===== FOOTER =====
+    h += '<div class="doc-ft">';
+    h += '<table cellpadding="0" cellspacing="0"><tr>';
+    h += '<td style="text-align:left; width:30%;">';
+    h += '<span class="ft-info">Fatura: ' + invNum + '</span><br>';
+    h += '<span class="ft-info">Statusi: <strong style="color:' + stampColor + ';">' + stampText + '</strong></span><br>';
+    h += '<span class="ft-info">Ref: ' + (sale.productId || '').toUpperCase() + '-' + saleIndex + '</span>';
+    h += '</td>';
+    h += '<td style="text-align:center; width:40%;">';
+    h += '<span class="ft-biz">' + profile.businessName + '</span><br>';
+    if (profile.address) h += '<span class="ft-info">' + profile.address + '</span><br>';
+    h += '<span class="ft-info">' + (profile.phone || '') + (profile.email ? ' | ' + profile.email : '') + '</span>';
+    h += '</td>';
+    h += '<td style="text-align:right; width:30%;">';
+    h += '<span class="ft-info">' + today + '</span><br>';
+    h += '<span class="ft-info">' + timeNow + '</span><br>';
+    h += '<div style="border:2px dashed #ddd; width:65px; height:65px; text-align:center; line-height:65px; font-size:7pt; color:#bbb; display:inline-block; margin-top:4px;">QR</div>';
+    h += '</td>';
+    h += '</tr></table>';
+    h += '<p class="ft-note">' + (profile.footerNote || 'Faleminderit per bashkepunimin! Ju mirepresim perseri.') + '</p>';
+    h += '<p class="ft-info" style="margin-top:4px;">Dokument i gjeneruar automatikisht nga ' + profile.businessName + ' | Ky dokument ka vlere ligjore vetem me nenshkrim dhe vule.</p>';
+    h += '<p class="ft-info">Faqe 1 nga 1</p>';
+    h += '</div>';
+
+    // ===== END =====
+    h += '</div>'; // close content
+    h += '</body></html>';
+
+    // Download as .doc
+    var blob = new Blob(['\ufeff' + h], { type: 'application/msword' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'Fatura_' + invNum + '.doc';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showToast('Fatura Word u shkarkua!', 'success');
+    logActivity('invoice_word', 'Eksport Word: ' + invNum);
+}
+
+// ===================== DISTRIBUTION (Shpërndarja Fatoni) =====================
+
+var distActiveTab = 'deliveries';
+
+function refreshDistribution() {
+    renderDistributionPage();
+}
+
+function getDistProduct(id) {
+    return PRODUCTS.find(function(p) { return p.id === id; }) || { name: 'N/A', buyPrice: 0, sellPrice: 0 };
+}
+
+function getDistShop(id) {
+    return (state.distShops || []).find(function(s) { return s.id === id; }) || { name: 'N/A' };
+}
+
+function distNextInvoiceNum() {
+    state.distInvoiceCounter = (state.distInvoiceCounter || 0) + 1;
+    // Note: saveState() is intentionally NOT called here — the caller (saveDistDelivery)
+    // saves the full state after the delivery object is added, preventing orphaned invoice numbers.
+    return 'FD-' + String(state.distInvoiceCounter).padStart(3, '0');
+}
+
+function calcDistStock() {
+    var stock = {};
+    PRODUCTS.forEach(function(p) { stock[p.id] = 0; });
+    (state.distReceived || []).forEach(function(r) {
+        stock[r.productId] = (stock[r.productId] || 0) + r.quantity;
+    });
+    (state.distDeliveries || []).forEach(function(d) {
+        (d.items || []).forEach(function(item) {
+            stock[item.productId] = (stock[item.productId] || 0) - item.quantity;
+        });
+    });
+    state.distStock = stock;
+    return stock;
+}
+
+function calcDistTotalCashCollected() {
+    var total = 0;
+    (state.distDeliveries || []).forEach(function(d) {
+        if (d.paymentType === 'cash' && d.paid) {
+            total += d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+        } else if (d.paymentType !== 'cash') {
+            total += (d.paidAmount || 0);
+        }
+    });
+    return total;
+}
+
+function calcDistShopDebts() {
+    var total = 0;
+    (state.distDeliveries || []).forEach(function(d) {
+        if (!d.paid) {
+            var deliveryTotal = d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+            total += deliveryTotal - (d.paidAmount || 0);
+        }
+    });
+    return total;
+}
+
+function calcDistGivenToFaton() {
+    return (state.distPayToFaton || []).reduce(function(s, p) { return s + p.amount; }, 0);
+}
+
+function calcDistCashReady() {
+    return calcDistTotalCashCollected() - calcDistGivenToFaton();
+}
+
+function calcDistOverdueDebts() {
+    var today = new Date();
+    var total = 0;
+    (state.distDeliveries || []).forEach(function(d) {
+        if (d.paid) return;
+        var days = 0;
+        if (d.paymentType === 'invoice_30') days = 30;
+        else if (d.paymentType === 'invoice_60') days = 60;
+        else if (d.paymentType === 'invoice_90') days = 90;
+        else return;
+        var dueDate = new Date(d.date);
+        dueDate.setDate(dueDate.getDate() + days);
+        if (today > dueDate) {
+            var deliveryTotal = d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+            total += deliveryTotal - (d.paidAmount || 0);
+        }
+    });
+    return total;
+}
+
+function renderDistributionPage() {
+    var container = document.getElementById('distribution-content');
+    if (!container) return;
+
+    var stock = calcDistStock();
+    var today = new Date().toISOString().split('T')[0];
+    var todayDeliveries = (state.distDeliveries || []).filter(function(d) { return d.date === today; });
+    var totalStockUnits = 0;
+    PRODUCTS.forEach(function(p) { totalStockUnits += (stock[p.id] || 0); });
+    var cashCollected = calcDistTotalCashCollected();
+    var shopDebts = calcDistShopDebts();
+    var cashReady = calcDistCashReady();
+    var overdueDebts = calcDistOverdueDebts();
+
+    var h = '';
+
+    // Export buttons
+    h += '<div class="export-buttons">';
+    h += '<button class="btn btn-export btn-excel" onclick="exportDistribution(\'excel\')"><i class="fas fa-file-excel"></i> Excel</button>';
+    h += '<button class="btn btn-export btn-pdf" onclick="exportDistribution(\'pdf\')"><i class="fas fa-file-pdf"></i> PDF</button>';
+    h += '<button class="btn btn-export btn-word" onclick="exportDistribution(\'word\')"><i class="fas fa-file-word"></i> Word</button>';
+    h += '</div>';
+
+    // Header
+    h += '<div class="dist-header">';
+    h += '<i class="fas fa-truck"></i>';
+    h += '<div><h3>Shpërndarja Fatoni</h3><small>Menaxhimi i shpërndarjes së produkteve të Fatonit</small></div>';
+    h += '</div>';
+
+    // #12 Overdue debt alarm banner
+    if (overdueDebts > 0) {
+        var overdueShops = distGetOverdueShopList();
+        h += '<div class="dist-alarm-banner dist-alarm-overdue">';
+        h += '<i class="fas fa-exclamation-triangle"></i> <strong>ALARM:</strong> Ka borxhe te vonuara: <strong>' + overdueDebts + ' den</strong>';
+        if (overdueShops.length > 0) h += ' (' + overdueShops.join(', ') + ')';
+        h += ' <button class="btn btn-sm" onclick="distSwitchTab(\'debts\')" style="margin-left:10px;">Shiko</button>';
+        h += '</div>';
+    }
+
+    // #13 Low stock alarm
+    var lowStockProducts = [];
+    PRODUCTS.forEach(function(p) { if ((stock[p.id] || 0) <= 0) lowStockProducts.push(p.name); });
+    if (lowStockProducts.length > 0) {
+        h += '<div class="dist-alarm-banner dist-alarm-stock">';
+        h += '<i class="fas fa-box-open"></i> <strong>ALARM:</strong> Stoku i ulet per: <strong>' + lowStockProducts.join(', ') + '</strong>';
+        h += ' <button class="btn btn-sm" onclick="openDistReceiveModal()" style="margin-left:10px;">Pranoj Mall</button>';
+        h += '</div>';
+    }
+
+    // #14 Payment reminder for Faton
+    if (cashReady > 0) {
+        h += '<div class="dist-alarm-banner dist-alarm-faton">';
+        h += '<i class="fas fa-hand-holding-usd"></i> <strong>KUJTESË:</strong> Ke <strong>' + cashReady + ' den</strong> cash gati per Fatonin!';
+        h += ' <button class="btn btn-sm" onclick="openDistPayFatonModal()" style="margin-left:10px;">Dorëzo</button>';
+        h += '</div>';
+    }
+
+    // Dashboard cards
+    h += '<div class="dist-cards-grid">';
+    h += '<div class="dist-card"><div class="dist-card-icon">&#128230;</div><div class="dist-card-label">Stoku aktual</div><div class="dist-card-value">' + totalStockUnits + ' njësi</div></div>';
+    h += '<div class="dist-card"><div class="dist-card-icon">&#128666;</div><div class="dist-card-label">Dërgesat e sotme</div><div class="dist-card-value">' + todayDeliveries.length + '</div></div>';
+    h += '<div class="dist-card"><div class="dist-card-icon">&#128176;</div><div class="dist-card-label">Cash i mbledhur</div><div class="dist-card-value">' + cashCollected + ' den</div></div>';
+    h += '<div class="dist-card"><div class="dist-card-icon">&#128179;</div><div class="dist-card-label">Borxhe dyqanesh</div><div class="dist-card-value">' + shopDebts + ' den</div></div>';
+    h += '<div class="dist-card"><div class="dist-card-icon">&#129309;</div><div class="dist-card-label">Cash gati per Fatonin</div><div class="dist-card-value">' + cashReady + ' den</div></div>';
+    h += '<div class="dist-card dist-card-warn"><div class="dist-card-icon">&#9888;&#65039;</div><div class="dist-card-label">Borxhe te vonuara</div><div class="dist-card-value">' + overdueDebts + ' den</div></div>';
+    h += '</div>';
+
+    // Quick action buttons
+    h += '<div class="dist-actions">';
+    h += '<button class="btn dist-btn-receive" onclick="openDistReceiveModal()"><i class="fas fa-box-open"></i> Pranoj Mall nga Fatoni</button>';
+    h += '<button class="btn dist-btn-deliver" onclick="openDistDeliveryModal()"><i class="fas fa-truck-loading"></i> Regjistro Dërgesë</button>';
+    h += '<button class="btn dist-btn-collect" onclick="openDistCollectPaymentModal()"><i class="fas fa-hand-holding-usd"></i> Merr Pagesë nga Dyqani</button>';
+    h += '<button class="btn dist-btn-pay" onclick="openDistPayFatonModal()"><i class="fas fa-money-bill-wave"></i> Dorëzo Cash Fatonit</button>';
+    h += '<button class="btn" style="background:#8e44ad;color:white;" onclick="openDistDailyRoute()"><i class="fas fa-route"></i> Plani i ditës</button>';
+    h += '<button class="btn" style="background:#2c3e50;color:white;" onclick="openDistCalendarView()"><i class="fas fa-calendar-alt"></i> Kalendar</button>';
+    h += '</div>';
+
+    // #10 Quick search
+    h += '<div class="dist-search-box">';
+    h += '<i class="fas fa-search"></i>';
+    h += '<input type="text" id="dist-search-input" placeholder="Kërko në shpërndarje (dyqan, produkt, faturë...)" oninput="distFilterSearch(this.value)">';
+    h += '</div>';
+
+    // Sub-tabs
+    var tabs = [
+        { id: 'deliveries', label: 'Dërgesat', icon: 'fa-truck' },
+        { id: 'shops', label: 'Dyqanet', icon: 'fa-store' },
+        { id: 'dstock', label: 'Stoku', icon: 'fa-boxes-stacked' },
+        { id: 'received', label: 'Pranimi', icon: 'fa-box-open' },
+        { id: 'debts', label: 'Borxhet', icon: 'fa-file-invoice-dollar' },
+        { id: 'cashfaton', label: 'Cash Fatoni', icon: 'fa-coins' },
+        { id: 'danalytics', label: 'Analitika', icon: 'fa-chart-line' },
+        { id: 'dreports', label: 'Raporte', icon: 'fa-chart-bar' }
+    ];
+    h += '<div class="dist-tabs">';
+    tabs.forEach(function(tab) {
+        h += '<button class="dist-tab' + (distActiveTab === tab.id ? ' active' : '') + '" onclick="distSwitchTab(\'' + tab.id + '\')"><i class="fas ' + tab.icon + '"></i> ' + tab.label + '</button>';
+    });
+    h += '</div>';
+
+    // Tab content
+    h += '<div class="dist-tab-content">';
+    if (distActiveTab === 'deliveries') h += renderDistDeliveriesTab();
+    else if (distActiveTab === 'shops') h += renderDistShopsTab();
+    else if (distActiveTab === 'dstock') h += renderDistStockTab();
+    else if (distActiveTab === 'received') h += renderDistReceivedTab();
+    else if (distActiveTab === 'debts') h += renderDistDebtsTab();
+    else if (distActiveTab === 'cashfaton') h += renderDistCashFatonTab();
+    else if (distActiveTab === 'danalytics') h += renderDistAnalyticsTab();
+    else if (distActiveTab === 'dreports') h += renderDistReportsTab();
+    h += '</div>';
+
+    container.innerHTML = h;
+
+    // Update sidebar badge (#30)
+    distUpdateSidebarBadge();
+}
+
+function distSwitchTab(tab) {
+    distActiveTab = tab;
+    renderDistributionPage();
+}
+
+// ===== DELIVERIES TAB =====
+var distDateFilterFrom = '';
+var distDateFilterTo = '';
+
+function renderDistDeliveriesTab() {
+    var deliveries = (state.distDeliveries || []).slice().sort(function(a, b) { return b.date.localeCompare(a.date); });
+    var h = '<h3 class="dist-section-title"><i class="fas fa-truck"></i> Te gjitha Dërgesat</h3>';
+
+    // Overdue invoices alert
+    try {
+        var overdueList = computeOverdueDeliveries();
+        if (overdueList.length > 0) {
+            var totalOver = overdueList.reduce(function(s,o){ return s + o.remaining; }, 0);
+            var worstDays = overdueList[0].daysOverdue;
+            h += '<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:linear-gradient(90deg,#ffeaea,#fff5f5);border:2px solid #c0392b;border-radius:8px;margin-bottom:12px;cursor:pointer;flex-wrap:wrap;" onclick="showOverdueDeliveriesModal()">';
+            h += '<div style="font-size:2em;">⚠️</div>';
+            h += '<div style="flex:1;min-width:180px;">';
+            h += '<div style="font-weight:700;color:#c0392b;font-size:1.05em;">' + overdueList.length + ' fatura të vonuara — ' + totalOver + ' den</div>';
+            h += '<div style="font-size:0.85em;color:#666;">Më e vonuara: ' + worstDays + ' ditë. Kliko për detaje + kujtesë WhatsApp.</div>';
+            h += '</div>';
+            h += '<button class="btn btn-sm" style="background:#c0392b;color:white;"><i class="fas fa-eye"></i> Shiko</button>';
+            h += '</div>';
+        }
+    } catch(e) {}
+
+    // POD completion widget (30 ditët e fundit)
+    try {
+        var podRate = computePODCompletionRate(30);
+        if (podRate.total > 0) {
+            var rateColor = podRate.rate >= 80 ? '#27ae60' : (podRate.rate >= 50 ? '#f39c12' : '#e74c3c');
+            h += '<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:12px;flex-wrap:wrap;">';
+            h += '<div style="font-size:1.8em;font-weight:700;color:' + rateColor + ';">' + podRate.rate + '%</div>';
+            h += '<div style="flex:1;min-width:160px;">';
+            h += '<div style="font-weight:600;">POD në 30 ditët e fundit</div>';
+            h += '<div style="font-size:0.85em;color:#666;">' + podRate.withPOD + ' nga ' + podRate.total + ' dërgesa kanë provë dorëzimi</div>';
+            h += '<div style="background:#eee;border-radius:6px;overflow:hidden;height:6px;margin-top:4px;">';
+            h += '<div style="background:' + rateColor + ';height:100%;width:' + podRate.rate + '%;"></div>';
+            h += '</div></div>';
+            if (podRate.rate < 80 && (podRate.total - podRate.withPOD) > 0) {
+                h += '<button class="btn btn-sm" style="background:#e67e22;color:white;" onclick="showMissingPODDeliveries()"><i class="fas fa-exclamation-triangle"></i> ' + (podRate.total - podRate.withPOD) + ' pa POD</button>';
+            }
+            h += '</div>';
+        }
+    } catch(e) {}
+
+    // #11 Date filter
+    h += '<div class="dist-date-filter">';
+    h += '<label>Nga: <input type="date" id="dist-filter-from" value="' + distDateFilterFrom + '" onchange="distDateFilterFrom=this.value;renderDistributionPage();"></label>';
+    h += '<label>Deri: <input type="date" id="dist-filter-to" value="' + distDateFilterTo + '" onchange="distDateFilterTo=this.value;renderDistributionPage();"></label>';
+    h += '<button class="btn btn-sm" onclick="distDateFilterFrom=\'\';distDateFilterTo=\'\';renderDistributionPage();">Pastro</button>';
+    h += '</div>';
+
+    // Apply date filter
+    if (distDateFilterFrom) deliveries = deliveries.filter(function(d) { return d.date >= distDateFilterFrom; });
+    if (distDateFilterTo) deliveries = deliveries.filter(function(d) { return d.date <= distDateFilterTo; });
+
+    if (deliveries.length === 0) {
+        h += '<p style="color:#999;padding:20px;">Asnjë dërgesë ende. Kliko "Regjistro Dërgesë" për të filluar.</p>';
+        return h;
+    }
+
+    h += '<div class="table-container"><table class="dist-table"><thead><tr>';
+    h += '<th>Nr.</th><th>Data</th><th>Dyqani</th><th>Produkte</th><th>Totali</th><th>Pagesa</th><th>Statusi</th><th>POD</th><th>Veprime</th>';
+    h += '</tr></thead><tbody>';
+
+    deliveries.forEach(function(d) {
+        var shop = getDistShop(d.shopId);
+        var total = d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+        var remaining = total - (d.paidAmount || 0);
+        var itemsStr = d.items.map(function(i) { return getDistProduct(i.productId).name + ' x' + i.quantity; }).join(', ');
+        var payLabel = d.paymentType === 'cash' ? 'Cash' : d.paymentType === 'invoice_30' ? 'Faturë 30' : d.paymentType === 'invoice_60' ? 'Faturë 60' : 'Faturë 90';
+        var statusClass = d.paid ? 'dist-badge-paid' : (d.paidAmount > 0 ? 'dist-badge-partial' : 'dist-badge-unpaid');
+        var statusText = d.paid ? 'Paguar' : (d.paidAmount > 0 ? 'Pjesërisht (' + d.paidAmount + ')' : 'Papaguar');
+
+        // #25 Enhanced color coding - row color based on status
+        var rowClass = d.paid ? 'dist-row-paid' : (d.paidAmount > 0 ? 'dist-row-partial' : 'dist-row-unpaid');
+        h += '<tr class="' + rowClass + ' dist-delivery-row">';
+        h += '<td><strong>' + (d.invoiceNum || '-') + '</strong></td>';
+        h += '<td>' + d.date + '</td>';
+        h += '<td><span class="dist-shop-link" onclick="openDistShop360(\'' + d.shopId + '\')">' + shop.name + '</span></td>';
+        h += '<td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="' + itemsStr + '">' + itemsStr + '</td>';
+        h += '<td><strong>' + total + ' den</strong></td>';
+        h += '<td>' + payLabel + '</td>';
+        h += '<td><span class="dist-badge ' + statusClass + '">' + statusText + '</span></td>';
+        // POD column
+        var podInfo = d.pod ? ('<span title="POD: ' + (d.pod.receiverName || '—') + ', ' + (d.pod.photos || []).length + ' foto' + (d.pod.signature ? ', nënshkrim' : '') + '" style="color:#27ae60;cursor:pointer;" onclick="openDistPODGallery(\'' + d.id + '\')">' +
+            (d.pod.condition === 'damaged' ? '<i class="fas fa-exclamation-triangle" style="color:#c0392b;"></i>' : d.pod.condition === 'partial' ? '<i class="fas fa-exclamation" style="color:#e67e22;"></i>' : '<i class="fas fa-check-circle"></i>') +
+            ' ' + ((d.pod.photos || []).length > 0 ? '<i class="fas fa-camera"></i>' : '') + (d.pod.signature ? ' <i class="fas fa-signature"></i>' : '') + '</span>') : '<span style="color:#bbb;">—</span>';
+        h += '<td>' + podInfo + '</td>';
+        h += '<td>';
+        h += '<button class="btn btn-sm" onclick="viewDistDeliveryInvoice(\'' + d.id + '\')" title="Faturë"><i class="fas fa-file-invoice"></i></button> ';
+        h += '<button class="btn btn-sm" style="background:#2980b9;color:white;" onclick="openDistPODGallery(\'' + d.id + '\')" title="Prove Dorëzimi"><i class="fas fa-camera"></i></button> ';
+        if (d.pod) h += '<button class="btn btn-sm" style="background:#c0392b;color:white;" onclick="distPODGeneratePDF(\'' + d.id + '\')" title="PDF i POD"><i class="fas fa-file-pdf"></i></button> ';
+        if (!d.paid) h += '<button class="btn btn-sm btn-success" onclick="openDistCollectPaymentModal(\'' + d.id + '\')" title="Pagesë"><i class="fas fa-money-bill"></i></button> ';
+        h += '<button class="btn btn-sm" style="background:#25d366;color:white;" onclick="distSendInvoiceWhatsApp(\'' + d.id + '\')" title="WhatsApp"><i class="fab fa-whatsapp"></i></button> ';
+        h += '<button class="btn btn-sm btn-danger" onclick="deleteDistDelivery(\'' + d.id + '\')" title="Fshij"><i class="fas fa-trash"></i></button>';
+        h += '</td>';
+        h += '</tr>';
+    });
+
+    h += '</tbody></table></div>';
+    return h;
+}
+
+// ===== SHOPS TAB =====
+function renderDistShopsTab() {
+    var shops = state.distShops || [];
+    var h = '<h3 class="dist-section-title"><i class="fas fa-store"></i> Dyqanet e Shpërndarjes</h3>';
+    h += '<button class="btn dist-btn-receive" onclick="openDistShopModal()" style="margin-bottom:15px;"><i class="fas fa-plus"></i> Shto Dyqan</button>';
+
+    if (shops.length === 0) {
+        h += '<p style="color:#999;padding:20px;">Asnjë dyqan ende.</p>';
+        return h;
+    }
+
+    h += '<div class="table-container"><table class="dist-table"><thead><tr>';
+    h += '<th>Emri</th><th>Adresa</th><th>Telefoni</th><th>Kontakti</th><th>Kategoria</th><th>Dërgesat</th><th>Borxhi</th><th>Veprime</th>';
+    h += '</tr></thead><tbody>';
+
+    shops.forEach(function(s) {
+        var deliveryCount = (state.distDeliveries || []).filter(function(d) { return d.shopId === s.id; }).length;
+        var debt = 0;
+        (state.distDeliveries || []).forEach(function(d) {
+            if (d.shopId === s.id && !d.paid) {
+                var total = d.items.reduce(function(sum, i) { return sum + i.quantity * i.price; }, 0);
+                debt += total - (d.paidAmount || 0);
+            }
+        });
+        h += '<tr>';
+        h += '<td><strong><span class="dist-shop-link" onclick="openDistShop360(\'' + s.id + '\')">' + s.name + '</span></strong></td>';
+        h += '<td>' + (s.address || '-') + '</td>';
+        h += '<td>' + (s.phone || '-') + (s.phone ? ' <a href="tel:' + s.phone + '" class="dist-contact-icon" title="Telefono"><i class="fas fa-phone"></i></a>' : '') + '</td>';
+        h += '<td>' + (s.contact || '-') + '</td>';
+        h += '<td>' + (s.category || '-') + '</td>';
+        h += '<td>' + deliveryCount + '</td>';
+        h += '<td>' + (debt > 0 ? '<span class="dist-badge dist-badge-unpaid">' + debt + ' den</span>' : '<span class="dist-badge dist-badge-paid">0</span>') + '</td>';
+        h += '<td>';
+        h += '<button class="btn btn-sm" onclick="openDistShop360(\'' + s.id + '\')" title="Profili 360"><i class="fas fa-chart-pie"></i></button> ';
+        h += '<button class="btn btn-sm" onclick="openDistShopModal(\'' + s.id + '\')" title="Ndrysho"><i class="fas fa-edit"></i></button> ';
+        h += '<button class="btn btn-sm btn-danger" onclick="deleteDistShop(\'' + s.id + '\')" title="Fshij"><i class="fas fa-trash"></i></button>';
+        if (s.phone) h += ' <button class="btn btn-sm" style="background:#25d366;color:white;" onclick="sendWhatsApp(\'' + s.phone + '\',\'Përshëndetje nga Hurma App\')" title="WhatsApp"><i class="fab fa-whatsapp"></i></button>';
+        h += '</td>';
+        h += '</tr>';
+    });
+
+    h += '</tbody></table></div>';
+    return h;
+}
+
+// ===== STOCK TAB =====
+function renderDistStockTab() {
+    var stock = calcDistStock();
+    var h = '<h3 class="dist-section-title"><i class="fas fa-boxes-stacked"></i> Stoku i Fatonit te Elezi</h3>';
+
+    h += '<div class="table-container"><table class="dist-table"><thead><tr>';
+    h += '<th>Produkti</th><th>Pesha</th><th>Sasia ne Stok</th><th>Cmimi (blerje)</th><th>Vlera Totale</th><th>Statusi</th>';
+    h += '</tr></thead><tbody>';
+
+    var totalValue = 0;
+    PRODUCTS.forEach(function(p) {
+        var qty = stock[p.id] || 0;
+        var val = qty * p.buyPrice;
+        totalValue += val;
+        var statusClass = qty <= 0 ? 'dist-badge-unpaid' : qty < 5 ? 'dist-badge-partial' : 'dist-badge-paid';
+        var statusText = qty <= 0 ? 'Bosh' : qty < 5 ? 'Pak' : 'OK';
+        h += '<tr>';
+        h += '<td><strong>' + p.name + '</strong></td>';
+        h += '<td>' + p.weight + '</td>';
+        h += '<td><strong>' + qty + '</strong></td>';
+        h += '<td>' + p.buyPrice + ' den</td>';
+        h += '<td>' + val + ' den</td>';
+        h += '<td><span class="dist-badge ' + statusClass + '">' + statusText + '</span></td>';
+        h += '</tr>';
+    });
+
+    h += '<tr style="font-weight:bold;background:#fff3e0;"><td colspan="4">TOTALI</td><td>' + totalValue + ' den</td><td></td></tr>';
+    h += '</tbody></table></div>';
+    return h;
+}
+
+// ===== RECEIVED TAB =====
+function renderDistReceivedTab() {
+    var received = (state.distReceived || []).slice().sort(function(a, b) { return b.date.localeCompare(a.date); });
+    var h = '<h3 class="dist-section-title"><i class="fas fa-box-open"></i> Pranimi i Mallit nga Fatoni</h3>';
+    h += '<button class="btn dist-btn-receive" onclick="openDistReceiveModal()" style="margin-bottom:15px;"><i class="fas fa-plus"></i> Regjistro Pranim</button>';
+
+    if (received.length === 0) {
+        h += '<p style="color:#999;padding:20px;">Asnjë pranim ende.</p>';
+        return h;
+    }
+
+    h += '<div class="table-container"><table class="dist-table"><thead><tr>';
+    h += '<th>Data</th><th>Produkti</th><th>Sasia</th><th>Cmimi</th><th>Totali</th><th>Shënim</th><th>Veprime</th>';
+    h += '</tr></thead><tbody>';
+
+    received.forEach(function(r) {
+        var p = getDistProduct(r.productId);
+        h += '<tr>';
+        h += '<td>' + r.date + '</td>';
+        h += '<td>' + p.name + '</td>';
+        h += '<td>' + r.quantity + '</td>';
+        h += '<td>' + r.price + ' den</td>';
+        h += '<td><strong>' + (r.quantity * r.price) + ' den</strong></td>';
+        h += '<td>' + (r.note || '-') + '</td>';
+        h += '<td><button class="btn btn-sm btn-danger" onclick="deleteDistReceived(\'' + r.id + '\')"><i class="fas fa-trash"></i></button></td>';
+        h += '</tr>';
+    });
+
+    h += '</tbody></table></div>';
+    return h;
+}
+
+// ===== DEBTS TAB =====
+function renderDistDebtsTab() {
+    var h = '<h3 class="dist-section-title"><i class="fas fa-file-invoice-dollar"></i> Borxhet e Dyqaneve</h3>';
+
+    var shopDebts = {};
+    (state.distDeliveries || []).forEach(function(d) {
+        if (d.paid) return;
+        if (!shopDebts[d.shopId]) shopDebts[d.shopId] = { total: 0, deliveries: [], overdue: 0 };
+        var total = d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+        var remaining = total - (d.paidAmount || 0);
+        shopDebts[d.shopId].total += remaining;
+        shopDebts[d.shopId].deliveries.push(d);
+
+        // Check overdue
+        var days = 0;
+        if (d.paymentType === 'invoice_30') days = 30;
+        else if (d.paymentType === 'invoice_60') days = 60;
+        else if (d.paymentType === 'invoice_90') days = 90;
+        if (days > 0) {
+            var dueDate = new Date(d.date);
+            dueDate.setDate(dueDate.getDate() + days);
+            if (new Date() > dueDate) shopDebts[d.shopId].overdue += remaining;
+        }
+    });
+
+    var shopIds = Object.keys(shopDebts);
+    if (shopIds.length === 0) {
+        h += '<p style="color:#999;padding:20px;">Asnjë borxh aktiv.</p>';
+        return h;
+    }
+
+    h += '<div class="table-container"><table class="dist-table"><thead><tr>';
+    h += '<th>Dyqani</th><th>Borxhi Total</th><th>Vonuar</th><th>Dërgesat Papaguara</th><th>Veprime</th>';
+    h += '</tr></thead><tbody>';
+
+    shopIds.forEach(function(shopId) {
+        var shop = getDistShop(shopId);
+        var data = shopDebts[shopId];
+        h += '<tr>';
+        h += '<td><strong>' + shop.name + '</strong></td>';
+        h += '<td><span class="dist-badge dist-badge-unpaid">' + data.total + ' den</span></td>';
+        h += '<td>' + (data.overdue > 0 ? '<span class="dist-badge dist-badge-warn">' + data.overdue + ' den</span>' : '-') + '</td>';
+        h += '<td>' + data.deliveries.length + '</td>';
+        h += '<td><button class="btn btn-sm btn-success" onclick="openDistCollectPaymentModal(null, \'' + shopId + '\')"><i class="fas fa-money-bill"></i> Mblidh</button>';
+        h += ' <button class="btn btn-sm" style="background:#25d366;color:white;" onclick="distSendDebtReminder(\'' + shopId + '\')" title="Kujtesë WhatsApp"><i class="fab fa-whatsapp"></i> Kujtesë</button>';
+        h += '</td>';
+        h += '</tr>';
+    });
+
+    h += '</tbody></table></div>';
+    return h;
+}
+
+// ===== CASH FATON TAB =====
+function renderDistCashFatonTab() {
+    var stats = distFatonStats();
+    var cashCollected = stats.cashCollected;
+    var givenToFaton = stats.givenToFaton;
+    var cashReady = stats.cashReady;
+
+    var h = '<h3 class="dist-section-title"><i class="fas fa-coins"></i> Gjurmimi i Cash-it per Fatonin</h3>';
+
+    // Reminder banner
+    var rem = distFatonReminderStatus();
+    if (rem.active) {
+        h += '<div class="dist-alarm-banner dist-alarm-faton" style="margin-bottom:15px;">';
+        h += '<i class="fas fa-bell"></i> <strong>KUJTESË:</strong> ' + rem.message;
+        h += ' <button class="btn btn-sm" onclick="openDistPayFatonModal()" style="margin-left:10px;">Dorëzo tani</button>';
+        h += ' <button class="btn btn-sm" onclick="dismissDistFatonReminder()" style="margin-left:5px;background:#95a5a6;color:white;">Shty 1 ditë</button>';
+        h += '</div>';
+    }
+
+    // 6 KPI cards
+    h += '<div class="dist-cards-grid" style="margin-bottom:20px;">';
+    h += '<div class="dist-card"><div class="dist-card-icon">&#128176;</div><div class="dist-card-label">Cash i mbledhur total</div><div class="dist-card-value">' + cashCollected + ' den</div></div>';
+    h += '<div class="dist-card"><div class="dist-card-icon">&#128178;</div><div class="dist-card-label">Dorezuar Fatonit</div><div class="dist-card-value">' + givenToFaton + ' den</div></div>';
+    h += '<div class="dist-card' + (cashReady > 0 ? ' dist-card-warn' : '') + '"><div class="dist-card-icon">&#129309;</div><div class="dist-card-label">Cash gati per dorezim</div><div class="dist-card-value">' + cashReady + ' den</div></div>';
+    h += '<div class="dist-card"><div class="dist-card-icon">&#128197;</div><div class="dist-card-label">Mesatarja mujore</div><div class="dist-card-value">' + Math.round(stats.monthlyAvg) + ' den</div></div>';
+    h += '<div class="dist-card"><div class="dist-card-icon">&#128203;</div><div class="dist-card-label">Nr. dorëzimeve</div><div class="dist-card-value">' + stats.count + '</div></div>';
+    var daysClass = stats.daysSinceLast > 14 ? ' dist-card-warn' : '';
+    h += '<div class="dist-card' + daysClass + '"><div class="dist-card-icon">&#9202;&#65039;</div><div class="dist-card-label">Ditë nga dorëzimi i fundit</div><div class="dist-card-value">' + (stats.daysSinceLast === null ? '—' : stats.daysSinceLast + ' ditë') + '</div></div>';
+    h += '</div>';
+
+    // Balance detail
+    h += '<div class="dist-report-summary" style="margin-bottom:15px;">';
+    h += '<h4><i class="fas fa-balance-scale"></i> Bilanci i Plotë</h4>';
+    h += '<div class="dist-report-row"><span>Mall i pranuar nga Fatoni (vlera shitjes):</span><strong>' + stats.totalReceivedValue + ' den</strong></div>';
+    h += '<div class="dist-report-row"><span>Mall i shitur dyqaneve:</span><strong>' + stats.totalDelivered + ' den</strong></div>';
+    h += '<div class="dist-report-row"><span>Cash i arkëtuar nga dyqanet:</span><strong style="color:#27ae60;">+' + cashCollected + ' den</strong></div>';
+    h += '<div class="dist-report-row"><span>Borxhe të papaguara (dyqane):</span><strong style="color:#e67e22;">' + stats.shopDebts + ' den</strong></div>';
+    h += '<div class="dist-report-row"><span>Dorëzuar Fatonit:</span><strong style="color:#c0392b;">−' + givenToFaton + ' den</strong></div>';
+    h += '<div class="dist-report-row" style="border-top:2px solid #2c3e50;padding-top:8px;font-size:1.1em;"><span><strong>Cash aktual gati për dorëzim:</strong></span><strong style="color:' + (cashReady > 0 ? '#e67e22' : '#27ae60') + ';">' + cashReady + ' den</strong></div>';
+    h += '</div>';
+
+    // Projection
+    if (stats.projectionEndOfMonth !== null) {
+        h += '<div class="dist-report-summary" style="margin-bottom:15px;background:#eef7ff;border-left:4px solid #3498db;">';
+        h += '<h4><i class="fas fa-chart-line"></i> Parashikim</h4>';
+        h += '<div class="dist-report-row"><span>Me tempon aktuale, në fund të muajit do t\'i dorëzosh Fatonit:</span><strong style="color:#2980b9;">' + Math.round(stats.projectionEndOfMonth) + ' den</strong></div>';
+        h += '<div class="dist-report-row"><span>Mesatarja ditore e dorëzimit:</span><strong>' + Math.round(stats.dailyAvg) + ' den/ditë</strong></div>';
+        if (stats.bestMonth) {
+            h += '<div class="dist-report-row"><span>Muaji më i mirë:</span><strong>' + stats.bestMonth.month + ' (' + stats.bestMonth.total + ' den)</strong></div>';
+        }
+        if (stats.lastPayment) {
+            h += '<div class="dist-report-row"><span>Dorëzimi i fundit:</span><strong>' + stats.lastPayment.date + ' — ' + stats.lastPayment.amount + ' den</strong></div>';
+        }
+        h += '</div>';
+    }
+
+    // Action buttons
+    h += '<div class="dist-actions" style="margin-bottom:20px;flex-wrap:wrap;">';
+    h += '<button class="btn dist-btn-pay" onclick="openDistPayFatonModal()"><i class="fas fa-plus"></i> Regjistro Dorëzim</button>';
+    h += '<button class="btn" style="background:#3498db;color:white;" onclick="showDistFatonMonthlyChart()"><i class="fas fa-chart-bar"></i> Grafik Mujor</button>';
+    h += '<button class="btn" style="background:#9b59b6;color:white;" onclick="showDistFatonCashFlowChart()"><i class="fas fa-chart-line"></i> Cash Flow</button>';
+    h += '<button class="btn" style="background:#16a085;color:white;" onclick="showDistFatonMethodChart()"><i class="fas fa-chart-pie"></i> Cash vs Bankë</button>';
+    h += '<button class="btn" style="background:#e67e22;color:white;" onclick="openDistFatonReminderSettings()"><i class="fas fa-bell"></i> Kujtesë</button>';
+    h += '<button class="btn" style="background:#27ae60;color:white;" onclick="distFatonExportHistory(\'excel\')"><i class="fas fa-file-excel"></i> Excel</button>';
+    h += '<button class="btn" style="background:#c0392b;color:white;" onclick="distFatonExportHistory(\'pdf\')"><i class="fas fa-file-pdf"></i> PDF Historiku</button>';
+    h += '<button class="btn" style="background:#2c3e50;color:white;" onclick="distFatonFullStatementPDF()"><i class="fas fa-file-invoice"></i> Deklaratë e Plotë</button>';
+    h += '</div>';
+
+    // Filter
+    h += '<div class="dist-report-summary" style="margin-bottom:10px;">';
+    h += '<h4 style="margin-bottom:8px;"><i class="fas fa-filter"></i> Filtro sipas datës</h4>';
+    h += '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;">';
+    h += '<div class="form-group" style="margin:0;"><label>Nga:</label><input type="date" id="dist-faton-filter-from" onchange="refreshDistribution()"></div>';
+    h += '<div class="form-group" style="margin:0;"><label>Deri:</label><input type="date" id="dist-faton-filter-to" onchange="refreshDistribution()"></div>';
+    h += '<button class="btn btn-sm" onclick="clearDistFatonFilter()" style="background:#95a5a6;color:white;height:40px;">Pastro</button>';
+    h += '</div></div>';
+
+    // Payments table
+    h += '<h4 style="margin:15px 0 10px;"><i class="fas fa-history"></i> Historiku i Dorëzimeve të Fatonit</h4>';
+
+    var payments = distFatonFilteredPayments();
+    if (payments.length === 0) {
+        h += '<p style="color:#999;">Asnjë dorezim ende.</p>';
+    } else {
+        var totalFiltered = payments.reduce(function(s, p) { return s + p.amount; }, 0);
+        h += '<div style="margin-bottom:8px;color:#555;">Total në këtë periudhë: <strong>' + totalFiltered + ' den</strong> (' + payments.length + ' dorëzime)</div>';
+        h += '<div class="table-container"><table class="dist-table"><thead><tr>';
+        h += '<th>Data</th><th>Shuma</th><th>% e totalit</th><th>Ditë nga prev.</th><th>Metoda</th><th>Nënshkrim</th><th>Shënim</th><th>Veprime</th>';
+        h += '</tr></thead><tbody>';
+        var sortedAsc = payments.slice().sort(function(a,b){ return a.date.localeCompare(b.date); });
+        var prevDateMap = {};
+        for (var i = 0; i < sortedAsc.length; i++) {
+            if (i === 0) prevDateMap[sortedAsc[i].id] = null;
+            else prevDateMap[sortedAsc[i].id] = Math.round((new Date(sortedAsc[i].date) - new Date(sortedAsc[i-1].date)) / 86400000);
+        }
+        var sortedDesc = payments.slice().sort(function(a,b){ return b.date.localeCompare(a.date); });
+        sortedDesc.forEach(function(p) {
+            var pct = totalFiltered > 0 ? ((p.amount / totalFiltered) * 100).toFixed(1) : '0.0';
+            var gap = prevDateMap[p.id];
+            h += '<tr>';
+            h += '<td>' + p.date + '</td>';
+            h += '<td><strong>' + p.amount + ' den</strong></td>';
+            h += '<td>' + pct + '%</td>';
+            h += '<td>' + (gap === null ? '—' : gap + ' ditë') + '</td>';
+            h += '<td>' + (p.method === 'bank' ? '<i class="fas fa-university"></i> Bankë' : '<i class="fas fa-money-bill"></i> Cash') + '</td>';
+            h += '<td>' + (p.signature ? '<span style="color:#27ae60;"><i class="fas fa-check-circle"></i> Po</span>' : '<span style="color:#c0392b;">—</span>') + '</td>';
+            h += '<td>' + (p.note || '-') + '</td>';
+            h += '<td style="white-space:nowrap;">';
+            h += '<button class="btn btn-sm" style="background:#16a085;color:white;margin-right:3px;" title="Vërtetim PDF" onclick="distFatonReceiptPDF(\'' + p.id + '\')"><i class="fas fa-file-pdf"></i></button>';
+            h += '<button class="btn btn-sm" style="background:#2980b9;color:white;margin-right:3px;" title="' + (p.signature ? 'Ndrysho nënshkrim' : 'Shto nënshkrim') + '" onclick="openDistFatonSignatureModal(\'' + p.id + '\')"><i class="fas fa-signature"></i></button>';
+            h += '<button class="btn btn-sm btn-danger" title="Fshi" onclick="deleteDistPayToFaton(\'' + p.id + '\')"><i class="fas fa-trash"></i></button>';
+            h += '</td>';
+            h += '</tr>';
+        });
+        h += '</tbody></table></div>';
+    }
+
+    return h;
+}
+
+// ===== REPORTS TAB =====
+function renderDistReportsTab() {
+    var h = '<h3 class="dist-section-title"><i class="fas fa-chart-bar"></i> Raporte per Fatonin</h3>';
+
+    h += '<div class="dist-actions" style="margin-bottom:20px;flex-wrap:wrap;">';
+    h += '<button class="btn dist-btn-receive" onclick="distReportDaily()"><i class="fas fa-calendar-day"></i> Raporti Ditor</button>';
+    h += '<button class="btn dist-btn-deliver" onclick="distReportWeekly()"><i class="fas fa-calendar-week"></i> Raporti Javor</button>';
+    h += '<button class="btn dist-btn-collect" onclick="distReportMonthly()"><i class="fas fa-calendar-alt"></i> Raporti Mujor</button>';
+    h += '<button class="btn dist-btn-pay" onclick="distReportPerShop()"><i class="fas fa-store"></i> Sipas Dyqanit</button>';
+    h += '<button class="btn" style="background:#8e44ad;color:white;" onclick="distReportPerProduct()"><i class="fas fa-box"></i> Sipas Produktit</button>';
+    h += '<button class="btn" style="background:#2c3e50;color:white;" onclick="distReportFinancial()"><i class="fas fa-coins"></i> Permbledhje Financiare</button>';
+    h += '<button class="btn" style="background:#27ae60;color:white;" onclick="distWhatsAppReport()"><i class="fab fa-whatsapp"></i> Dërgo Raport Fatonit</button>';
+    h += '<button class="btn" style="background:#e74c3c;color:white;" onclick="distReportComparison()"><i class="fas fa-exchange-alt"></i> Krahasim Mujor</button>';
+    h += '<button class="btn" style="background:#f39c12;color:white;" onclick="distReportTopShops()"><i class="fas fa-trophy"></i> Top Dyqanet</button>';
+    h += '<button class="btn" style="background:#3498db;color:white;" onclick="distReportCashFlow()"><i class="fas fa-chart-line"></i> Cash Flow</button>';
+    h += '<button class="btn" style="background:#1abc9c;color:white;" onclick="distReportAverages()"><i class="fas fa-calculator"></i> Mesatare</button>';
+    h += '<button class="btn" style="background:#9b59b6;color:white;" onclick="distReportDetailedPDF()"><i class="fas fa-file-pdf"></i> Raport i Plote PDF</button>';
+    h += '</div>';
+
+    // Financial summary always visible
+    var cashCollected = calcDistTotalCashCollected();
+    var givenToFaton = calcDistGivenToFaton();
+    var shopDebts = calcDistShopDebts();
+    var totalReceived = (state.distReceived || []).reduce(function(s, r) { return s + r.quantity * r.price; }, 0);
+    var totalDelivered = (state.distDeliveries || []).reduce(function(s, d) { return s + d.items.reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
+
+    h += '<div class="dist-report-summary">';
+    h += '<h4>Permbledhje Financiare</h4>';
+    h += '<div class="dist-report-row"><span>Mall i pranuar nga Fatoni:</span><strong>' + totalReceived + ' den</strong></div>';
+    h += '<div class="dist-report-row"><span>Mall i dorezuar ne dyqane:</span><strong>' + totalDelivered + ' den</strong></div>';
+    h += '<div class="dist-report-row"><span>Cash i mbledhur:</span><strong>' + cashCollected + ' den</strong></div>';
+    h += '<div class="dist-report-row"><span>Cash i dorezuar Fatonit:</span><strong>' + givenToFaton + ' den</strong></div>';
+    h += '<div class="dist-report-row"><span>Cash gati per dorezim:</span><strong style="color:#e67e22;">' + (cashCollected - givenToFaton) + ' den</strong></div>';
+    h += '<div class="dist-report-row"><span>Borxhe dyqanesh:</span><strong style="color:#e74c3c;">' + shopDebts + ' den</strong></div>';
+    h += '</div>';
+
+    return h;
+}
+
+// ===== MODALS =====
+
+function openDistReceiveModal() {
+    var h = '<form onsubmit="saveDistReceived(event)">';
+    h += '<div class="form-group"><label>Data</label><input type="date" id="dist-recv-date" value="' + new Date().toISOString().split('T')[0] + '" required></div>';
+    h += '<div class="form-group"><label>Produkti</label><select id="dist-recv-product" required>';
+    PRODUCTS.forEach(function(p) {
+        h += '<option value="' + p.id + '">' + p.name + ' (' + p.buyPrice + ' den)</option>';
+    });
+    h += '</select></div>';
+    h += '<div class="form-group"><label>Sasia</label><input type="number" id="dist-recv-qty" min="1" required></div>';
+    h += '<div class="form-group"><label>Cmimi per njësi</label><input type="number" id="dist-recv-price" min="0" required></div>';
+    h += '<div class="form-group"><label>Shënim</label><input type="text" id="dist-recv-note" placeholder="Opsionale"></div>';
+    h += '<button type="submit" class="btn dist-btn-receive" style="width:100%;margin-top:10px;">Ruaj Pranimin</button>';
+    h += '</form>';
+
+    openModal('Pranoj Mall nga Fatoni', h);
+    // Auto-fill price on product change (shkriptet brenda innerHTML nuk ekzekutohen, duhet këtu)
+    setTimeout(function() {
+        var sel = document.getElementById('dist-recv-product');
+        if (!sel) return;
+        sel.addEventListener('change', function() {
+            var p = PRODUCTS.find(function(x) { return x.id === sel.value; });
+            var priceEl = document.getElementById('dist-recv-price');
+            if (p && priceEl) priceEl.value = p.buyPrice;
+        });
+        sel.dispatchEvent(new Event('change'));
+    }, 50);
+}
+
+function saveDistReceived(e) {
+    e.preventDefault();
+    var qty = parseInt(document.getElementById('dist-recv-qty').value);
+    var price = parseFloat(document.getElementById('dist-recv-price').value);
+    if (isNaN(qty) || qty <= 0) { showToast('Sasia duhet të jetë numër pozitiv!', 'error'); return; }
+    if (isNaN(price) || price < 0) { showToast('Çmimi duhet të jetë numër i vlefshëm!', 'error'); return; }
+    var rec = {
+        id: 'dr_' + Date.now(),
+        date: document.getElementById('dist-recv-date').value,
+        productId: document.getElementById('dist-recv-product').value,
+        quantity: qty,
+        price: price,
+        note: document.getElementById('dist-recv-note').value
+    };
+    if (!state.distReceived) state.distReceived = [];
+    state.distReceived.push(rec);
+    saveState();
+    closeModal();
+    // #4 Cross-tab: note about receiving goods for distribution
+    showToast('Mall u pranua: ' + getDistProduct(rec.productId).name + ' x' + rec.quantity + ' (shënim: lidhur me stokun kryesor)', 'success');
+    logActivity('dist_receive', 'Pranim malli per shpërndarje: ' + getDistProduct(rec.productId).name + ' x' + rec.quantity + ' - Nga stoku i Fatonit', 'distribution');
+    refreshDistribution();
+}
+
+function deleteDistReceived(id) {
+    modalConfirm('A jeni i sigurt qe doni te fshini kete pranim?', function() {
+        state.distReceived = state.distReceived.filter(function(r) { return r.id !== id; });
+        saveState();
+        showToast('Pranimi u fshi', 'warning');
+        refreshDistribution();
+    });
+}
+
+function openDistDeliveryModal() {
+    if ((state.distShops || []).length === 0) {
+        showToast('Duhet te shtoni se paku nje dyqan para se te regjistroni dërgesë!', 'warning');
+        distActiveTab = 'shops';
+        renderDistributionPage();
+        openDistShopModal();
+        return;
+    }
+
+    var h = '<form onsubmit="saveDistDelivery(event)">';
+    h += '<div class="form-group"><label>Data</label><input type="date" id="dist-del-date" value="' + new Date().toISOString().split('T')[0] + '" required></div>';
+    h += '<div class="form-group"><label>Dyqani</label><select id="dist-del-shop" required>';
+    (state.distShops || []).forEach(function(s) {
+        h += '<option value="' + s.id + '">' + s.name + '</option>';
+    });
+    h += '</select></div>';
+
+    // Dynamic items
+    h += '<div id="dist-del-items"><div class="dist-del-item" data-index="0">';
+    h += '<div class="form-group"><label>Produkti</label><select class="dist-del-product" required>';
+    PRODUCTS.forEach(function(p) {
+        var stock = (calcDistStock()[p.id] || 0);
+        h += '<option value="' + p.id + '">' + p.name + ' (stok: ' + stock + ')</option>';
+    });
+    h += '</select></div>';
+    h += '<div style="display:flex;gap:8px;"><div class="form-group" style="flex:1;"><label>Sasia</label><input type="number" class="dist-del-qty" min="1" value="1" required></div>';
+    h += '<div class="form-group" style="flex:1;"><label>Cmimi</label><input type="number" class="dist-del-price" min="0" required></div></div>';
+    h += '</div></div>';
+    h += '<button type="button" class="btn btn-secondary" onclick="distAddDeliveryItem()" style="margin:8px 0;"><i class="fas fa-plus"></i> Shto Produkt</button>';
+
+    h += '<div class="form-group"><label>Lloji Pageses</label><select id="dist-del-payment" required onchange="distPaymentTypeChanged()">';
+    h += '<option value="cash">Cash</option>';
+    h += '<option value="invoice_30">Faturë 30 ditë</option>';
+    h += '<option value="invoice_60">Faturë 60 ditë</option>';
+    h += '<option value="invoice_90">Faturë 90 ditë</option>';
+    h += '</select></div>';
+    h += '<div class="form-group"><label>Shënim</label><input type="text" id="dist-del-note" placeholder="Opsionale"></div>';
+
+    // ===== PROVË DORËZIMI (POD) =====
+    h += '<div style="border:1px solid #e0e0e0;border-radius:8px;padding:12px;margin:12px 0;background:#fafcff;">';
+    h += '<h4 style="margin:0 0 10px;color:#2980b9;"><i class="fas fa-camera"></i> Provë Dorëzimi <small style="font-weight:normal;color:#888;">(opsionale)</small></h4>';
+    h += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+    h += '<div class="form-group" style="flex:1;min-width:180px;"><label>Emri i pranuesit</label><input type="text" id="dist-pod-receiver" placeholder="P.sh. Agimi"></div>';
+    h += '<div class="form-group" style="flex:1;min-width:180px;"><label>Gjendja e mallit</label><select id="dist-pod-condition">';
+    h += '<option value="complete">&#9989; I plotë / OK</option>';
+    h += '<option value="partial">&#9888;&#65039; Pjesërisht</option>';
+    h += '<option value="damaged">&#10060; I dëmtuar</option>';
+    h += '</select></div></div>';
+    h += '<div class="form-group"><label>Fotografi (max 6)</label>';
+    h += '<input type="file" id="dist-pod-photos-input" accept="image/*" capture="environment" multiple style="display:none;" onchange="distPODAttachPhotos(this)">';
+    h += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+    h += '<button type="button" class="btn" style="background:#2980b9;color:white;" onclick="document.getElementById(\'dist-pod-photos-input\').click();"><i class="fas fa-camera"></i> Shto Foto</button>';
+    h += '<small style="align-self:center;color:#888;">Foto kompresohen automatikisht</small>';
+    h += '</div>';
+    h += '<div id="dist-pod-preview" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;"></div>';
+    h += '</div>';
+    h += '<div class="form-group"><label>Nënshkrimi i dyqanarit (opsionale)</label>';
+    h += '<div style="border:2px dashed #bbb;border-radius:8px;padding:6px;background:white;">';
+    h += '<canvas id="dist-pod-sign-canvas" width="420" height="120" style="width:100%;height:120px;background:white;border-radius:4px;touch-action:none;display:block;"></canvas>';
+    h += '<div style="display:flex;gap:8px;margin-top:6px;">';
+    h += '<button type="button" class="btn btn-sm" style="background:#95a5a6;color:white;" onclick="distFatonSignClear(\'dist-pod-sign-canvas\')"><i class="fas fa-eraser"></i> Pastro</button>';
+    h += '<small style="color:#777;align-self:center;">Nënshkruaj me gisht ose mouse</small>';
+    h += '</div></div></div>';
+    h += '</div>';
+
+    h += '<button type="submit" class="btn dist-btn-deliver" style="width:100%;margin-top:10px;">Regjistro Dërgesën</button>';
+    h += '</form>';
+
+    openModal('Regjistro Dërgesë', h);
+    window._distPendingPODPhotos = [];
+    // Auto-fill price for all product selects (shkriptet brenda innerHTML nuk ekzekutohen, duhet këtu)
+    setTimeout(function() {
+        document.querySelectorAll('.dist-del-product').forEach(function(sel) {
+            sel.addEventListener('change', function() {
+                var p = PRODUCTS.find(function(x) { return x.id === sel.value; });
+                var priceEl = sel.closest('.dist-del-item').querySelector('.dist-del-price');
+                if (p && priceEl) priceEl.value = p.sellPrice;
+            });
+            sel.dispatchEvent(new Event('change'));
+        });
+        distPaymentTypeChanged();
+        distFatonSignInit('dist-pod-sign-canvas');
+    }, 50);
+}
+
+function distAddDeliveryItem() {
+    var container = document.getElementById('dist-del-items');
+    var index = container.querySelectorAll('.dist-del-item').length;
+    var stock = calcDistStock();
+    var div = document.createElement('div');
+    div.className = 'dist-del-item';
+    div.dataset.index = index;
+    div.style.cssText = 'border-top:1px solid #eee;padding-top:10px;margin-top:10px;';
+    var h = '<div class="form-group"><label>Produkti</label><select class="dist-del-product" required>';
+    PRODUCTS.forEach(function(p) {
+        h += '<option value="' + p.id + '">' + p.name + ' (stok: ' + (stock[p.id] || 0) + ')</option>';
+    });
+    h += '</select></div>';
+    h += '<div style="display:flex;gap:8px;"><div class="form-group" style="flex:1;"><label>Sasia</label><input type="number" class="dist-del-qty" min="1" value="1" required></div>';
+    h += '<div class="form-group" style="flex:1;"><label>Cmimi</label><input type="number" class="dist-del-price" min="0" required></div></div>';
+    h += '<button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.remove()" style="margin-top:4px;"><i class="fas fa-times"></i> Hiq</button>';
+    div.innerHTML = h;
+    container.appendChild(div);
+
+    // Auto-fill price for new item
+    var sel = div.querySelector('.dist-del-product');
+    sel.addEventListener('change', function() {
+        var p = PRODUCTS.find(function(x) { return x.id === sel.value; });
+        var priceEl = div.querySelector('.dist-del-price');
+        if (p && priceEl) priceEl.value = p.sellPrice;
+    });
+    sel.dispatchEvent(new Event('change'));
+}
+
+function distPaymentTypeChanged() {
+    var sel = document.getElementById('dist-del-payment');
+    if (!sel) return;
+    var isCash = sel.value === 'cash';
+    // Show hint about payment type in the form
+    var existing = document.getElementById('dist-pay-type-hint');
+    if (existing) existing.remove();
+    var hint = document.createElement('small');
+    hint.id = 'dist-pay-type-hint';
+    hint.style.cssText = 'display:block;margin-top:4px;padding:6px 10px;border-radius:6px;font-size:0.85em;';
+    if (isCash) {
+        hint.style.background = '#d4edda';
+        hint.style.color = '#155724';
+        hint.textContent = '✅ Cash — pagesa regjistrohet si e kryer menjëherë.';
+    } else {
+        var days = sel.value === 'invoice_30' ? 30 : sel.value === 'invoice_60' ? 60 : 90;
+        hint.style.background = '#fff3cd';
+        hint.style.color = '#856404';
+        hint.textContent = '⏳ Faturë ' + days + ' ditë — borxhi do të regjistrohet deri sa të paguhet.';
+    }
+    sel.parentElement.appendChild(hint);
+}
+
+function saveDistDelivery(e) {
+    e.preventDefault();
+    var items = [];
+    var itemEls = document.querySelectorAll('.dist-del-item');
+    var stock = calcDistStock();
+    var stockError = false;
+
+    itemEls.forEach(function(el) {
+        var productId = el.querySelector('.dist-del-product').value;
+        var quantity = parseInt(el.querySelector('.dist-del-qty').value);
+        var price = parseFloat(el.querySelector('.dist-del-price').value);
+        if (isNaN(quantity) || quantity <= 0) {
+            stockError = true;
+            showToast('Sasia duhet të jetë numër pozitiv!', 'error');
+            return;
+        }
+        if (isNaN(price) || price < 0) {
+            stockError = true;
+            showToast('Çmimi duhet të jetë numër i vlefshëm!', 'error');
+            return;
+        }
+        if (quantity > (stock[productId] || 0)) {
+            stockError = true;
+            showToast('Stoku i pamjaftueshem per ' + getDistProduct(productId).name + '! Disponueshem: ' + (stock[productId] || 0), 'error');
+        }
+        items.push({ productId: productId, quantity: quantity, price: price });
+    });
+
+    if (stockError) return;
+    if (items.length === 0) { showToast('Shtoni se paku nje produkt!', 'error'); return; }
+
+    // Siguro që _distPendingPODPhotos ekziston edhe kur modal-i mbyllet/rihap
+    if (!Array.isArray(window._distPendingPODPhotos)) window._distPendingPODPhotos = [];
+
+    var paymentType = document.getElementById('dist-del-payment').value;
+    var isCash = paymentType === 'cash';
+    var invoiceNum = distNextInvoiceNum();
+
+    // Capture POD data
+    var receiverEl = document.getElementById('dist-pod-receiver');
+    var conditionEl = document.getElementById('dist-pod-condition');
+    var podSigCanvas = document.getElementById('dist-pod-sign-canvas');
+    var podSignature = null;
+    if (podSigCanvas && podSigCanvas.__hasSignature) {
+        podSignature = podSigCanvas.toDataURL('image/png');
+    }
+    var podPhotos = window._distPendingPODPhotos || [];
+    var pod = null;
+    if (podPhotos.length > 0 || podSignature || (receiverEl && receiverEl.value)) {
+        pod = {
+            photos: podPhotos.slice(),
+            signature: podSignature,
+            receiverName: receiverEl ? receiverEl.value : '',
+            condition: conditionEl ? conditionEl.value : 'complete',
+            gps: window._distPendingPODGPS || null,
+            timestamp: new Date().toISOString()
+        };
+    }
+    window._distPendingPODPhotos = [];
+    window._distPendingPODGPS = null;
+
+    var delivery = {
+        id: 'dd_' + Date.now(),
+        date: document.getElementById('dist-del-date').value,
+        shopId: document.getElementById('dist-del-shop').value,
+        items: items,
+        paymentType: paymentType,
+        invoiceNum: invoiceNum,
+        paid: isCash,
+        paidAmount: isCash ? items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0) : 0,
+        paidDate: isCash ? new Date().toISOString().split('T')[0] : null,
+        paymentHistory: isCash ? [{ date: new Date().toISOString().split('T')[0], amount: items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0), method: 'cash' }] : [],
+        note: document.getElementById('dist-del-note').value,
+        pod: pod
+    };
+
+    if (!state.distDeliveries) state.distDeliveries = [];
+    state.distDeliveries.push(delivery);
+
+    // #1 Cross-tab: If cash delivery, auto-add to cash tracking
+    if (isCash) {
+        distCrossTabCashCollected(items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0), 'Cash nga dërgesë ' + invoiceNum + ' -> ' + getDistShop(delivery.shopId).name);
+    }
+
+    saveState();
+    closeModal();
+
+    var total = items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+    showToast('Dërgesë u regjistrua: ' + invoiceNum + ' | ' + total + ' den', 'success');
+    logActivity('dist_delivery', 'Dërgesë: ' + invoiceNum + ' -> ' + getDistShop(delivery.shopId).name + ' | ' + total + ' den', 'distribution');
+    refreshDistribution();
+}
+
+function deleteDistDelivery(id) {
+    modalConfirm('A jeni i sigurt qe doni te fshini kete dërgesë?', function() {
+        state.distDeliveries = state.distDeliveries.filter(function(d) { return d.id !== id; });
+        saveState();
+        showToast('Dërgesa u fshi', 'warning');
+        refreshDistribution();
+    });
+}
+
+function openDistCollectPaymentModal(deliveryId, shopId) {
+    var h = '<form onsubmit="saveDistCollectPayment(event)">';
+
+    if (deliveryId) {
+        var del = (state.distDeliveries || []).find(function(d) { return d.id === deliveryId; });
+        if (!del) return;
+        var total = del.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+        var remaining = total - (del.paidAmount || 0);
+        h += '<input type="hidden" id="dist-pay-delivery-id" value="' + deliveryId + '">';
+        h += '<p style="margin-bottom:10px;"><strong>Fatura:</strong> ' + del.invoiceNum + ' | <strong>Dyqani:</strong> ' + getDistShop(del.shopId).name + '</p>';
+        h += '<p style="margin-bottom:10px;"><strong>Totali:</strong> ' + total + ' den | <strong>Paguar:</strong> ' + (del.paidAmount || 0) + ' den | <strong>Mbetur:</strong> ' + remaining + ' den</p>';
+        h += '<div class="form-group"><label>Shuma e pageses</label><input type="number" id="dist-pay-amount" min="1" max="' + remaining + '" value="' + remaining + '" required></div>';
+    } else {
+        // Select from unpaid deliveries
+        var unpaid = (state.distDeliveries || []).filter(function(d) { return !d.paid && (!shopId || d.shopId === shopId); });
+        if (unpaid.length === 0) {
+            showToast('Asnjë faturë e papaguar!', 'info');
+            return;
+        }
+        h += '<div class="form-group"><label>Zgjedh Faturën</label><select id="dist-pay-delivery-id" required onchange="distUpdatePaymentMax()">';
+        unpaid.forEach(function(d) {
+            var total = d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+            var remaining = total - (d.paidAmount || 0);
+            h += '<option value="' + d.id + '">' + d.invoiceNum + ' - ' + getDistShop(d.shopId).name + ' (' + remaining + ' den mbetur)</option>';
+        });
+        h += '</select></div>';
+        h += '<div class="form-group"><label>Shuma e pageses</label><input type="number" id="dist-pay-amount" min="1" required></div>';
+    }
+
+    h += '<div class="form-group"><label>Data</label><input type="date" id="dist-pay-date" value="' + new Date().toISOString().split('T')[0] + '" required></div>';
+    h += '<div class="form-group"><label>Metoda</label><select id="dist-pay-method"><option value="cash">Cash</option><option value="bank">Bankë</option></select></div>';
+    h += '<button type="submit" class="btn dist-btn-collect" style="width:100%;margin-top:10px;">Regjistro Pagesën</button>';
+    h += '</form>';
+
+    openModal('Merr Pagesë nga Dyqani', h);
+
+    // Auto-set max for first selected option
+    if (!deliveryId) {
+        setTimeout(function() { distUpdatePaymentMax(); }, 100);
+    }
+}
+
+function distUpdatePaymentMax() {
+    var sel = document.getElementById('dist-pay-delivery-id');
+    if (!sel) return;
+    var del = (state.distDeliveries || []).find(function(d) { return d.id === sel.value; });
+    if (del) {
+        var total = del.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+        var remaining = total - (del.paidAmount || 0);
+        var amountInput = document.getElementById('dist-pay-amount');
+        amountInput.max = remaining;
+        amountInput.value = remaining;
+    }
+}
+
+function saveDistCollectPayment(e) {
+    e.preventDefault();
+    var deliveryId = document.getElementById('dist-pay-delivery-id').value;
+    var amount = parseFloat(document.getElementById('dist-pay-amount').value);
+    var date = document.getElementById('dist-pay-date').value;
+    var method = document.getElementById('dist-pay-method').value;
+
+    var del = (state.distDeliveries || []).find(function(d) { return d.id === deliveryId; });
+    if (!del) { showToast('Dërgesa nuk u gjet!', 'error'); return; }
+
+    var total = del.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+    del.paidAmount = (del.paidAmount || 0) + amount;
+    if (!del.paymentHistory) del.paymentHistory = [];
+    del.paymentHistory.push({ date: date, amount: amount, method: method });
+
+    if (del.paidAmount >= total) {
+        del.paid = true;
+        del.paidDate = date;
+    }
+
+    // #2 Cross-tab: Shop pays debt -> auto-add to cash collected
+    distCrossTabCashCollected(amount, 'Pagesë borxhi nga ' + getDistShop(del.shopId).name + ' per ' + del.invoiceNum);
+
+    saveState();
+    closeModal();
+    showToast('Pagesë e regjistruar: ' + amount + ' den nga ' + getDistShop(del.shopId).name, 'success');
+    logActivity('dist_payment', 'Pagesë: ' + amount + ' den nga ' + getDistShop(del.shopId).name + ' per ' + del.invoiceNum, 'distribution');
+    refreshDistribution();
+}
+
+function openDistPayFatonModal() {
+    var cashReady = calcDistCashReady();
+    var h = '<form onsubmit="saveDistPayToFaton(event)">';
+    h += '<p style="margin-bottom:15px;background:#fff3e0;padding:12px;border-radius:8px;"><strong>Cash gati per dorezim:</strong> ' + cashReady + ' den</p>';
+    h += '<div class="form-group"><label>Data</label><input type="date" id="dist-faton-date" value="' + new Date().toISOString().split('T')[0] + '" required></div>';
+    h += '<div class="form-group"><label>Shuma</label><input type="number" id="dist-faton-amount" min="1" value="' + Math.max(0, cashReady) + '" required></div>';
+    h += '<div class="form-group"><label>Metoda</label><select id="dist-faton-method"><option value="cash">Cash</option><option value="bank">Bankë</option></select></div>';
+    h += '<div class="form-group"><label>Shënim</label><input type="text" id="dist-faton-note" placeholder="Opsionale"></div>';
+    h += '<div class="form-group"><label>Nënshkrim i Fatonit (opsionale)</label>';
+    h += '<div style="border:2px dashed #bbb;border-radius:8px;padding:6px;background:#fafafa;">';
+    h += '<canvas id="dist-faton-sign-canvas" width="420" height="140" style="width:100%;height:140px;background:white;border-radius:4px;touch-action:none;display:block;"></canvas>';
+    h += '<div style="display:flex;gap:8px;margin-top:6px;">';
+    h += '<button type="button" class="btn btn-sm" style="background:#95a5a6;color:white;" onclick="distFatonSignClear(\'dist-faton-sign-canvas\')"><i class="fas fa-eraser"></i> Pastro</button>';
+    h += '<small style="color:#777;align-self:center;">Nënshkruaj me gisht ose mouse</small>';
+    h += '</div></div></div>';
+    h += '<button type="submit" class="btn dist-btn-pay" style="width:100%;margin-top:10px;">Dorëzo Cash Fatonit</button>';
+    h += '</form>';
+    openModal('Dorëzo Cash Fatonit', h);
+    setTimeout(function() { distFatonSignInit('dist-faton-sign-canvas'); }, 100);
+}
+
+function saveDistPayToFaton(e) {
+    e.preventDefault();
+    var canvas = document.getElementById('dist-faton-sign-canvas');
+    var signature = null;
+    if (canvas && canvas.__hasSignature) {
+        signature = canvas.toDataURL('image/png');
+    }
+    var payment = {
+        id: 'df_' + Date.now(),
+        date: document.getElementById('dist-faton-date').value,
+        amount: parseFloat(document.getElementById('dist-faton-amount').value),
+        method: document.getElementById('dist-faton-method').value,
+        note: document.getElementById('dist-faton-note').value,
+        signature: signature
+    };
+    if (!state.distPayToFaton) state.distPayToFaton = [];
+    state.distPayToFaton.push(payment);
+
+    // #3 Cross-tab: When giving cash to Faton, link to main Faton account
+    if (state.fatonPayments) {
+        state.fatonPayments.push({
+            id: Date.now() + Math.random(),
+            amount: payment.amount,
+            date: payment.date,
+            note: '[Shpërndarja] Dorëzim cash nga shpërndarja - ' + (payment.note || ''),
+            category: 'distribution'
+        });
+    }
+
+    saveState();
+    closeModal();
+    showToast('Cash u dorëzua Fatonit: ' + payment.amount + ' den', 'success');
+    logActivity('dist_pay_faton', 'Dorezim Fatonit: ' + payment.amount + ' den', 'distribution');
+    refreshDistribution();
+}
+
+function deleteDistPayToFaton(id) {
+    modalConfirm('A jeni i sigurt qe doni te fshini kete dorezim?', function() {
+        state.distPayToFaton = state.distPayToFaton.filter(function(p) { return p.id !== id; });
+        saveState();
+        showToast('Dorezimi u fshi', 'warning');
+        refreshDistribution();
+    });
+}
+
+// ===== SHOP CRUD =====
+function openDistShopModal(shopId) {
+    var shop = shopId ? (state.distShops || []).find(function(s) { return s.id === shopId; }) : null;
+    var safeId = (shopId || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    var h = '<form onsubmit="saveDistShop(event, \'' + safeId + '\')">';
+    h += '<div class="form-group"><label>Emri i Dyqanit *</label><input type="text" id="dist-shop-name" value="' + (shop ? shop.name : '') + '" required></div>';
+    h += '<div class="form-group"><label>Adresa</label><input type="text" id="dist-shop-address" value="' + (shop ? (shop.address || '') : '') + '"></div>';
+    h += '<div class="form-group"><label>Telefoni</label><input type="text" id="dist-shop-phone" value="' + (shop ? (shop.phone || '') : '') + '"></div>';
+    h += '<div class="form-group"><label>Kontakti (personi)</label><input type="text" id="dist-shop-contact" value="' + (shop ? (shop.contact || '') : '') + '"></div>';
+    h += '<div class="form-group"><label>Kategoria</label><select id="dist-shop-category">';
+    ['Market', 'Dyqan', 'Supermarket', 'Stacion', 'Kafene', 'Tjeter'].forEach(function(c) {
+        h += '<option value="' + c + '"' + (shop && shop.category === c ? ' selected' : '') + '>' + c + '</option>';
+    });
+    h += '</select></div>';
+    h += '<div class="form-group"><label>Shënime</label><textarea id="dist-shop-notes" rows="2">' + (shop ? (shop.notes || '') : '') + '</textarea></div>';
+    h += '<button type="submit" class="btn dist-btn-receive" style="width:100%;margin-top:10px;">' + (shop ? 'Perditëso' : 'Shto') + ' Dyqanin</button>';
+    h += '</form>';
+    openModal((shop ? 'Ndrysho Dyqanin' : 'Shto Dyqan te Ri'), h);
+}
+
+function saveDistShop(e, existingId) {
+    e.preventDefault();
+    var shop = {
+        id: existingId || 'ds_' + Date.now(),
+        name: document.getElementById('dist-shop-name').value,
+        address: document.getElementById('dist-shop-address').value,
+        phone: document.getElementById('dist-shop-phone').value,
+        contact: document.getElementById('dist-shop-contact').value,
+        category: document.getElementById('dist-shop-category').value,
+        notes: document.getElementById('dist-shop-notes').value,
+        dateAdded: new Date().toISOString().split('T')[0]
+    };
+
+    if (!state.distShops) state.distShops = [];
+    if (existingId) {
+        var idx = state.distShops.findIndex(function(s) { return s.id === existingId; });
+        if (idx >= 0) {
+            shop.dateAdded = state.distShops[idx].dateAdded;
+            state.distShops[idx] = shop;
+        }
+    } else {
+        state.distShops.push(shop);
+    }
+
+    saveState();
+    closeModal();
+    showToast('Dyqani u ruajt: ' + shop.name, 'success');
+    logActivity('dist_shop', (existingId ? 'Perditesim' : 'Shtim') + ' dyqani: ' + shop.name, 'distribution');
+    refreshDistribution();
+}
+
+function deleteDistShop(id) {
+    var hasDeliveries = (state.distDeliveries || []).some(function(d) { return d.shopId === id; });
+    if (hasDeliveries) {
+        showToast('Ky dyqan ka dërgesa te regjistruara dhe nuk mund te fshihet!', 'error');
+        return;
+    }
+    modalConfirm('A jeni i sigurt qe doni te fshini kete dyqan?', function() {
+        state.distShops = state.distShops.filter(function(s) { return s.id !== id; });
+        saveState();
+        showToast('Dyqani u fshi', 'warning');
+        refreshDistribution();
+    });
+}
+
+// ===== INVOICE VIEW =====
+function viewDistDeliveryInvoice(deliveryId) {
+    var del = (state.distDeliveries || []).find(function(d) { return d.id === deliveryId; });
+    if (!del) return;
+    var shop = getDistShop(del.shopId);
+    var total = del.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+    var payLabel = del.paymentType === 'cash' ? 'Cash' : del.paymentType === 'invoice_30' ? 'Faturë 30 ditë' : del.paymentType === 'invoice_60' ? 'Faturë 60 ditë' : 'Faturë 90 ditë';
+
+    var h = '<div class="dist-invoice">';
+    h += '<div class="dist-invoice-header">';
+    h += '<h2>Faturë Shpërndarje</h2>';
+    h += '<p>Nr: <strong>' + del.invoiceNum + '</strong></p>';
+    h += '<p>Data: ' + del.date + '</p>';
+    h += '</div>';
+
+    h += '<div style="display:flex;justify-content:space-between;margin:15px 0;">';
+    h += '<div><strong>Furnitori:</strong><br>Faton (via Elez)<br>' + (state.invoiceProfile ? state.invoiceProfile.phone : '') + '</div>';
+    h += '<div style="text-align:right;"><strong>Blerësi:</strong><br>' + shop.name + '<br>' + (shop.address || '') + '<br>' + (shop.phone || '') + '</div>';
+    h += '</div>';
+
+    h += '<table class="dist-invoice-table"><thead><tr><th>#</th><th>Produkti</th><th>Sasia</th><th>Cmimi</th><th>Totali</th></tr></thead><tbody>';
+    del.items.forEach(function(item, i) {
+        var p = getDistProduct(item.productId);
+        h += '<tr><td>' + (i + 1) + '</td><td>' + p.name + '</td><td>' + item.quantity + '</td><td>' + item.price + ' den</td><td>' + (item.quantity * item.price) + ' den</td></tr>';
+    });
+    h += '<tr style="font-weight:bold;background:#fff3e0;"><td colspan="4">TOTALI</td><td>' + total + ' den</td></tr>';
+    h += '</tbody></table>';
+
+    h += '<div style="margin-top:15px;padding:10px;background:#f0f0f0;border-radius:8px;">';
+    h += '<p><strong>Lloji Pageses:</strong> ' + payLabel + '</p>';
+    h += '<p><strong>Statusi:</strong> ' + (del.paid ? 'Paguar' : 'Papaguar (' + (del.paidAmount || 0) + '/' + total + ')') + '</p>';
+    if (del.note) h += '<p><strong>Shënim:</strong> ' + del.note + '</p>';
+    h += '</div>';
+
+    // Payment history
+    if (del.paymentHistory && del.paymentHistory.length > 0) {
+        h += '<h4 style="margin-top:15px;">Historiku i Pagesave</h4>';
+        h += '<table class="dist-invoice-table"><thead><tr><th>Data</th><th>Shuma</th><th>Metoda</th></tr></thead><tbody>';
+        del.paymentHistory.forEach(function(ph) {
+            h += '<tr><td>' + ph.date + '</td><td>' + ph.amount + ' den</td><td>' + (ph.method === 'bank' ? 'Bankë' : 'Cash') + '</td></tr>';
+        });
+        h += '</tbody></table>';
+    }
+
+    // Action buttons
+    h += '<div style="display:flex;gap:8px;margin-top:15px;flex-wrap:wrap;">';
+    h += '<button class="btn btn-sm" onclick="exportDistInvoiceWord(\'' + deliveryId + '\')"><i class="fas fa-file-word"></i> Word</button>';
+    h += '<button class="btn btn-sm" onclick="exportDistInvoicePDF(\'' + deliveryId + '\')"><i class="fas fa-file-pdf"></i> PDF</button>';
+    h += '<button class="btn btn-sm btn-success" onclick="distSendInvoiceWhatsApp(\'' + deliveryId + '\')"><i class="fab fa-whatsapp"></i> WhatsApp</button>';
+    h += '</div>';
+
+    h += '</div>';
+    openModal('Faturë ' + del.invoiceNum, h);
+}
+
+// ===== INVOICE EXPORTS =====
+// Helper i brendshëm — etiketë shqip për llojin e pagesës së shpërndarjes.
+// Trajton undefined/null pa crash (Bug #13) dhe përdor "Faturë" jo "invoice" (shqipërim i UI-së).
+function _distPayLabel(pt) {
+    pt = pt || 'cash';
+    if (pt === 'cash') return 'Cash';
+    if (pt === 'invoice_30') return 'Faturë 30 ditë';
+    if (pt === 'invoice_60') return 'Faturë 60 ditë';
+    if (pt === 'invoice_90') return 'Faturë 90 ditë';
+    return String(pt).replace('_', ' ');
+}
+
+function exportDistInvoiceWord(deliveryId) {
+    var del = (state.distDeliveries || []).find(function(d) { return d.id === deliveryId; });
+    if (!del) return;
+    var shop = getDistShop(del.shopId);
+    var items = del.items || [];
+    var total = items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+
+    var html = '<html><head><meta charset="utf-8"><style>body{font-family:Arial;padding:30px;}table{width:100%;border-collapse:collapse;margin:15px 0;}th,td{border:1px solid #ddd;padding:8px;text-align:left;}th{background:#e67e22;color:white;}.header{text-align:center;border-bottom:3px solid #e67e22;padding-bottom:15px;margin-bottom:20px;}</style></head><body>';
+    html += '<div class="header"><h1 style="color:#e67e22;">Faturë Shpërndarje</h1><p>Nr: ' + (del.invoiceNum || '-') + ' | Data: ' + (del.date || '-') + '</p></div>';
+    html += '<p><strong>Furnitori:</strong> Faton (via Elez)</p>';
+    html += '<p><strong>Blerësi:</strong> ' + (shop.name || '-') + ' | ' + (shop.address || '') + ' | ' + (shop.phone || '') + '</p>';
+    html += '<table><tr><th>#</th><th>Produkti</th><th>Sasia</th><th>Cmimi</th><th>Totali</th></tr>';
+    items.forEach(function(item, i) {
+        var p = getDistProduct(item.productId);
+        html += '<tr><td>' + (i + 1) + '</td><td>' + p.name + '</td><td>' + item.quantity + '</td><td>' + item.price + ' den</td><td>' + (item.quantity * item.price) + ' den</td></tr>';
+    });
+    html += '<tr style="font-weight:bold;background:#fff3e0;"><td colspan="4">TOTALI</td><td>' + total + ' den</td></tr>';
+    html += '</table>';
+    html += '<p>Pagesa: ' + _distPayLabel(del.paymentType) + '</p>';
+    html += '</body></html>';
+
+    var blob = new Blob(['\ufeff' + html], { type: 'application/msword' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'Fatura_Shperndarje_' + (del.invoiceNum || del.id) + '.doc';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Fatura Word u shkarkua!', 'success');
+}
+
+function exportDistInvoicePDF(deliveryId) {
+    var del = (state.distDeliveries || []).find(function(d) { return d.id === deliveryId; });
+    if (!del) return;
+    var items = del.items || [];
+    var headers = ['#', 'Produkti', 'Sasia', 'Cmimi', 'Totali'];
+    var rows = items.map(function(item, i) {
+        var p = getDistProduct(item.productId);
+        return [i + 1, p.name, item.quantity, item.price + ' den', (item.quantity * item.price) + ' den'];
+    });
+    var total = items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+    rows.push(['', '', '', 'TOTALI', total + ' den']);
+    exportToPDF('Faturë Shpërndarje ' + (del.invoiceNum || '-') + ' (' + (del.date || '-') + ')', headers, rows, 'Fatura_Shperndarje_' + (del.invoiceNum || del.id));
+}
+
+function distSendInvoiceWhatsApp(deliveryId) {
+    var del = (state.distDeliveries || []).find(function(d) { return d.id === deliveryId; });
+    if (!del) return;
+    var shop = getDistShop(del.shopId);
+    var items = del.items || [];
+    var total = items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+    var itemsText = items.map(function(i) { return getDistProduct(i.productId).name + ' x' + i.quantity + ' = ' + (i.quantity * i.price) + ' den'; }).join('\n');
+    var msg = 'Faturë Shpërndarje ' + (del.invoiceNum || '-') + '\nData: ' + (del.date || '-') + '\nDyqani: ' + (shop.name || '-') + '\n\n' + itemsText + '\n\nTOTALI: ' + total + ' den\nPagesa: ' + _distPayLabel(del.paymentType);
+
+    var phone = (shop.phone || '').replace(/[^0-9+]/g, '');
+    if (phone) {
+        window.open('https://wa.me/' + phone.replace('+', '') + '?text=' + encodeURIComponent(msg), '_blank');
+    } else {
+        window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+    }
+}
+
+function distSendDebtReminder(shopId) {
+    var shop = getDistShop(shopId);
+    var debt = 0;
+    var invoices = [];
+    (state.distDeliveries || []).forEach(function(d) {
+        if (d.shopId === shopId && !d.paid) {
+            var total = d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+            var remaining = total - (d.paidAmount || 0);
+            debt += remaining;
+            invoices.push(d.invoiceNum + ': ' + remaining + ' den');
+        }
+    });
+    var msg = 'Përshëndetje ' + (shop.contact || shop.name) + ',\n\nJu kujtojme per borxhin e mbetur:\n' + invoices.join('\n') + '\n\nTotali: ' + debt + ' den\n\nFaleminderit!';
+    var phone = (shop.phone || '').replace(/[^0-9+]/g, '');
+    if (phone) {
+        window.open('https://wa.me/' + phone.replace('+', '') + '?text=' + encodeURIComponent(msg), '_blank');
+    } else {
+        window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+    }
+}
+
+// ===== REPORTS =====
+function distReportDaily() {
+    var today = new Date().toISOString().split('T')[0];
+    var deliveries = (state.distDeliveries || []).filter(function(d) { return d.date === today; });
+    var received = (state.distReceived || []).filter(function(r) { return r.date === today; });
+    var payments = (state.distPayToFaton || []).filter(function(p) { return p.date === today; });
+
+    var h = '<h3>Raporti Ditor - ' + today + '</h3>';
+    h += '<div class="dist-report-summary">';
+    h += '<div class="dist-report-row"><span>Dërgesa sot:</span><strong>' + deliveries.length + '</strong></div>';
+    var todayTotal = deliveries.reduce(function(s, d) { return s + d.items.reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
+    h += '<div class="dist-report-row"><span>Vlera e dërgesave:</span><strong>' + todayTotal + ' den</strong></div>';
+    var todayCash = deliveries.filter(function(d) { return d.paymentType === 'cash'; }).reduce(function(s, d) { return s + d.items.reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
+    h += '<div class="dist-report-row"><span>Cash i mbledhur sot:</span><strong>' + todayCash + ' den</strong></div>';
+    h += '<div class="dist-report-row"><span>Pranim malli sot:</span><strong>' + received.length + ' artikuj</strong></div>';
+    h += '<div class="dist-report-row"><span>Dorezuar Fatonit sot:</span><strong>' + payments.reduce(function(s, p) { return s + p.amount; }, 0) + ' den</strong></div>';
+    h += '</div>';
+
+    h += '<div style="margin-top:15px;display:flex;gap:8px;">';
+    h += '<button class="btn btn-sm" onclick="exportDistReport(\'daily\',\'excel\')"><i class="fas fa-file-excel"></i> Excel</button>';
+    h += '<button class="btn btn-sm" onclick="exportDistReport(\'daily\',\'pdf\')"><i class="fas fa-file-pdf"></i> PDF</button>';
+    h += '<button class="btn btn-sm" onclick="exportDistReport(\'daily\',\'word\')"><i class="fas fa-file-word"></i> Word</button>';
+    h += '</div>';
+
+    openModal('Raporti Ditor', h);
+}
+
+function distReportWeekly() {
+    var today = new Date();
+    var weekAgo = new Date(today);
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    var fromDate = weekAgo.toISOString().split('T')[0];
+    var toDate = today.toISOString().split('T')[0];
+
+    var deliveries = (state.distDeliveries || []).filter(function(d) { return d.date >= fromDate && d.date <= toDate; });
+    var totalDelivered = deliveries.reduce(function(s, d) { return s + d.items.reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
+    var cashCollected = deliveries.filter(function(d) { return d.paid; }).reduce(function(s, d) { return s + d.items.reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
+
+    var h = '<h3>Raporti Javor (' + fromDate + ' - ' + toDate + ')</h3>';
+    h += '<div class="dist-report-summary">';
+    h += '<div class="dist-report-row"><span>Dërgesa:</span><strong>' + deliveries.length + '</strong></div>';
+    h += '<div class="dist-report-row"><span>Vlera totale:</span><strong>' + totalDelivered + ' den</strong></div>';
+    h += '<div class="dist-report-row"><span>Cash i mbledhur:</span><strong>' + cashCollected + ' den</strong></div>';
+    h += '</div>';
+
+    h += '<div style="margin-top:15px;display:flex;gap:8px;">';
+    h += '<button class="btn btn-sm" onclick="exportDistReport(\'weekly\',\'excel\')"><i class="fas fa-file-excel"></i> Excel</button>';
+    h += '<button class="btn btn-sm" onclick="exportDistReport(\'weekly\',\'pdf\')"><i class="fas fa-file-pdf"></i> PDF</button>';
+    h += '<button class="btn btn-sm" onclick="exportDistReport(\'weekly\',\'word\')"><i class="fas fa-file-word"></i> Word</button>';
+    h += '</div>';
+
+    openModal('Raporti Javor', h);
+}
+
+function distReportMonthly() {
+    var today = new Date();
+    var monthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+    var toDate = today.toISOString().split('T')[0];
+
+    var deliveries = (state.distDeliveries || []).filter(function(d) { return d.date >= monthStart && d.date <= toDate; });
+    var received = (state.distReceived || []).filter(function(r) { return r.date >= monthStart && r.date <= toDate; });
+    var totalDelivered = deliveries.reduce(function(s, d) { return s + d.items.reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
+    var totalReceived = received.reduce(function(s, r) { return s + r.quantity * r.price; }, 0);
+
+    var h = '<h3>Raporti Mujor (' + monthStart + ' - ' + toDate + ')</h3>';
+    h += '<div class="dist-report-summary">';
+    h += '<div class="dist-report-row"><span>Mall i pranuar:</span><strong>' + totalReceived + ' den</strong></div>';
+    h += '<div class="dist-report-row"><span>Dërgesa:</span><strong>' + deliveries.length + '</strong></div>';
+    h += '<div class="dist-report-row"><span>Vlera dërgesave:</span><strong>' + totalDelivered + ' den</strong></div>';
+    h += '<div class="dist-report-row"><span>Cash i mbledhur:</span><strong>' + calcDistTotalCashCollected() + ' den</strong></div>';
+    h += '<div class="dist-report-row"><span>Dorezuar Fatonit:</span><strong>' + calcDistGivenToFaton() + ' den</strong></div>';
+    h += '<div class="dist-report-row"><span>Borxhe dyqanesh:</span><strong style="color:#e74c3c;">' + calcDistShopDebts() + ' den</strong></div>';
+    h += '</div>';
+
+    h += '<div style="margin-top:15px;display:flex;gap:8px;">';
+    h += '<button class="btn btn-sm" onclick="exportDistReport(\'monthly\',\'excel\')"><i class="fas fa-file-excel"></i> Excel</button>';
+    h += '<button class="btn btn-sm" onclick="exportDistReport(\'monthly\',\'pdf\')"><i class="fas fa-file-pdf"></i> PDF</button>';
+    h += '<button class="btn btn-sm" onclick="exportDistReport(\'monthly\',\'word\')"><i class="fas fa-file-word"></i> Word</button>';
+    h += '</div>';
+
+    openModal('Raporti Mujor', h);
+}
+
+function distReportPerShop() {
+    var h = '<h3>Raporti sipas Dyqanit</h3>';
+    (state.distShops || []).forEach(function(shop) {
+        var deliveries = (state.distDeliveries || []).filter(function(d) { return d.shopId === shop.id; });
+        var total = deliveries.reduce(function(s, d) { return s + d.items.reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
+        var paid = deliveries.filter(function(d) { return d.paid; }).reduce(function(s, d) { return s + d.items.reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
+        var debt = 0;
+        deliveries.forEach(function(d) { if (!d.paid) { var t = d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0); debt += t - (d.paidAmount || 0); } });
+
+        h += '<div class="dist-report-summary" style="margin-bottom:10px;">';
+        h += '<h4>' + shop.name + '</h4>';
+        h += '<div class="dist-report-row"><span>Dërgesa:</span><strong>' + deliveries.length + '</strong></div>';
+        h += '<div class="dist-report-row"><span>Total:</span><strong>' + total + ' den</strong></div>';
+        h += '<div class="dist-report-row"><span>Paguar:</span><strong style="color:#27ae60;">' + paid + ' den</strong></div>';
+        h += '<div class="dist-report-row"><span>Borxh:</span><strong style="color:#e74c3c;">' + debt + ' den</strong></div>';
+        h += '</div>';
+    });
+    if ((state.distShops || []).length === 0) h += '<p style="color:#999;">Asnjë dyqan.</p>';
+
+    h += '<div style="margin-top:15px;display:flex;gap:8px;">';
+    h += '<button class="btn btn-sm" onclick="exportDistReport(\'pershop\',\'excel\')"><i class="fas fa-file-excel"></i> Excel</button>';
+    h += '<button class="btn btn-sm" onclick="exportDistReport(\'pershop\',\'pdf\')"><i class="fas fa-file-pdf"></i> PDF</button>';
+    h += '</div>';
+
+    openModal('Raporti sipas Dyqanit', h);
+}
+
+function distReportPerProduct() {
+    var h = '<h3>Raporti sipas Produktit</h3>';
+    PRODUCTS.forEach(function(p) {
+        var totalReceived = (state.distReceived || []).filter(function(r) { return r.productId === p.id; }).reduce(function(s, r) { return s + r.quantity; }, 0);
+        var totalDelivered = 0;
+        (state.distDeliveries || []).forEach(function(d) {
+            d.items.forEach(function(item) { if (item.productId === p.id) totalDelivered += item.quantity; });
+        });
+        var inStock = (calcDistStock()[p.id] || 0);
+
+        h += '<div class="dist-report-summary" style="margin-bottom:10px;">';
+        h += '<h4>' + p.name + '</h4>';
+        h += '<div class="dist-report-row"><span>Pranuar:</span><strong>' + totalReceived + '</strong></div>';
+        h += '<div class="dist-report-row"><span>Dorezuar:</span><strong>' + totalDelivered + '</strong></div>';
+        h += '<div class="dist-report-row"><span>Ne stok:</span><strong>' + inStock + '</strong></div>';
+        h += '</div>';
+    });
+
+    h += '<div style="margin-top:15px;display:flex;gap:8px;">';
+    h += '<button class="btn btn-sm" onclick="exportDistReport(\'perproduct\',\'excel\')"><i class="fas fa-file-excel"></i> Excel</button>';
+    h += '<button class="btn btn-sm" onclick="exportDistReport(\'perproduct\',\'pdf\')"><i class="fas fa-file-pdf"></i> PDF</button>';
+    h += '</div>';
+
+    openModal('Raporti sipas Produktit', h);
+}
+
+function distReportFinancial() {
+    var cashCollected = calcDistTotalCashCollected();
+    var givenToFaton = calcDistGivenToFaton();
+    var shopDebts = calcDistShopDebts();
+    var overdueDebts = calcDistOverdueDebts();
+    var totalReceived = (state.distReceived || []).reduce(function(s, r) { return s + r.quantity * r.price; }, 0);
+    var totalDelivered = (state.distDeliveries || []).reduce(function(s, d) { return s + d.items.reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
+
+    var h = '<h3>Permbledhje Financiare</h3>';
+    h += '<div class="dist-report-summary">';
+    h += '<div class="dist-report-row"><span>Mall i pranuar (vlera):</span><strong>' + totalReceived + ' den</strong></div>';
+    h += '<div class="dist-report-row"><span>Mall i dorezuar (vlera):</span><strong>' + totalDelivered + ' den</strong></div>';
+    h += '<div class="dist-report-row" style="border-top:2px solid #e67e22;padding-top:10px;margin-top:10px;"><span>Cash i mbledhur total:</span><strong>' + cashCollected + ' den</strong></div>';
+    h += '<div class="dist-report-row"><span>Dorezuar Fatonit:</span><strong>' + givenToFaton + ' den</strong></div>';
+    h += '<div class="dist-report-row"><span>Cash gati per dorezim:</span><strong style="color:#e67e22;">' + (cashCollected - givenToFaton) + ' den</strong></div>';
+    h += '<div class="dist-report-row" style="border-top:2px solid #e74c3c;padding-top:10px;margin-top:10px;"><span>Borxhe dyqanesh total:</span><strong style="color:#e74c3c;">' + shopDebts + ' den</strong></div>';
+    h += '<div class="dist-report-row"><span>Borxhe te vonuara:</span><strong style="color:#c0392b;">' + overdueDebts + ' den</strong></div>';
+    h += '</div>';
+
+    h += '<div style="margin-top:15px;display:flex;gap:8px;">';
+    h += '<button class="btn btn-sm" onclick="exportDistReport(\'financial\',\'excel\')"><i class="fas fa-file-excel"></i> Excel</button>';
+    h += '<button class="btn btn-sm" onclick="exportDistReport(\'financial\',\'pdf\')"><i class="fas fa-file-pdf"></i> PDF</button>';
+    h += '<button class="btn btn-sm" onclick="exportDistReport(\'financial\',\'word\')"><i class="fas fa-file-word"></i> Word</button>';
+    h += '</div>';
+
+    openModal('Permbledhje Financiare', h);
+}
+
+function distWhatsAppReport() {
+    var cashCollected = calcDistTotalCashCollected();
+    var givenToFaton = calcDistGivenToFaton();
+    var shopDebts = calcDistShopDebts();
+    var today = new Date().toISOString().split('T')[0];
+
+    var msg = 'Raport Shpërndarje - ' + today + '\n\n';
+    msg += 'Cash i mbledhur: ' + cashCollected + ' den\n';
+    msg += 'Dorezuar ty: ' + givenToFaton + ' den\n';
+    msg += 'Cash gati: ' + (cashCollected - givenToFaton) + ' den\n';
+    msg += 'Borxhe dyqanesh: ' + shopDebts + ' den\n\n';
+
+    // Stock summary
+    var stock = calcDistStock();
+    msg += 'Stoku:\n';
+    PRODUCTS.forEach(function(p) {
+        var qty = stock[p.id] || 0;
+        if (qty > 0) msg += '- ' + p.name + ': ' + qty + '\n';
+    });
+
+    window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+    showToast('WhatsApp u hap per dergim raporti', 'success');
+}
+
+// ===== EXPORT FUNCTIONS =====
+function exportDistribution(format) {
+    var deliveries = (state.distDeliveries || []);
+    var headers = ['Nr.', 'Data', 'Dyqani', 'Produkte', 'Totali', 'Pagesa', 'Statusi', 'Paguar'];
+    var rows = deliveries.map(function(d) {
+        var shop = getDistShop(d.shopId);
+        var total = (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+        var itemsStr = (d.items || []).map(function(i) { return getDistProduct(i.productId).name + ' x' + i.quantity; }).join(', ');
+        // Etiketa e pagesës: trajto undefined/null pa crash, përdor shqip "Faturë" jo anglisht "invoice"
+        var pt = d.paymentType || 'cash';
+        var payLabel;
+        if (pt === 'cash') payLabel = 'Cash';
+        else if (pt === 'invoice_30') payLabel = 'Faturë 30 ditë';
+        else if (pt === 'invoice_60') payLabel = 'Faturë 60 ditë';
+        else if (pt === 'invoice_90') payLabel = 'Faturë 90 ditë';
+        else payLabel = String(pt).replace('_', ' ');
+        return [
+            d.invoiceNum || '-',
+            d.date || '-',
+            shop.name || '-',
+            itemsStr || '-',
+            total + ' den',
+            payLabel,
+            d.paid ? 'Paguar' : 'Papaguar',
+            (d.paidAmount || 0) + ' den'
+        ];
+    });
+
+    if (format === 'excel') {
+        exportToExcel(headers, rows, 'Shperndarja_Fatoni');
+    } else if (format === 'pdf') {
+        exportToPDF('Shpërndarja Fatoni - Dërgesat', headers, rows, 'Shperndarja_Fatoni', 'landscape');
+    } else if (format === 'word') {
+        exportToWord('Shpërndarja Fatoni - Dërgesat', headers, rows, 'Shperndarja_Fatoni');
+    }
+}
+
+function exportDistReport(type, format) {
+    var headers, rows, title;
+    var today = new Date().toISOString().split('T')[0];
+
+    if (type === 'daily') {
+        title = 'Raporti Ditor - ' + today;
+        headers = ['Nr.', 'Dyqani', 'Produkte', 'Totali', 'Pagesa'];
+        rows = (state.distDeliveries || []).filter(function(d) { return d.date === today; }).map(function(d) {
+            var shop = getDistShop(d.shopId);
+            var total = d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+            var itemsStr = d.items.map(function(i) { return getDistProduct(i.productId).name + ' x' + i.quantity; }).join(', ');
+            return [d.invoiceNum, shop.name, itemsStr, total + ' den', d.paymentType === 'cash' ? 'Cash' : 'Faturë'];
+        });
+    } else if (type === 'weekly' || type === 'monthly') {
+        var fromDate;
+        if (type === 'weekly') {
+            var weekAgo = new Date();
+            weekAgo.setDate(weekAgo.getDate() - 7);
+            fromDate = weekAgo.toISOString().split('T')[0];
+            title = 'Raporti Javor';
+        } else {
+            fromDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+            title = 'Raporti Mujor';
+        }
+        headers = ['Nr.', 'Data', 'Dyqani', 'Totali', 'Pagesa', 'Statusi'];
+        rows = (state.distDeliveries || []).filter(function(d) { return d.date >= fromDate && d.date <= today; }).map(function(d) {
+            var shop = getDistShop(d.shopId);
+            var total = d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+            return [d.invoiceNum, d.date, shop.name, total + ' den', d.paymentType === 'cash' ? 'Cash' : 'Faturë', d.paid ? 'Paguar' : 'Papaguar'];
+        });
+    } else if (type === 'pershop') {
+        title = 'Raporti sipas Dyqanit';
+        headers = ['Dyqani', 'Dërgesa', 'Total', 'Paguar', 'Borxh'];
+        rows = (state.distShops || []).map(function(shop) {
+            var deliveries = (state.distDeliveries || []).filter(function(d) { return d.shopId === shop.id; });
+            var total = deliveries.reduce(function(s, d) { return s + d.items.reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
+            var paid = 0;
+            deliveries.forEach(function(d) { paid += (d.paidAmount || 0); });
+            return [shop.name, deliveries.length, total + ' den', paid + ' den', (total - paid) + ' den'];
+        });
+    } else if (type === 'perproduct') {
+        title = 'Raporti sipas Produktit';
+        headers = ['Produkti', 'Pranuar', 'Dorezuar', 'Ne Stok'];
+        var stock = calcDistStock();
+        rows = PRODUCTS.map(function(p) {
+            var totalReceived = (state.distReceived || []).filter(function(r) { return r.productId === p.id; }).reduce(function(s, r) { return s + r.quantity; }, 0);
+            var totalDelivered = 0;
+            (state.distDeliveries || []).forEach(function(d) { d.items.forEach(function(item) { if (item.productId === p.id) totalDelivered += item.quantity; }); });
+            return [p.name, totalReceived, totalDelivered, stock[p.id] || 0];
+        });
+    } else if (type === 'financial') {
+        title = 'Permbledhje Financiare';
+        headers = ['Zëri', 'Vlera'];
+        var cashCollected = calcDistTotalCashCollected();
+        var givenToFaton = calcDistGivenToFaton();
+        rows = [
+            ['Mall i pranuar', (state.distReceived || []).reduce(function(s, r) { return s + r.quantity * r.price; }, 0) + ' den'],
+            ['Mall i dorezuar', (state.distDeliveries || []).reduce(function(s, d) { return s + d.items.reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0) + ' den'],
+            ['Cash i mbledhur', cashCollected + ' den'],
+            ['Dorezuar Fatonit', givenToFaton + ' den'],
+            ['Cash gati', (cashCollected - givenToFaton) + ' den'],
+            ['Borxhe dyqanesh', calcDistShopDebts() + ' den'],
+            ['Borxhe te vonuara', calcDistOverdueDebts() + ' den']
+        ];
+    }
+
+    if (format === 'excel') exportToExcel(headers, rows, 'Dist_' + type);
+    else if (format === 'pdf') exportToPDF(title, headers, rows, 'Dist_' + type);
+    else if (format === 'word') exportToWord(title, headers, rows, 'Dist_' + type);
+}
+
+// ===================== DISTRIBUTION IMPROVEMENTS (30 features) =====================
+
+// #1,#2 Cross-tab helper: log cash collected
+function distCrossTabCashCollected(amount, note) {
+    if (!state.distCashLog) state.distCashLog = [];
+    state.distCashLog.push({
+        id: 'dcl_' + Date.now(),
+        date: new Date().toISOString().split('T')[0],
+        amount: amount,
+        note: note
+    });
+}
+
+// #5 Dashboard widget for distribution summary
+function renderDistDashboardWidget() {
+    var widget = document.getElementById('dist-dashboard-widget');
+    if (!widget) return;
+    try {
+        var cashReady = calcDistCashReady();
+        var overdueDebts = calcDistOverdueDebts();
+        var shopDebts = calcDistShopDebts();
+        var unpaidCount = (state.distDeliveries || []).filter(function(d) { return !d.paid; }).length;
+        var todayDel = (state.distDeliveries || []).filter(function(d) { return d.date === new Date().toISOString().split('T')[0]; }).length;
+
+        var h = '<div class="dist-dashboard-widget-box" onclick="navigateTo(\'distribution\')" style="cursor:pointer;">';
+        h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">';
+        h += '<h3 style="margin:0;"><i class="fas fa-truck" style="color:#e67e22;"></i> Shpërndarja Fatoni</h3>';
+        h += '<button class="btn btn-sm" style="background:#e67e22;color:white;" onclick="event.stopPropagation();navigateTo(\'distribution\')">Hape</button>';
+        h += '</div>';
+        h += '<div class="stats-grid" style="margin:0;">';
+        h += '<div class="stat-card"><i class="fas fa-money-bill-wave" style="color:#27ae60;"></i><div><h3>Cash gati</h3><p style="color:#e67e22;font-weight:bold;">' + cashReady + ' den</p></div></div>';
+        h += '<div class="stat-card"><i class="fas fa-truck" style="color:#3498db;"></i><div><h3>Dërgesa sot</h3><p>' + todayDel + '</p></div></div>';
+        h += '<div class="stat-card"><i class="fas fa-file-invoice-dollar" style="color:#e74c3c;"></i><div><h3>Papaguara</h3><p>' + unpaidCount + '</p></div></div>';
+        if (overdueDebts > 0) {
+            h += '<div class="stat-card" style="border-left:3px solid #e74c3c;"><i class="fas fa-exclamation-triangle" style="color:#e74c3c;"></i><div><h3>Borxhe vonuara</h3><p style="color:#e74c3c;">' + overdueDebts + ' den</p></div></div>';
+        }
+        h += '</div>';
+        h += '</div>';
+        widget.innerHTML = h;
+    } catch(e) {
+        widget.innerHTML = '';
+    }
+}
+
+// #6 Shop 360 Profile
+function openDistShop360(shopId) {
+    var shop = getDistShop(shopId);
+    if (!shop || shop.name === 'N/A') { showToast('Dyqani nuk u gjet', 'error'); return; }
+
+    var deliveries = (state.distDeliveries || []).filter(function(d) { return d.shopId === shopId; });
+    var totalBought = 0;
+    var totalPaid = 0;
+    var purchaseHistory = {};
+
+    deliveries.forEach(function(d) {
+        var total = d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+        totalBought += total;
+        totalPaid += (d.paidAmount || 0);
+        var month = d.date.substring(0, 7);
+        purchaseHistory[month] = (purchaseHistory[month] || 0) + total;
+    });
+
+    var debt = totalBought - totalPaid;
+    var paidCount = deliveries.filter(function(d) { return d.paid; }).length;
+    var unpaidCount = deliveries.length - paidCount;
+
+    var h = '<div class="dist-shop-360">';
+    h += '<div class="dist-shop-360-header">';
+    h += '<h2><i class="fas fa-store"></i> ' + shop.name + '</h2>';
+    h += '<div class="dist-shop-360-info">';
+    if (shop.address) h += '<p><i class="fas fa-map-marker-alt"></i> ' + shop.address + '</p>';
+    if (shop.phone) h += '<p><i class="fas fa-phone"></i> ' + shop.phone + ' <a href="tel:' + shop.phone + '" class="dist-contact-icon"><i class="fas fa-phone-alt"></i></a> <a href="https://wa.me/' + shop.phone.replace(/[^0-9]/g, '') + '" target="_blank" class="dist-contact-icon" style="color:#25d366;"><i class="fab fa-whatsapp"></i></a></p>';
+    if (shop.contact) h += '<p><i class="fas fa-user"></i> ' + shop.contact + '</p>';
+    if (shop.category) h += '<p><i class="fas fa-tag"></i> ' + shop.category + '</p>';
+    h += '</div></div>';
+
+    // Summary cards
+    h += '<div class="dist-cards-grid" style="margin:15px 0;">';
+    h += '<div class="dist-card"><div class="dist-card-label">Total Blerjesh</div><div class="dist-card-value">' + totalBought + ' den</div></div>';
+    h += '<div class="dist-card"><div class="dist-card-label">Total Paguar</div><div class="dist-card-value">' + totalPaid + ' den</div></div>';
+    h += '<div class="dist-card' + (debt > 0 ? ' dist-card-warn' : '') + '"><div class="dist-card-label">Borxhi</div><div class="dist-card-value">' + debt + ' den</div></div>';
+    h += '<div class="dist-card"><div class="dist-card-label">Nr. Dërgesave</div><div class="dist-card-value">' + deliveries.length + '</div></div>';
+    h += '</div>';
+
+    // Purchase history chart (simple bar chart using divs)
+    var months = Object.keys(purchaseHistory).sort();
+    if (months.length > 0) {
+        var maxVal = Math.max.apply(null, months.map(function(m) { return purchaseHistory[m]; }));
+        h += '<h4 style="margin:15px 0 10px;">Grafiku i Blerjeve</h4>';
+        h += '<div class="dist-simple-chart">';
+        months.forEach(function(m) {
+            var pct = maxVal > 0 ? Math.round(purchaseHistory[m] / maxVal * 100) : 0;
+            h += '<div class="dist-chart-bar-container"><div class="dist-chart-bar" style="height:' + pct + '%;"></div><small>' + m.substring(5) + '</small></div>';
+        });
+        h += '</div>';
+    }
+
+    // Delivery history table
+    h += '<h4 style="margin:15px 0 10px;">Historiku i Dërgesave</h4>';
+    h += '<div class="table-container"><table class="dist-table"><thead><tr>';
+    h += '<th>Nr.</th><th>Data</th><th>Produkte</th><th>Totali</th><th>Statusi</th>';
+    h += '</tr></thead><tbody>';
+    deliveries.sort(function(a, b) { return b.date.localeCompare(a.date); }).forEach(function(d) {
+        var total = d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+        var itemsStr = d.items.map(function(i) { return getDistProduct(i.productId).name + ' x' + i.quantity; }).join(', ');
+        var statusClass = d.paid ? 'dist-badge-paid' : (d.paidAmount > 0 ? 'dist-badge-partial' : 'dist-badge-unpaid');
+        var statusText = d.paid ? 'Paguar' : (d.paidAmount > 0 ? 'Pjesërisht (' + d.paidAmount + '/' + total + ')' : 'Papaguar');
+        h += '<tr class="' + (d.paid ? 'dist-row-paid' : (d.paidAmount > 0 ? 'dist-row-partial' : 'dist-row-unpaid')) + '">';
+        h += '<td>' + (d.invoiceNum || '-') + '</td><td>' + d.date + '</td><td>' + itemsStr + '</td>';
+        h += '<td><strong>' + total + ' den</strong></td>';
+        h += '<td><span class="dist-badge ' + statusClass + '">' + statusText + '</span></td>';
+        h += '</tr>';
+    });
+    h += '</tbody></table></div>';
+
+    // Payment history
+    var allPayments = [];
+    deliveries.forEach(function(d) {
+        (d.paymentHistory || []).forEach(function(ph) {
+            allPayments.push({ date: ph.date, amount: ph.amount, method: ph.method, invoice: d.invoiceNum });
+        });
+    });
+    if (allPayments.length > 0) {
+        h += '<h4 style="margin:15px 0 10px;">Historiku i Pagesave</h4>';
+        h += '<div class="table-container"><table class="dist-table"><thead><tr>';
+        h += '<th>Data</th><th>Shuma</th><th>Metoda</th><th>Fatura</th>';
+        h += '</tr></thead><tbody>';
+        allPayments.sort(function(a, b) { return b.date.localeCompare(a.date); }).forEach(function(p) {
+            h += '<tr><td>' + p.date + '</td><td>' + p.amount + ' den</td><td>' + (p.method === 'bank' ? 'Bankë' : 'Cash') + '</td><td>' + (p.invoice || '-') + '</td></tr>';
+        });
+        h += '</tbody></table></div>';
+    }
+
+    h += '</div>';
+    openModal('Profili 360 - ' + shop.name, h);
+}
+
+// #7 Enhanced partial payment - show history modal for delivery
+function openDistPaymentHistory(deliveryId) {
+    var del = (state.distDeliveries || []).find(function(d) { return d.id === deliveryId; });
+    if (!del) return;
+    var total = del.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+    var h = '<h4>Fatura: ' + del.invoiceNum + '</h4>';
+    h += '<p>Totali: <strong>' + total + ' den</strong> | Paguar: <strong>' + (del.paidAmount || 0) + ' den</strong> | Mbetur: <strong>' + (total - (del.paidAmount || 0)) + ' den</strong></p>';
+
+    if (del.paymentHistory && del.paymentHistory.length > 0) {
+        h += '<table class="dist-table"><thead><tr><th>Data</th><th>Shuma</th><th>Metoda</th></tr></thead><tbody>';
+        del.paymentHistory.forEach(function(ph) {
+            h += '<tr><td>' + ph.date + '</td><td>' + ph.amount + ' den</td><td>' + (ph.method === 'bank' ? 'Bankë' : 'Cash') + '</td></tr>';
+        });
+        h += '</tbody></table>';
+    } else {
+        h += '<p style="color:#999;">Asnjë pagesë ende.</p>';
+    }
+
+    if (!del.paid) {
+        h += '<hr><button class="btn dist-btn-collect" onclick="closeModal();openDistCollectPaymentModal(\'' + deliveryId + '\');" style="width:100%;margin-top:10px;"><i class="fas fa-money-bill"></i> Shto Pagesë te Re</button>';
+    }
+    openModal('Historiku i Pagesave', h);
+}
+
+// #8 Daily Route
+function openDistDailyRoute() {
+    var today = new Date().toISOString().split('T')[0];
+    var todayDeliveries = (state.distDeliveries || []).filter(function(d) { return d.date === today; });
+
+    var h = '<h3><i class="fas fa-route"></i> Plani i ditës - ' + today + '</h3>';
+
+    if (todayDeliveries.length === 0) {
+        h += '<p style="color:#999;padding:20px;">Asnjë dërgesë per sot.</p>';
+    } else {
+        // Group by shop
+        var shopGroups = {};
+        todayDeliveries.forEach(function(d) {
+            if (!shopGroups[d.shopId]) shopGroups[d.shopId] = [];
+            shopGroups[d.shopId].push(d);
+        });
+
+        h += '<div class="dist-route-list">';
+        var idx = 1;
+        Object.keys(shopGroups).forEach(function(shopId) {
+            var shop = getDistShop(shopId);
+            var deliveries = shopGroups[shopId];
+            var allPaid = deliveries.every(function(d) { return d.paid; });
+
+            h += '<div class="dist-route-item' + (allPaid ? ' dist-route-done' : '') + '">';
+            h += '<div class="dist-route-number">' + idx + '</div>';
+            h += '<div class="dist-route-details">';
+            h += '<strong>' + shop.name + '</strong>';
+            if (shop.address) h += ' <small>(' + shop.address + ')</small>';
+            h += '<div style="margin-top:5px;">';
+            deliveries.forEach(function(d) {
+                var total = d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+                var itemsStr = d.items.map(function(i) { return getDistProduct(i.productId).name + ' x' + i.quantity; }).join(', ');
+                h += '<div style="font-size:0.9em;margin:3px 0;"><span class="dist-badge ' + (d.paid ? 'dist-badge-paid' : 'dist-badge-unpaid') + '">' + d.invoiceNum + '</span> ' + itemsStr + ' = ' + total + ' den</div>';
+            });
+            h += '</div></div>';
+            h += '<div class="dist-route-actions">';
+            if (shop.phone) {
+                h += '<a href="tel:' + shop.phone + '" class="btn btn-sm"><i class="fas fa-phone"></i></a> ';
+                h += '<a href="https://wa.me/' + shop.phone.replace(/[^0-9]/g, '') + '" target="_blank" class="btn btn-sm" style="background:#25d366;color:white;"><i class="fab fa-whatsapp"></i></a>';
+            }
+            h += '</div>';
+            h += '</div>';
+            idx++;
+        });
+        h += '</div>';
+    }
+
+    // Add new delivery button
+    h += '<button class="btn dist-btn-deliver" onclick="closeModal();openDistDeliveryModal();" style="width:100%;margin-top:15px;"><i class="fas fa-plus"></i> Shto Dërgesë te Re</button>';
+    openModal('Plani i ditës', h);
+}
+
+// #9 Calendar View
+function openDistCalendarView() {
+    var now = new Date();
+    var year = now.getFullYear();
+    var month = now.getMonth();
+    var firstDay = new Date(year, month, 1).getDay();
+    var daysInMonth = new Date(year, month + 1, 0).getDate();
+    var monthNames = ['Janar', 'Shkurt', 'Mars', 'Prill', 'Maj', 'Qershor', 'Korrik', 'Gusht', 'Shtator', 'Tetor', 'Nëntor', 'Dhjetor'];
+
+    // Count deliveries per day
+    var dayCounts = {};
+    (state.distDeliveries || []).forEach(function(d) {
+        if (d.date.startsWith(year + '-' + String(month + 1).padStart(2, '0'))) {
+            var day = parseInt(d.date.split('-')[2]);
+            dayCounts[day] = (dayCounts[day] || 0) + 1;
+        }
+    });
+
+    var h = '<h3><i class="fas fa-calendar-alt"></i> Kalendari - ' + monthNames[month] + ' ' + year + '</h3>';
+    h += '<div class="dist-calendar">';
+    h += '<div class="dist-cal-header"><div>Hën</div><div>Mar</div><div>Mër</div><div>Enj</div><div>Pre</div><div>Sht</div><div>Dje</div></div>';
+    h += '<div class="dist-cal-body">';
+
+    // Adjust for Monday start
+    var startDay = (firstDay === 0 ? 6 : firstDay - 1);
+    for (var i = 0; i < startDay; i++) h += '<div class="dist-cal-cell dist-cal-empty"></div>';
+
+    var today = now.getDate();
+    for (var d = 1; d <= daysInMonth; d++) {
+        var count = dayCounts[d] || 0;
+        var isToday = d === today ? ' dist-cal-today' : '';
+        var hasDelivery = count > 0 ? ' dist-cal-has-delivery' : '';
+        h += '<div class="dist-cal-cell' + isToday + hasDelivery + '">';
+        h += '<span class="dist-cal-day">' + d + '</span>';
+        if (count > 0) h += '<span class="dist-cal-count">' + count + '</span>';
+        h += '</div>';
+    }
+    h += '</div></div>';
+    openModal('Kalendar Dërgesash', h);
+}
+
+// #10 Quick Search
+function distFilterSearch(query) {
+    if (!query) {
+        var rows = document.querySelectorAll('.dist-table tbody tr');
+        rows.forEach(function(row) { row.style.display = ''; });
+        return;
+    }
+    query = query.toLowerCase();
+    var rows = document.querySelectorAll('.dist-table tbody tr');
+    rows.forEach(function(row) {
+        var text = row.textContent.toLowerCase();
+        row.style.display = text.indexOf(query) >= 0 ? '' : 'none';
+    });
+}
+
+// #12 Helper: Get overdue shop list
+function distGetOverdueShopList() {
+    var today = new Date();
+    var shops = {};
+    (state.distDeliveries || []).forEach(function(d) {
+        if (d.paid) return;
+        var days = 0;
+        if (d.paymentType === 'invoice_30') days = 30;
+        else if (d.paymentType === 'invoice_60') days = 60;
+        else if (d.paymentType === 'invoice_90') days = 90;
+        else return;
+        var dueDate = new Date(d.date);
+        dueDate.setDate(dueDate.getDate() + days);
+        if (today > dueDate) {
+            var shop = getDistShop(d.shopId);
+            shops[d.shopId] = shop.name;
+        }
+    });
+    return Object.values(shops);
+}
+
+// #15 Distribution alert on main dashboard
+function distCheckDashboardAlerts() {
+    try {
+        var overdueDebts = calcDistOverdueDebts();
+        var widget = document.getElementById('dist-dashboard-widget');
+        if (widget && overdueDebts > 0) {
+            var alertDiv = widget.querySelector('.dist-dashboard-alert');
+            if (!alertDiv) {
+                alertDiv = document.createElement('div');
+                alertDiv.className = 'dist-dashboard-alert';
+                widget.appendChild(alertDiv);
+            }
+            alertDiv.innerHTML = '<div class="dist-alarm-banner dist-alarm-overdue" style="margin-top:8px;"><i class="fas fa-exclamation-triangle"></i> Shpërndarja: Borxhe te vonuara <strong>' + overdueDebts + ' den</strong> <button class="btn btn-sm" onclick="navigateTo(\'distribution\')" style="margin-left:8px;">Shiko</button></div>';
+        }
+    } catch(e) {}
+}
+
+// #16 Comparison Report
+function distReportComparison() {
+    var now = new Date();
+    var thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    var thisMonthEnd = now.toISOString().split('T')[0];
+    var lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split('T')[0];
+    var lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0];
+
+    var thisDeliveries = (state.distDeliveries || []).filter(function(d) { return d.date >= thisMonthStart && d.date <= thisMonthEnd; });
+    var lastDeliveries = (state.distDeliveries || []).filter(function(d) { return d.date >= lastMonthStart && d.date <= lastMonthEnd; });
+
+    var thisTotal = thisDeliveries.reduce(function(s, d) { return s + d.items.reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
+    var lastTotal = lastDeliveries.reduce(function(s, d) { return s + d.items.reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
+
+    var thisCash = thisDeliveries.filter(function(d) { return d.paid; }).reduce(function(s, d) { return s + (d.paidAmount || 0); }, 0);
+    var lastCash = lastDeliveries.filter(function(d) { return d.paid; }).reduce(function(s, d) { return s + (d.paidAmount || 0); }, 0);
+
+    var changeTotal = lastTotal > 0 ? Math.round(((thisTotal - lastTotal) / lastTotal) * 100) : 0;
+    var changeDel = lastDeliveries.length > 0 ? Math.round(((thisDeliveries.length - lastDeliveries.length) / lastDeliveries.length) * 100) : 0;
+
+    var h = '<h3>Krahasim: Ky Muaj vs Muaji Kaluar</h3>';
+    h += '<div class="dist-report-summary" style="margin-bottom:15px;">';
+    h += '<h4>Ky muaj (' + thisMonthStart + ' - ' + thisMonthEnd + ')</h4>';
+    h += '<div class="dist-report-row"><span>Dërgesa:</span><strong>' + thisDeliveries.length + '</strong></div>';
+    h += '<div class="dist-report-row"><span>Vlera:</span><strong>' + thisTotal + ' den</strong></div>';
+    h += '<div class="dist-report-row"><span>Cash mbledhur:</span><strong>' + thisCash + ' den</strong></div>';
+    h += '</div>';
+
+    h += '<div class="dist-report-summary" style="margin-bottom:15px;">';
+    h += '<h4>Muaji kaluar (' + lastMonthStart + ' - ' + lastMonthEnd + ')</h4>';
+    h += '<div class="dist-report-row"><span>Dërgesa:</span><strong>' + lastDeliveries.length + '</strong></div>';
+    h += '<div class="dist-report-row"><span>Vlera:</span><strong>' + lastTotal + ' den</strong></div>';
+    h += '<div class="dist-report-row"><span>Cash mbledhur:</span><strong>' + lastCash + ' den</strong></div>';
+    h += '</div>';
+
+    h += '<div class="dist-report-summary">';
+    h += '<h4>Ndryshimi</h4>';
+    h += '<div class="dist-report-row"><span>Dërgesa:</span><strong style="color:' + (changeDel >= 0 ? '#27ae60' : '#e74c3c') + ';">' + (changeDel >= 0 ? '+' : '') + changeDel + '%</strong></div>';
+    h += '<div class="dist-report-row"><span>Vlera:</span><strong style="color:' + (changeTotal >= 0 ? '#27ae60' : '#e74c3c') + ';">' + (changeTotal >= 0 ? '+' : '') + changeTotal + '%</strong></div>';
+    h += '</div>';
+
+    h += '<div style="margin-top:15px;display:flex;gap:8px;">';
+    h += '<button class="btn btn-sm" onclick="exportDistReport(\'financial\',\'pdf\')"><i class="fas fa-file-pdf"></i> PDF</button>';
+    h += '</div>';
+    openModal('Krahasim Mujor', h);
+}
+
+// #17 Top Shops Report
+function distReportTopShops() {
+    var shopTotals = {};
+    (state.distDeliveries || []).forEach(function(d) {
+        var total = d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+        shopTotals[d.shopId] = (shopTotals[d.shopId] || 0) + total;
+    });
+
+    var sorted = Object.keys(shopTotals).sort(function(a, b) { return shopTotals[b] - shopTotals[a]; });
+    var maxVal = sorted.length > 0 ? shopTotals[sorted[0]] : 1;
+
+    var h = '<h3><i class="fas fa-trophy"></i> Top Dyqanet sipas Blerjeve</h3>';
+    if (sorted.length === 0) {
+        h += '<p style="color:#999;">Asnjë te dhënë.</p>';
+    } else {
+        h += '<div class="dist-top-shops-list">';
+        sorted.forEach(function(shopId, idx) {
+            var shop = getDistShop(shopId);
+            var pct = Math.round(shopTotals[shopId] / maxVal * 100);
+            var medal = idx === 0 ? ' style="color:gold;"' : idx === 1 ? ' style="color:silver;"' : idx === 2 ? ' style="color:#cd7f32;"' : '';
+            h += '<div class="dist-top-shop-item">';
+            h += '<span class="dist-top-rank"' + medal + '>#' + (idx + 1) + '</span>';
+            h += '<span class="dist-top-name dist-shop-link" onclick="openDistShop360(\'' + shopId + '\')">' + shop.name + '</span>';
+            h += '<div class="dist-top-bar-bg"><div class="dist-top-bar-fill" style="width:' + pct + '%;"></div></div>';
+            h += '<strong>' + shopTotals[shopId] + ' den</strong>';
+            h += '</div>';
+        });
+        h += '</div>';
+    }
+    openModal('Top Dyqanet', h);
+}
+
+// #18 Cash Flow Chart
+function distReportCashFlow() {
+    var h = '<h3><i class="fas fa-chart-line"></i> Cash Flow - 30 ditët e fundit</h3>';
+
+    var days = [];
+    var now = new Date();
+    for (var i = 29; i >= 0; i--) {
+        var d = new Date(now);
+        d.setDate(d.getDate() - i);
+        days.push(d.toISOString().split('T')[0]);
+    }
+
+    var maxVal = 1;
+    var dayData = days.map(function(day) {
+        var cashIn = 0;
+        var cashOut = 0;
+        (state.distDeliveries || []).forEach(function(d) {
+            if (d.date === day && d.paymentType === 'cash' && d.paid) {
+                cashIn += d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+            }
+            (d.paymentHistory || []).forEach(function(ph) {
+                if (ph.date === day) cashIn += ph.amount;
+            });
+        });
+        (state.distPayToFaton || []).forEach(function(p) {
+            if (p.date === day) cashOut += p.amount;
+        });
+        if (cashIn > maxVal) maxVal = cashIn;
+        if (cashOut > maxVal) maxVal = cashOut;
+        return { day: day, cashIn: cashIn, cashOut: cashOut };
+    });
+
+    h += '<div class="dist-cashflow-chart">';
+    dayData.forEach(function(dd) {
+        var inPct = maxVal > 0 ? Math.round(dd.cashIn / maxVal * 80) : 0;
+        var outPct = maxVal > 0 ? Math.round(dd.cashOut / maxVal * 80) : 0;
+        h += '<div class="dist-cf-day" title="' + dd.day + '\nHyrje: ' + dd.cashIn + ' den\nDalje: ' + dd.cashOut + ' den">';
+        h += '<div class="dist-cf-bars">';
+        h += '<div class="dist-cf-bar-in" style="height:' + inPct + '%;"></div>';
+        h += '<div class="dist-cf-bar-out" style="height:' + outPct + '%;"></div>';
+        h += '</div>';
+        h += '<small>' + dd.day.substring(8) + '</small>';
+        h += '</div>';
+    });
+    h += '</div>';
+    h += '<div style="margin-top:10px;display:flex;gap:15px;font-size:0.85em;">';
+    h += '<span><span style="display:inline-block;width:12px;height:12px;background:#27ae60;border-radius:2px;margin-right:4px;"></span>Hyrje (cash)</span>';
+    h += '<span><span style="display:inline-block;width:12px;height:12px;background:#e74c3c;border-radius:2px;margin-right:4px;"></span>Dalje (Fatonit)</span>';
+    h += '</div>';
+
+    openModal('Cash Flow', h);
+}
+
+// #19 Detailed PDF Report
+function distReportDetailedPDF() {
+    var cashCollected = calcDistTotalCashCollected();
+    var givenToFaton = calcDistGivenToFaton();
+    var shopDebts = calcDistShopDebts();
+    var overdueDebts = calcDistOverdueDebts();
+    var totalReceived = (state.distReceived || []).reduce(function(s, r) { return s + r.quantity * r.price; }, 0);
+    var totalDelivered = (state.distDeliveries || []).reduce(function(s, d) { return s + d.items.reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
+
+    var headers = ['Zëri', 'Vlera'];
+    var rows = [
+        ['Mall i pranuar (vlera)', totalReceived + ' den'],
+        ['Mall i dorezuar (vlera)', totalDelivered + ' den'],
+        ['Nr. dërgesave total', (state.distDeliveries || []).length],
+        ['Nr. dyqaneve', (state.distShops || []).length],
+        ['Cash i mbledhur', cashCollected + ' den'],
+        ['Dorezuar Fatonit', givenToFaton + ' den'],
+        ['Cash gati per dorezim', (cashCollected - givenToFaton) + ' den'],
+        ['Borxhe dyqanesh', shopDebts + ' den'],
+        ['Borxhe te vonuara', overdueDebts + ' den'],
+        ['---', '---'],
+        ['STOKU AKTUAL', ''],
+    ];
+
+    var stock = calcDistStock();
+    PRODUCTS.forEach(function(p) {
+        var qty = stock[p.id] || 0;
+        rows.push([p.name, qty + ' njësi (' + (qty * p.buyPrice) + ' den)']);
+    });
+
+    rows.push(['---', '---']);
+    rows.push(['BORXHET SIPAS DYQANIT', '']);
+    (state.distShops || []).forEach(function(shop) {
+        var debt = 0;
+        (state.distDeliveries || []).forEach(function(d) {
+            if (d.shopId === shop.id && !d.paid) {
+                var t = d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+                debt += t - (d.paidAmount || 0);
+            }
+        });
+        if (debt > 0) rows.push([shop.name, debt + ' den']);
+    });
+
+    exportToPDF('Raport i Plotë Shpërndarje - ' + new Date().toISOString().split('T')[0], headers, rows, 'Raport_Plote_Shperndarja');
+    showToast('Raporti PDF u gjenerua!', 'success');
+}
+
+// #20 Average Statistics
+function distReportAverages() {
+    var deliveries = state.distDeliveries || [];
+    var totalValue = deliveries.reduce(function(s, d) { return s + d.items.reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
+    var avgDeliverySize = deliveries.length > 0 ? Math.round(totalValue / deliveries.length) : 0;
+
+    // Average debt duration
+    var paidDeliveries = deliveries.filter(function(d) { return d.paid && d.paidDate && d.date; });
+    var totalDays = 0;
+    paidDeliveries.forEach(function(d) {
+        var start = new Date(d.date);
+        var end = new Date(d.paidDate);
+        totalDays += Math.round((end - start) / (1000 * 60 * 60 * 24));
+    });
+    var avgDebtDuration = paidDeliveries.length > 0 ? Math.round(totalDays / paidDeliveries.length) : 0;
+
+    // Average deliveries per day (active days only)
+    var uniqueDays = {};
+    deliveries.forEach(function(d) { uniqueDays[d.date] = true; });
+    var activeDays = Object.keys(uniqueDays).length;
+    var avgPerDay = activeDays > 0 ? (deliveries.length / activeDays).toFixed(1) : 0;
+
+    // Average per shop
+    var avgPerShop = (state.distShops || []).length > 0 ? Math.round(totalValue / (state.distShops || []).length) : 0;
+
+    var h = '<h3><i class="fas fa-calculator"></i> Statistika Mesatare</h3>';
+    h += '<div class="dist-report-summary">';
+    h += '<div class="dist-report-row"><span>Mesatarja e dërgesës:</span><strong>' + avgDeliverySize + ' den</strong></div>';
+    h += '<div class="dist-report-row"><span>Kohëzgjatja mesatare e borxhit:</span><strong>' + avgDebtDuration + ' ditë</strong></div>';
+    h += '<div class="dist-report-row"><span>Dërgesa mesatare per ditë:</span><strong>' + avgPerDay + '</strong></div>';
+    h += '<div class="dist-report-row"><span>Blerje mesatare per dyqan:</span><strong>' + avgPerShop + ' den</strong></div>';
+    h += '<div class="dist-report-row"><span>Ditë aktive gjithsej:</span><strong>' + activeDays + '</strong></div>';
+    h += '<div class="dist-report-row"><span>Nr. total dërgesash:</span><strong>' + deliveries.length + '</strong></div>';
+    h += '</div>';
+    openModal('Statistika Mesatare', h);
+}
+
+// #22 Send daily report to Faton via WhatsApp
+function distSendDailyReportWhatsApp() {
+    var today = new Date().toISOString().split('T')[0];
+    var deliveries = (state.distDeliveries || []).filter(function(d) { return d.date === today; });
+    var cashCollected = calcDistTotalCashCollected();
+    var givenToFaton = calcDistGivenToFaton();
+    var shopDebts = calcDistShopDebts();
+
+    var msg = 'Raport Ditor Shpërndarje\n';
+    msg += 'Data: ' + today + '\n\n';
+    msg += 'Dërgesa sot: ' + deliveries.length + '\n';
+    deliveries.forEach(function(d) {
+        var shop = getDistShop(d.shopId);
+        var total = d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+        msg += '- ' + shop.name + ': ' + total + ' den (' + (d.paid ? 'Paguar' : 'Papaguar') + ')\n';
+    });
+    msg += '\nCash total: ' + cashCollected + ' den\n';
+    msg += 'Dorezuar: ' + givenToFaton + ' den\n';
+    msg += 'Gati: ' + (cashCollected - givenToFaton) + ' den\n';
+    msg += 'Borxhe: ' + shopDebts + ' den\n';
+
+    window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+    showToast('WhatsApp u hap', 'success');
+}
+
+// #30 Update sidebar badge
+function distUpdateSidebarBadge() {
+    var unpaidCount = (state.distDeliveries || []).filter(function(d) { return !d.paid; }).length;
+    var badge = document.getElementById('badge-distribution');
+    if (badge) {
+        badge.textContent = unpaidCount;
+        if (unpaidCount > 0) {
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    }
+}
+
+// Helper for "import anyway" flow when backup has unknown shape
+function _proceedImportAnyway() {
+    if (!window._pendingRestore) { showToast('Nuk ka të dhëna për import.', 'error'); return; }
+    const data = window._pendingRestore;
+    const fileName = window._pendingRestoreFile || 'backup';
+    closeModal();
+    const salesCount = Array.isArray(data.sales) ? data.sales.length : 0;
+    const clientsCount = Array.isArray(data.clients) ? data.clients.length : 0;
+    const stockCount = data.stock ? Object.keys(data.stock).length : 0;
+    const paymentsCount = Array.isArray(data.clientPayments) ? data.clientPayments.length : 0;
+    openModal('Importo Backup (konfirmim)',
+        '<div style="text-align:center;padding:10px;">' +
+        '<div style="font-size:3em;margin-bottom:10px;">📦</div>' +
+        '<h3 style="margin-bottom:15px;">Skedari: ' + fileName + '</h3>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;text-align:left;background:var(--bg-secondary);padding:15px;border-radius:10px;">' +
+        '<div><i class="fas fa-shopping-cart"></i> Shitje: <strong>' + salesCount + '</strong></div>' +
+        '<div><i class="fas fa-users"></i> Klientë: <strong>' + clientsCount + '</strong></div>' +
+        '<div><i class="fas fa-boxes"></i> Produkte stok: <strong>' + stockCount + '</strong></div>' +
+        '<div><i class="fas fa-money-bill"></i> Pagesa: <strong>' + paymentsCount + '</strong></div>' +
+        '</div>' +
+        '<div style="background:#fff3e0;padding:12px;border-radius:8px;margin-bottom:15px;color:#e65100;">' +
+        '<i class="fas fa-exclamation-triangle"></i> <strong>KUJDES:</strong> Të dhënat aktuale do të zëvendësohen!' +
+        '</div>' +
+        '<div style="display:flex;gap:10px;">' +
+        '<button onclick="closeModal()" style="flex:1;padding:12px;border:2px solid var(--border);background:var(--bg);color:var(--text-primary);border-radius:8px;cursor:pointer;font-size:1em;"><i class="fas fa-times"></i> Anulo</button>' +
+        '<button onclick="_confirmRestore()" style="flex:1;padding:12px;border:none;background:var(--success);color:white;border-radius:8px;cursor:pointer;font-size:1em;font-weight:bold;"><i class="fas fa-check"></i> Konfirmo Rikthimin</button>' +
+        '</div></div>');
+}
+
+// Override refreshDashboard to include distribution widget (#5, #15)
+var _origRefreshDashboard = typeof refreshDashboard === 'function' ? refreshDashboard : null;
+// We'll hook into it via a post-call approach instead
+(function() {
+    var origRefresh = refreshDashboard;
+    refreshDashboard = function() {
+        origRefresh.apply(this, arguments);
+        try {
+            renderDistDashboardWidget();
+            distCheckDashboardAlerts();
+            distFatonCheckReminderOnLoad();
+        } catch(e) {}
+    };
+})();
+
+// ===================== CASH FATONI SUPER FEATURES =====================
+
+// --- Core stats ---
+function distFatonStats() {
+    var cashCollected = calcDistTotalCashCollected();
+    var givenToFaton = calcDistGivenToFaton();
+    var cashReady = cashCollected - givenToFaton;
+    var shopDebts = calcDistShopDebts();
+    var totalReceivedValue = 0;
+    (state.distReceived || []).forEach(function(r) {
+        var prod = getDistProduct(r.productId);
+        totalReceivedValue += r.quantity * (prod.sellPrice || 0);
+    });
+    var totalDelivered = (state.distDeliveries || []).reduce(function(s, d) {
+        return s + (d.items || []).reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0);
+    }, 0);
+
+    var payments = (state.distPayToFaton || []).slice();
+    var count = payments.length;
+
+    // Last payment + days since
+    var lastPayment = null;
+    var daysSinceLast = null;
+    if (count > 0) {
+        var sorted = payments.slice().sort(function(a,b){ return b.date.localeCompare(a.date); });
+        lastPayment = sorted[0];
+        daysSinceLast = Math.round((new Date() - new Date(lastPayment.date)) / 86400000);
+    }
+
+    // Monthly totals
+    var byMonth = {};
+    payments.forEach(function(p) {
+        var m = (p.date || '').substring(0, 7);
+        if (!m) return;
+        byMonth[m] = (byMonth[m] || 0) + p.amount;
+    });
+    var months = Object.keys(byMonth).sort();
+    var monthlyAvg = months.length > 0 ? months.reduce(function(s, m){ return s + byMonth[m]; }, 0) / months.length : 0;
+
+    // Best month
+    var bestMonth = null;
+    months.forEach(function(m) {
+        if (!bestMonth || byMonth[m] > bestMonth.total) bestMonth = { month: m, total: byMonth[m] };
+    });
+
+    // Current month projection
+    var now = new Date();
+    var curMonthKey = now.toISOString().substring(0, 7);
+    var curMonthTotal = byMonth[curMonthKey] || 0;
+    var dayOfMonth = now.getDate();
+    var daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    var dailyAvg = dayOfMonth > 0 ? curMonthTotal / dayOfMonth : 0;
+    var projectionEndOfMonth = count > 0 ? dailyAvg * daysInMonth : null;
+
+    return {
+        cashCollected: cashCollected,
+        givenToFaton: givenToFaton,
+        cashReady: cashReady,
+        shopDebts: shopDebts,
+        totalReceivedValue: totalReceivedValue,
+        totalDelivered: totalDelivered,
+        count: count,
+        lastPayment: lastPayment,
+        daysSinceLast: daysSinceLast,
+        byMonth: byMonth,
+        months: months,
+        monthlyAvg: monthlyAvg,
+        bestMonth: bestMonth,
+        dailyAvg: dailyAvg,
+        projectionEndOfMonth: projectionEndOfMonth
+    };
+}
+
+// --- Filter ---
+function distFatonFilteredPayments() {
+    var all = (state.distPayToFaton || []).slice();
+    var fromEl = document.getElementById('dist-faton-filter-from');
+    var toEl = document.getElementById('dist-faton-filter-to');
+    var from = fromEl ? fromEl.value : '';
+    var to = toEl ? toEl.value : '';
+    return all.filter(function(p) {
+        if (from && p.date < from) return false;
+        if (to && p.date > to) return false;
+        return true;
+    });
+}
+function clearDistFatonFilter() {
+    var f = document.getElementById('dist-faton-filter-from');
+    var t = document.getElementById('dist-faton-filter-to');
+    if (f) f.value = '';
+    if (t) t.value = '';
+    refreshDistribution();
+}
+
+// --- Signature pad ---
+function distFatonSignInit(canvasId) {
+    var canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    // Prevent duplicate listener registration on same canvas element
+    if (canvas._signListenersAttached) {
+        // Just reset the canvas dimensions/scale without re-adding listeners
+        var ctx2 = canvas.getContext('2d');
+        var ratio2 = window.devicePixelRatio || 1;
+        var rect2 = canvas.getBoundingClientRect();
+        canvas.width = rect2.width * ratio2;
+        canvas.height = rect2.height * ratio2;
+        ctx2.scale(ratio2, ratio2);
+        ctx2.strokeStyle = '#1a1a1a';
+        ctx2.lineWidth = 2;
+        ctx2.lineCap = 'round';
+        ctx2.lineJoin = 'round';
+        canvas.__hasSignature = false;
+        return;
+    }
+    canvas._signListenersAttached = true;
+    var ctx = canvas.getContext('2d');
+    // Scale for HiDPI
+    var ratio = window.devicePixelRatio || 1;
+    var rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * ratio;
+    canvas.height = rect.height * ratio;
+    ctx.scale(ratio, ratio);
+    ctx.strokeStyle = '#1a1a1a';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    canvas.__hasSignature = false;
+    var drawing = false;
+    var last = null;
+    function pos(e) {
+        var r = canvas.getBoundingClientRect();
+        var x, y;
+        if (e.touches && e.touches[0]) {
+            x = e.touches[0].clientX - r.left;
+            y = e.touches[0].clientY - r.top;
+        } else {
+            x = e.clientX - r.left;
+            y = e.clientY - r.top;
+        }
+        return { x: x, y: y };
+    }
+    function start(e) { e.preventDefault(); drawing = true; last = pos(e); }
+    function move(e) {
+        if (!drawing) return;
+        e.preventDefault();
+        var p = pos(e);
+        ctx.beginPath();
+        ctx.moveTo(last.x, last.y);
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+        last = p;
+        canvas.__hasSignature = true;
+    }
+    function end(e) { drawing = false; last = null; }
+    canvas.addEventListener('mousedown', start);
+    canvas.addEventListener('mousemove', move);
+    canvas.addEventListener('mouseup', end);
+    canvas.addEventListener('mouseleave', end);
+    canvas.addEventListener('touchstart', start);
+    canvas.addEventListener('touchmove', move);
+    canvas.addEventListener('touchend', end);
+}
+function distFatonSignClear(canvasId) {
+    var canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    canvas.__hasSignature = false;
+}
+
+function openDistFatonSignatureModal(paymentId) {
+    var p = (state.distPayToFaton || []).find(function(x){ return x.id === paymentId; });
+    if (!p) return;
+    var h = '<p style="margin-bottom:10px;">Dorëzim: <strong>' + p.amount + ' den</strong> në <strong>' + p.date + '</strong></p>';
+    h += '<div style="border:2px dashed #bbb;border-radius:8px;padding:6px;background:#fafafa;">';
+    h += '<canvas id="dist-faton-sign-edit" width="420" height="140" style="width:100%;height:140px;background:white;border-radius:4px;touch-action:none;display:block;"></canvas>';
+    h += '<div style="display:flex;gap:8px;margin-top:6px;">';
+    h += '<button type="button" class="btn btn-sm" style="background:#95a5a6;color:white;" onclick="distFatonSignClear(\'dist-faton-sign-edit\')"><i class="fas fa-eraser"></i> Pastro</button>';
+    h += '<small style="color:#777;align-self:center;">Nënshkruaj nga Fatoni</small>';
+    h += '</div></div>';
+    h += '<button class="btn dist-btn-pay" style="width:100%;margin-top:12px;" onclick="saveDistFatonSignature(\'' + paymentId + '\')">Ruaj Nënshkrimin</button>';
+    openModal('Nënshkrim i Dorëzimit', h);
+    setTimeout(function() {
+        distFatonSignInit('dist-faton-sign-edit');
+        // If existing signature, draw it
+        if (p.signature) {
+            var canvas = document.getElementById('dist-faton-sign-edit');
+            var ctx = canvas.getContext('2d');
+            var img = new Image();
+            img.onload = function() {
+                ctx.drawImage(img, 0, 0, canvas.width / (window.devicePixelRatio || 1), canvas.height / (window.devicePixelRatio || 1));
+                canvas.__hasSignature = true;
+            };
+            img.src = p.signature;
+        }
+    }, 100);
+}
+
+function saveDistFatonSignature(paymentId) {
+    var canvas = document.getElementById('dist-faton-sign-edit');
+    if (!canvas || !canvas.__hasSignature) {
+        showToast('Nuk ka nënshkrim', 'error');
+        return;
+    }
+    var p = (state.distPayToFaton || []).find(function(x){ return x.id === paymentId; });
+    if (!p) return;
+    p.signature = canvas.toDataURL('image/png');
+    saveState();
+    closeModal();
+    showToast('Nënshkrimi u ruajt', 'success');
+    refreshDistribution();
+}
+
+// --- Amount-in-words (Albanian) ---
+function distFatonAmountInWords(n) {
+    n = Math.round(n);
+    if (n === 0) return 'zero denarë';
+    var ones = ['', 'një', 'dy', 'tre', 'katër', 'pesë', 'gjashtë', 'shtatë', 'tetë', 'nëntë',
+                'dhjetë', 'njëmbëdhjetë', 'dymbëdhjetë', 'trembëdhjetë', 'katërmbëdhjetë', 'pesëmbëdhjetë',
+                'gjashtëmbëdhjetë', 'shtatëmbëdhjetë', 'tetëmbëdhjetë', 'nëntëmbëdhjetë'];
+    var tens = ['', '', 'njëzet', 'tridhjetë', 'dyzet', 'pesëdhjetë', 'gjashtëdhjetë', 'shtatëdhjetë', 'tetëdhjetë', 'nëntëdhjetë'];
+    function below1000(num) {
+        var s = '';
+        var h = Math.floor(num / 100);
+        var r = num % 100;
+        if (h > 0) s += (h === 1 ? 'njëqind' : ones[h] + 'qind');
+        if (r > 0) {
+            if (s) s += ' ';
+            if (r < 20) s += ones[r];
+            else {
+                var t = Math.floor(r / 10);
+                var u = r % 10;
+                s += tens[t] + (u > 0 ? ' e ' + ones[u] : '');
+            }
+        }
+        return s;
+    }
+    var parts = [];
+    var millions = Math.floor(n / 1000000);
+    var thousands = Math.floor((n % 1000000) / 1000);
+    var rest = n % 1000;
+    if (millions > 0) parts.push((millions === 1 ? 'një milion' : below1000(millions) + ' milionë'));
+    if (thousands > 0) parts.push((thousands === 1 ? 'një mijë' : below1000(thousands) + ' mijë'));
+    if (rest > 0) parts.push(below1000(rest));
+    return parts.join(' ') + ' denarë';
+}
+
+// --- Receipt PDF with signature ---
+function distFatonReceiptPDF(paymentId) {
+    var p = (state.distPayToFaton || []).find(function(x){ return x.id === paymentId; });
+    if (!p) return;
+    try {
+        var jsPDF = window.jspdf.jsPDF;
+        var doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        var W = 210;
+        var cursor = 20;
+
+        // Title bar
+        doc.setFillColor(230, 126, 34);
+        doc.rect(0, 0, W, 30, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(20);
+        doc.text('VËRTETIM DORËZIMI CASH', W/2, 14, { align: 'center' });
+        doc.setFontSize(11);
+        doc.text('Shpërndarja Fatoni — Hurma App', W/2, 22, { align: 'center' });
+
+        doc.setTextColor(0, 0, 0);
+        cursor = 45;
+
+        // Receipt number + date
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'bold');
+        doc.text('Nr. Vërtetimi:', 20, cursor);
+        doc.setFont(undefined, 'normal');
+        doc.text('VF-' + p.id.replace(/^df_/, ''), 60, cursor);
+        doc.setFont(undefined, 'bold');
+        doc.text('Data:', 130, cursor);
+        doc.setFont(undefined, 'normal');
+        doc.text(p.date, 145, cursor);
+        cursor += 10;
+
+        // Amount box
+        doc.setDrawColor(230, 126, 34);
+        doc.setLineWidth(0.5);
+        doc.rect(20, cursor, 170, 22);
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        doc.text('Shuma e dorëzuar:', 25, cursor + 7);
+        doc.setFontSize(22);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(230, 126, 34);
+        doc.text(p.amount + ' denarë', W/2, cursor + 17, { align: 'center' });
+        doc.setTextColor(0, 0, 0);
+        cursor += 30;
+
+        // Amount in words
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'italic');
+        var words = distFatonAmountInWords(p.amount);
+        words = words.charAt(0).toUpperCase() + words.slice(1);
+        doc.text('Me shkronja: ' + words, 20, cursor, { maxWidth: 170 });
+        cursor += 12;
+
+        // Details
+        doc.setFont(undefined, 'normal');
+        doc.setFontSize(11);
+        doc.text('Metoda e pagesës: ', 20, cursor);
+        doc.setFont(undefined, 'bold');
+        doc.text(p.method === 'bank' ? 'Transfer bankar' : 'Cash (në dorë)', 65, cursor);
+        cursor += 8;
+        doc.setFont(undefined, 'normal');
+        if (p.note) {
+            doc.text('Shënim: ', 20, cursor);
+            doc.setFont(undefined, 'bold');
+            doc.text(p.note, 40, cursor, { maxWidth: 150 });
+            cursor += 8;
+        }
+        cursor += 4;
+
+        // Context block
+        var stats = distFatonStats();
+        doc.setDrawColor(200, 200, 200);
+        doc.setFillColor(248, 248, 248);
+        doc.rect(20, cursor, 170, 30, 'FD');
+        cursor += 6;
+        doc.setFont(undefined, 'bold');
+        doc.setFontSize(10);
+        doc.text('Kontekst i bilancit (deri sot):', 25, cursor);
+        cursor += 6;
+        doc.setFont(undefined, 'normal');
+        doc.setFontSize(9);
+        doc.text('Cash total i arkëtuar: ' + stats.cashCollected + ' den', 25, cursor);
+        doc.text('Dorëzuar Fatonit gjithsej: ' + stats.givenToFaton + ' den', 110, cursor);
+        cursor += 5;
+        doc.text('Cash gati për dorëzim: ' + stats.cashReady + ' den', 25, cursor);
+        doc.text('Borxhe dyqanesh: ' + stats.shopDebts + ' den', 110, cursor);
+        cursor += 18;
+
+        // Signature blocks
+        var sigY = cursor + 5;
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'bold');
+        doc.text('Shpërndarësi:', 25, sigY);
+        doc.text('Fatoni (pranuesi):', 120, sigY);
+
+        // Lines
+        doc.setDrawColor(100, 100, 100);
+        doc.line(25, sigY + 25, 95, sigY + 25);
+        doc.line(120, sigY + 25, 190, sigY + 25);
+
+        // Embed signature if exists
+        if (p.signature) {
+            try {
+                doc.addImage(p.signature, 'PNG', 120, sigY + 3, 70, 22);
+            } catch(e) {}
+        } else {
+            doc.setFont(undefined, 'italic');
+            doc.setFontSize(8);
+            doc.setTextColor(160, 160, 160);
+            doc.text('(pa nënshkrim)', 155, sigY + 18, { align: 'center' });
+            doc.setTextColor(0, 0, 0);
+        }
+
+        doc.setFont(undefined, 'normal');
+        doc.setFontSize(8);
+        doc.text('Data: ' + p.date, 25, sigY + 30);
+        doc.text('Data: ' + p.date, 120, sigY + 30);
+
+        // Footer
+        doc.setFontSize(7);
+        doc.setTextColor(130, 130, 130);
+        doc.text('Gjeneruar nga Hurma App — ' + new Date().toLocaleString('sq-AL'), W/2, 285, { align: 'center' });
+
+        doc.save('Vertetim_Faton_' + p.date + '_' + p.amount + 'den.pdf');
+        showToast('Vërtetimi u shkarkua', 'success');
+    } catch (err) {
+        showToast('Gabim në gjenerim PDF: ' + err.message, 'error');
+    }
+}
+
+// --- Full statement PDF ---
+function distFatonFullStatementPDF() {
+    var stats = distFatonStats();
+    var payments = (state.distPayToFaton || []).slice().sort(function(a,b){ return a.date.localeCompare(b.date); });
+    try {
+        var jsPDF = window.jspdf.jsPDF;
+        var doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+        doc.setFillColor(44, 62, 80);
+        doc.rect(0, 0, 210, 25, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(16);
+        doc.text('DEKLARATË E PLOTË — CASH FATONI', 105, 12, { align: 'center' });
+        doc.setFontSize(10);
+        doc.text('Gjeneruar: ' + new Date().toLocaleString('sq-AL'), 105, 20, { align: 'center' });
+
+        doc.setTextColor(0, 0, 0);
+        var y = 35;
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'bold');
+        doc.text('Përmbledhje Financiare', 20, y); y += 7;
+        doc.setFont(undefined, 'normal');
+        doc.setFontSize(10);
+        var lines = [
+            ['Mall i pranuar nga Fatoni:', stats.totalReceivedValue + ' den'],
+            ['Mall i shitur dyqaneve:', stats.totalDelivered + ' den'],
+            ['Cash i arkëtuar:', stats.cashCollected + ' den'],
+            ['Borxhe dyqanesh të papaguara:', stats.shopDebts + ' den'],
+            ['Dorëzuar Fatonit gjithsej:', stats.givenToFaton + ' den'],
+            ['Cash aktual gati për dorëzim:', stats.cashReady + ' den'],
+            ['Numri i dorëzimeve:', stats.count + ''],
+            ['Mesatarja mujore e dorëzimit:', Math.round(stats.monthlyAvg) + ' den']
+        ];
+        lines.forEach(function(pair) {
+            doc.text(pair[0], 25, y);
+            doc.setFont(undefined, 'bold');
+            doc.text(pair[1], 130, y);
+            doc.setFont(undefined, 'normal');
+            y += 6;
+        });
+
+        y += 8;
+        doc.setFont(undefined, 'bold');
+        doc.setFontSize(12);
+        doc.text('Historiku i Dorëzimeve', 20, y);
+        y += 2;
+
+        var headers = [['Data', 'Shuma', 'Metoda', 'Nënshkrim', 'Shënim']];
+        var rows = payments.map(function(p) {
+            return [p.date, p.amount + ' den', p.method === 'bank' ? 'Bankë' : 'Cash', p.signature ? 'Po' : '—', p.note || '-'];
+        });
+        var totalRow = ['', 'TOTAL: ' + stats.givenToFaton + ' den', '', '', ''];
+        rows.push(totalRow);
+
+        doc.autoTable({
+            head: headers,
+            body: rows,
+            startY: y + 3,
+            styles: { fontSize: 9, cellPadding: 2 },
+            headStyles: { fillColor: [230, 126, 34], textColor: 255 },
+            alternateRowStyles: { fillColor: [250, 245, 235] },
+            margin: { left: 20, right: 20 }
+        });
+
+        doc.save('Deklarate_Cash_Faton_' + new Date().toISOString().split('T')[0] + '.pdf');
+        showToast('Deklarata u shkarkua', 'success');
+    } catch (err) {
+        showToast('Gabim: ' + err.message, 'error');
+    }
+}
+
+// --- Export history Excel/PDF ---
+function distFatonExportHistory(format) {
+    var payments = (state.distPayToFaton || []).slice().sort(function(a,b){ return a.date.localeCompare(b.date); });
+    if (payments.length === 0) { showToast('Asnjë dorëzim për të eksportuar', 'info'); return; }
+    var headers = ['Data', 'Shuma (den)', 'Metoda', 'Nënshkrim', 'Shënim'];
+    var rows = payments.map(function(p) {
+        return [p.date, p.amount, p.method === 'bank' ? 'Bankë' : 'Cash', p.signature ? 'Po' : 'Jo', p.note || ''];
+    });
+    var fname = 'Cash_Faton_' + new Date().toISOString().split('T')[0];
+    if (format === 'excel') exportToExcel(headers, rows, fname);
+    else if (format === 'pdf') exportToPDF('Historiku i Dorëzimeve — Cash Faton', headers, rows, fname);
+}
+
+// --- Charts ---
+function showDistFatonMonthlyChart() {
+    var stats = distFatonStats();
+    var months = [];
+    var now = new Date();
+    for (var i = 11; i >= 0; i--) {
+        var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        months.push(d.toISOString().substring(0, 7));
+    }
+    var data = months.map(function(m){ return stats.byMonth[m] || 0; });
+    var html = '<canvas id="dist-faton-monthly-chart" width="500" height="300"></canvas>';
+    html += '<div style="margin-top:12px;display:flex;justify-content:space-between;color:#555;"><span>Total 12 muaj:</span><strong>' + data.reduce(function(s,v){return s+v;},0) + ' den</strong></div>';
+    openModal('Dorëzimet për 12 muajt e fundit', html);
+    setTimeout(function() {
+        var canvas = document.getElementById('dist-faton-monthly-chart');
+        if (!canvas || typeof Chart === 'undefined') return;
+        new Chart(canvas, {
+            type: 'bar',
+            data: {
+                labels: months,
+                datasets: [{ label: 'Dorëzuar Fatonit (den)', data: data, backgroundColor: '#e67e22', borderColor: '#c0392b', borderWidth: 1 }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'bottom' } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    }, 150);
+}
+
+function showDistFatonCashFlowChart() {
+    // Cumulative collected vs delivered over time
+    var deliveries = (state.distDeliveries || []).slice();
+    var payments = (state.distPayToFaton || []).slice();
+    var events = [];
+    deliveries.forEach(function(d) {
+        var total = (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+        if (d.paymentType === 'cash' && d.paid) {
+            events.push({ date: d.date, type: 'in', amount: total });
+        } else if (d.paidAmount) {
+            events.push({ date: d.date, type: 'in', amount: d.paidAmount });
+        }
+    });
+    payments.forEach(function(p) {
+        events.push({ date: p.date, type: 'out', amount: p.amount });
+    });
+    events.sort(function(a,b){ return a.date.localeCompare(b.date); });
+
+    var labels = [];
+    var collectedData = [];
+    var deliveredData = [];
+    var cumIn = 0, cumOut = 0;
+    events.forEach(function(e) {
+        if (e.type === 'in') cumIn += e.amount;
+        else cumOut += e.amount;
+        labels.push(e.date);
+        collectedData.push(cumIn);
+        deliveredData.push(cumOut);
+    });
+
+    if (labels.length === 0) { showToast('Nuk ka të dhëna për grafik', 'info'); return; }
+
+    var html = '<canvas id="dist-faton-cashflow-chart" width="600" height="320"></canvas>';
+    html += '<div style="margin-top:12px;color:#555;"><div>Blu = Cash i mbledhur (kumulativ)</div><div>Portokalli = Dorëzuar Fatonit (kumulativ)</div><div>Diferenca = Gati për dorëzim</div></div>';
+    openModal('Cash Flow — Arkëtim vs. Dorëzim', html);
+    setTimeout(function() {
+        var canvas = document.getElementById('dist-faton-cashflow-chart');
+        if (!canvas || typeof Chart === 'undefined') return;
+        new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'Arkëtuar (kum.)', data: collectedData, borderColor: '#2980b9', backgroundColor: 'rgba(41,128,185,0.2)', fill: true, tension: 0.2 },
+                    { label: 'Dorëzuar Fatonit (kum.)', data: deliveredData, borderColor: '#e67e22', backgroundColor: 'rgba(230,126,34,0.2)', fill: true, tension: 0.2 }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'bottom' } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    }, 150);
+}
+
+function showDistFatonMethodChart() {
+    var cash = 0, bank = 0;
+    (state.distPayToFaton || []).forEach(function(p) {
+        if (p.method === 'bank') bank += p.amount;
+        else cash += p.amount;
+    });
+    if (cash + bank === 0) { showToast('Nuk ka dorëzime ende', 'info'); return; }
+    var html = '<canvas id="dist-faton-method-chart" width="400" height="300"></canvas>';
+    var total = cash + bank;
+    html += '<div style="margin-top:15px;">';
+    html += '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #eee;"><span><i class="fas fa-money-bill"></i> Cash</span><strong>' + cash + ' den (' + (total > 0 ? ((cash/total)*100).toFixed(1) : 0) + '%)</strong></div>';
+    html += '<div style="display:flex;justify-content:space-between;padding:6px 0;"><span><i class="fas fa-university"></i> Bankë</span><strong>' + bank + ' den (' + (total > 0 ? ((bank/total)*100).toFixed(1) : 0) + '%)</strong></div>';
+    html += '</div>';
+    openModal('Cash vs Bankë', html);
+    setTimeout(function() {
+        var canvas = document.getElementById('dist-faton-method-chart');
+        if (!canvas || typeof Chart === 'undefined') return;
+        new Chart(canvas, {
+            type: 'doughnut',
+            data: {
+                labels: ['Cash', 'Bankë'],
+                datasets: [{ data: [cash, bank], backgroundColor: ['#27ae60', '#2980b9'], borderWidth: 2 }]
+            },
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        });
+    }, 150);
+}
+
+// --- Reminder system ---
+function distFatonReminderStatus() {
+    var rem = state.distFatonReminder || { enabled: false };
+    if (!rem.enabled) return { active: false };
+    var today = new Date().toISOString().split('T')[0];
+    if (rem.lastDismissed === today) return { active: false };
+
+    var stats = distFatonStats();
+    if (rem.type === 'threshold') {
+        if (stats.cashReady >= (rem.threshold || 5000)) {
+            return { active: true, message: 'Ke <strong>' + stats.cashReady + ' den</strong> cash gati — ka arritur limitin e <strong>' + rem.threshold + ' den</strong>.' };
+        }
+    } else if (rem.type === 'weekday') {
+        var wd = new Date().getDay();
+        if (wd === (rem.weekday || 1) && stats.cashReady > 0) {
+            var names = ['E diel', 'E hënë', 'E martë', 'E mërkurë', 'E enjte', 'E premte', 'E shtunë'];
+            return { active: true, message: 'Sot është <strong>' + names[wd] + '</strong> — dita e caktuar për dorëzim. Cash gati: <strong>' + stats.cashReady + ' den</strong>.' };
+        }
+    } else { // days
+        if (stats.daysSinceLast === null) {
+            if (stats.cashReady > 0) return { active: true, message: 'Nuk ke dorëzuar ende asnjëherë. Cash gati: <strong>' + stats.cashReady + ' den</strong>.' };
+        } else if (stats.daysSinceLast >= (rem.days || 7) && stats.cashReady > 0) {
+            return { active: true, message: 'Kanë kaluar <strong>' + stats.daysSinceLast + ' ditë</strong> nga dorëzimi i fundit. Cash gati: <strong>' + stats.cashReady + ' den</strong>.' };
+        }
+    }
+    return { active: false };
+}
+
+function openDistFatonReminderSettings() {
+    var rem = state.distFatonReminder || { enabled: false, type: 'days', days: 7, weekday: 1, threshold: 5000 };
+    var h = '<form onsubmit="saveDistFatonReminder(event); return false;">';
+    h += '<div class="form-group"><label><input type="checkbox" id="dfr-enabled"' + (rem.enabled ? ' checked' : '') + '> Aktivizo kujtesën</label></div>';
+    h += '<div class="form-group"><label>Tipi i kujtesës:</label>';
+    h += '<select id="dfr-type" onchange="distFatonReminderTypeUI(this.value)">';
+    h += '<option value="days"' + (rem.type === 'days' ? ' selected' : '') + '>Pas X ditësh pa dorëzim</option>';
+    h += '<option value="weekday"' + (rem.type === 'weekday' ? ' selected' : '') + '>Në një ditë specifike të javës</option>';
+    h += '<option value="threshold"' + (rem.type === 'threshold' ? ' selected' : '') + '>Kur cash gati tejkalon një shumë</option>';
+    h += '</select></div>';
+    h += '<div id="dfr-days-wrap" class="form-group"><label>Numri i ditëve:</label><input type="number" id="dfr-days" min="1" max="60" value="' + (rem.days || 7) + '"></div>';
+    h += '<div id="dfr-weekday-wrap" class="form-group" style="display:none;"><label>Dita e javës:</label>';
+    h += '<select id="dfr-weekday">';
+    var days = ['E diel', 'E hënë', 'E martë', 'E mërkurë', 'E enjte', 'E premte', 'E shtunë'];
+    days.forEach(function(name, idx) {
+        h += '<option value="' + idx + '"' + (rem.weekday === idx ? ' selected' : '') + '>' + name + '</option>';
+    });
+    h += '</select></div>';
+    h += '<div id="dfr-threshold-wrap" class="form-group" style="display:none;"><label>Shuma (den):</label><input type="number" id="dfr-threshold" min="1" value="' + (rem.threshold || 5000) + '"></div>';
+    h += '<button type="submit" class="btn dist-btn-pay" style="width:100%;margin-top:10px;">Ruaj Kujtesën</button>';
+    h += '</form>';
+    openModal('Konfigurim i Kujtesës', h);
+    setTimeout(function() { distFatonReminderTypeUI(rem.type); }, 50);
+}
+
+function distFatonReminderTypeUI(type) {
+    var days = document.getElementById('dfr-days-wrap');
+    var wd = document.getElementById('dfr-weekday-wrap');
+    var th = document.getElementById('dfr-threshold-wrap');
+    if (days) days.style.display = type === 'days' ? 'block' : 'none';
+    if (wd) wd.style.display = type === 'weekday' ? 'block' : 'none';
+    if (th) th.style.display = type === 'threshold' ? 'block' : 'none';
+}
+
+function saveDistFatonReminder(e) {
+    if (e) e.preventDefault();
+    state.distFatonReminder = {
+        enabled: document.getElementById('dfr-enabled').checked,
+        type: document.getElementById('dfr-type').value,
+        days: parseInt(document.getElementById('dfr-days').value) || 7,
+        weekday: parseInt(document.getElementById('dfr-weekday').value) || 1,
+        threshold: parseFloat(document.getElementById('dfr-threshold').value) || 5000,
+        lastDismissed: (state.distFatonReminder || {}).lastDismissed || null
+    };
+    saveState();
+    closeModal();
+    showToast('Kujtesa u ruajt', 'success');
+    refreshDistribution();
+}
+
+function dismissDistFatonReminder() {
+    if (!state.distFatonReminder) return;
+    state.distFatonReminder.lastDismissed = new Date().toISOString().split('T')[0];
+    saveState();
+    refreshDistribution();
+    showToast('Kujtesa u shty për sot', 'info');
+}
+
+function distFatonCheckReminderOnLoad() {
+    var rem = distFatonReminderStatus();
+    if (rem.active) {
+        // Small delay, non-intrusive toast
+        setTimeout(function() {
+            var plainMsg = rem.message.replace(/<[^>]+>/g, '');
+            showToast('🔔 Kujtesë Cash Faton: ' + plainMsg, 'warning');
+        }, 1500);
+    }
+}
+
+// ===================== PROVË DORËZIMI (POD) =====================
+
+// Compress an image file to JPEG dataURL with max dimension
+function distCompressImage(file, maxDim, quality, watermarkText) {
+    maxDim = maxDim || 1000;
+    quality = quality || 0.72;
+    return new Promise(function(resolve, reject) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            var img = new Image();
+            img.onload = function() {
+                var w = img.width, h = img.height;
+                if (w > h && w > maxDim) { h = Math.round(h * maxDim / w); w = maxDim; }
+                else if (h >= w && h > maxDim) { w = Math.round(w * maxDim / h); h = maxDim; }
+                var canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                var ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(0, 0, w, h);
+                ctx.drawImage(img, 0, 0, w, h);
+                if (watermarkText) {
+                    try { distDrawWatermark(ctx, w, h, watermarkText); } catch(e) {}
+                }
+                try {
+                    resolve(canvas.toDataURL('image/jpeg', quality));
+                } catch (err) { reject(err); }
+            };
+            img.onerror = reject;
+            img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+// Draws a semi-transparent watermark bar at the bottom of the canvas
+function distDrawWatermark(ctx, w, h, lines) {
+    if (typeof lines === 'string') lines = [lines];
+    if (!lines || !lines.length) return;
+    var fontSize = Math.max(12, Math.round(Math.min(w, h) * 0.028));
+    var padding = Math.round(fontSize * 0.5);
+    var lineHeight = fontSize + 4;
+    var barHeight = lines.length * lineHeight + padding * 2;
+    ctx.save();
+    // Dark translucent band
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(0, h - barHeight, w, barHeight);
+    // Text
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '600 ' + fontSize + 'px system-ui, -apple-system, Segoe UI, Arial, sans-serif';
+    ctx.textBaseline = 'top';
+    ctx.shadowColor = 'rgba(0,0,0,0.8)';
+    ctx.shadowBlur = 2;
+    lines.forEach(function(line, i) {
+        ctx.fillText(line, padding, h - barHeight + padding + i * lineHeight);
+    });
+    ctx.restore();
+}
+
+function distPODAttachPhotos(input) {
+    var files = Array.from(input.files || []);
+    input.value = '';
+    if (!files.length) return;
+    var current = window._distPendingPODPhotos || [];
+    var remaining = 6 - current.length;
+    if (remaining <= 0) { showToast('Keni arritur maksimumin (6 foto)', 'warning'); return; }
+    if (files.length > remaining) {
+        showToast('Mund të shtoni vetëm ' + remaining + ' foto të tjera', 'warning');
+        files = files.slice(0, remaining);
+    }
+    showToast('Duke kompresuar ' + files.length + ' foto...', 'info');
+
+    // Kap GPS paralelisht me kompresimin (opsional, timeout 6s)
+    distCaptureGPS(6000).then(function(gps) {
+        if (gps) window._distPendingPODGPS = gps;
+        var shopName = distGetShopNameForWatermark(null);
+        var wmText = distBuildWatermarkText(shopName, gps);
+        return Promise.all(files.map(function(f) { return distCompressImage(f, 1000, 0.72, wmText); }));
+    }).then(function(dataUrls) {
+        window._distPendingPODPhotos = (window._distPendingPODPhotos || []).concat(dataUrls);
+        distPODRenderPreview('dist-pod-preview', window._distPendingPODPhotos, true);
+        var gpsMsg = window._distPendingPODGPS ? ' (me GPS)' : '';
+        showToast('U shtuan ' + dataUrls.length + ' foto' + gpsMsg, 'success');
+    }).catch(function(err) {
+        showToast('Gabim: ' + err.message, 'error');
+    });
+}
+
+function distPODRenderPreview(containerId, photos, editable, removeFn) {
+    var container = document.getElementById(containerId);
+    if (!container) return;
+    removeFn = removeFn || 'distPODRemovePendingPhoto';
+    var h = '';
+    photos.forEach(function(dataUrl, idx) {
+        h += '<div style="position:relative;width:80px;height:80px;border-radius:6px;overflow:hidden;border:1px solid #ddd;">';
+        h += '<img src="' + dataUrl + '" style="width:100%;height:100%;object-fit:cover;cursor:pointer;" onclick="distPODViewPhoto(\'' + containerId + '\', ' + idx + ')">';
+        if (editable) {
+            h += '<button type="button" onclick="' + removeFn + '(' + idx + ')" style="position:absolute;top:2px;right:2px;background:rgba(192,57,43,0.9);color:white;border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:12px;">&times;</button>';
+        }
+        h += '</div>';
+    });
+    container.innerHTML = h;
+}
+
+function distPODRemovePendingPhoto(idx) {
+    if (!window._distPendingPODPhotos) return;
+    window._distPendingPODPhotos.splice(idx, 1);
+    distPODRenderPreview('dist-pod-preview', window._distPendingPODPhotos, true);
+}
+
+function distPODViewPhoto(containerId, idx) {
+    var photos;
+    if (containerId === 'dist-pod-preview') photos = window._distPendingPODPhotos || [];
+    else if (containerId === 'dist-pod-gallery-preview') photos = window._distPODGalleryPhotos || [];
+    else if (window._distPODGalleryPhotos) photos = window._distPODGalleryPhotos;
+    else return;
+    if (!photos[idx]) return;
+    var h = '<div style="text-align:center;background:#000;padding:0;margin:-15px;">';
+    h += '<img src="' + photos[idx] + '" style="max-width:100%;max-height:80vh;display:block;margin:0 auto;">';
+    h += '<div style="padding:10px;color:#ccc;">Foto ' + (idx+1) + ' / ' + photos.length + '</div>';
+    h += '</div>';
+    openModal('Fotografi', h);
+}
+
+function openDistPODGallery(deliveryId) {
+    var del = (state.distDeliveries || []).find(function(d){ return d.id === deliveryId; });
+    if (!del) return;
+    var shop = getDistShop(del.shopId);
+    var pod = del.pod || { photos: [], signature: null, receiverName: '', condition: 'complete', timestamp: '', gps: null };
+    window._distPODGalleryPhotos = pod.photos || [];
+    window._distPODGalleryDeliveryId = deliveryId;
+    window._distPODGalleryGPS = pod.gps || null;
+
+    var h = '<div style="padding:5px;">';
+    h += '<div style="background:#f8f9fa;padding:10px;border-radius:8px;margin-bottom:12px;">';
+    h += '<div><strong>Faturë:</strong> ' + (del.invoiceNum || '-') + '</div>';
+    h += '<div><strong>Data:</strong> ' + del.date + ' | <strong>Dyqani:</strong> ' + shop.name + '</div>';
+    if (pod.gps && typeof pod.gps.lat === 'number') {
+        h += '<div style="margin-top:4px;"><strong>📍 GPS:</strong> <a href="' + distGPSMapsURL(pod.gps) + '" target="_blank" style="color:#2980b9;">' +
+             pod.gps.lat.toFixed(5) + ', ' + pod.gps.lng.toFixed(5) + '</a>';
+        if (pod.gps.accuracy) h += ' <small style="color:#888;">(±' + Math.round(pod.gps.accuracy) + 'm)</small>';
+        h += '</div>';
+    }
+    h += '</div>';
+
+    // Condition + receiver
+    var condLabels = { complete: '✅ I plotë / OK', partial: '⚠️ Pjesërisht', damaged: '❌ I dëmtuar' };
+    h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">';
+    h += '<div style="flex:1;min-width:180px;"><label style="font-size:0.9em;color:#555;">Emri i pranuesit:</label>';
+    h += '<input type="text" id="dist-pod-edit-receiver" value="' + (pod.receiverName || '').replace(/"/g,'&quot;') + '" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;"></div>';
+    h += '<div style="flex:1;min-width:180px;"><label style="font-size:0.9em;color:#555;">Gjendja:</label>';
+    h += '<select id="dist-pod-edit-condition" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;">';
+    Object.keys(condLabels).forEach(function(k) {
+        h += '<option value="' + k + '"' + (pod.condition === k ? ' selected' : '') + '>' + condLabels[k] + '</option>';
+    });
+    h += '</select></div></div>';
+
+    // Photos section
+    h += '<h4 style="margin:15px 0 8px;"><i class="fas fa-camera"></i> Fotografitë (' + (pod.photos || []).length + '/6)</h4>';
+    h += '<input type="file" id="dist-pod-edit-photos-input" accept="image/*" capture="environment" multiple style="display:none;" onchange="distPODGalleryAddPhotos(this)">';
+    h += '<button type="button" class="btn" style="background:#2980b9;color:white;margin-bottom:8px;" onclick="document.getElementById(\'dist-pod-edit-photos-input\').click();"><i class="fas fa-plus"></i> Shto Foto</button>';
+    h += '<div id="dist-pod-gallery-preview" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;"></div>';
+
+    // Signature section
+    h += '<h4 style="margin:15px 0 8px;"><i class="fas fa-signature"></i> Nënshkrimi</h4>';
+    h += '<div style="border:2px dashed #bbb;border-radius:8px;padding:6px;background:white;">';
+    h += '<canvas id="dist-pod-edit-sign" width="420" height="120" style="width:100%;height:120px;background:white;border-radius:4px;touch-action:none;display:block;"></canvas>';
+    h += '<div style="display:flex;gap:8px;margin-top:6px;">';
+    h += '<button type="button" class="btn btn-sm" style="background:#95a5a6;color:white;" onclick="distFatonSignClear(\'dist-pod-edit-sign\')"><i class="fas fa-eraser"></i> Pastro</button>';
+    h += '</div></div>';
+
+    // Action buttons
+    h += '<div style="display:flex;gap:8px;margin-top:15px;flex-wrap:wrap;">';
+    h += '<button class="btn btn-primary" style="flex:1;" onclick="saveDistPOD(\'' + deliveryId + '\')"><i class="fas fa-save"></i> Ruaj Ndryshimet</button>';
+    h += '<button class="btn" style="background:#25d366;color:white;" onclick="distPODWhatsApp(\'' + deliveryId + '\')"><i class="fab fa-whatsapp"></i> Dërgo POD</button>';
+    h += '<button class="btn" style="background:#c0392b;color:white;" onclick="distPODGeneratePDF(\'' + deliveryId + '\')"><i class="fas fa-file-pdf"></i> PDF</button>';
+    if (pod.photos && pod.photos.length > 0) {
+        h += '<button class="btn" style="background:#27ae60;color:white;" onclick="distPODDownloadAll(\'' + deliveryId + '\')"><i class="fas fa-download"></i> Shkarko Fotot</button>';
+    }
+    if (del.pod) {
+        h += '<button class="btn btn-danger" onclick="clearDistPOD(\'' + deliveryId + '\')"><i class="fas fa-trash"></i> Hiq POD</button>';
+    }
+    h += '</div>';
+    if (pod.timestamp) h += '<small style="color:#888;display:block;margin-top:10px;">Regjistruar: ' + new Date(pod.timestamp).toLocaleString('sq-AL') + '</small>';
+    h += '</div>';
+
+    openModal('Provë Dorëzimi — ' + (del.invoiceNum || ''), h);
+
+    setTimeout(function() {
+        // Rendero direkt me butonat e remove që thërrasin distPODGalleryRemovePhoto (nuk mbishkruajmë globalin)
+        var container = document.getElementById('dist-pod-gallery-preview');
+        if (container) {
+            var galleryH = '';
+            (window._distPODGalleryPhotos || []).forEach(function(dataUrl, idx) {
+                galleryH += '<div style="position:relative;width:80px;height:80px;border-radius:6px;overflow:hidden;border:1px solid #ddd;">';
+                galleryH += '<img src="' + dataUrl + '" style="width:100%;height:100%;object-fit:cover;cursor:pointer;" onclick="distPODViewPhoto(\'dist-pod-gallery-preview\', ' + idx + ')">';
+                galleryH += '<button type="button" onclick="distPODGalleryRemovePhoto(' + idx + ')" style="position:absolute;top:2px;right:2px;background:rgba(192,57,43,0.9);color:white;border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:12px;">&times;</button>';
+                galleryH += '</div>';
+            });
+            container.innerHTML = galleryH;
+        }
+        distFatonSignInit('dist-pod-edit-sign');
+        if (pod.signature) {
+            var canvas = document.getElementById('dist-pod-edit-sign');
+            if (canvas) {
+                var ctx = canvas.getContext('2d');
+                var img = new Image();
+                img.onload = function() {
+                    var ratio = window.devicePixelRatio || 1;
+                    ctx.drawImage(img, 0, 0, canvas.width / ratio, canvas.height / ratio);
+                    canvas.__hasSignature = true;
+                };
+                img.src = pod.signature;
+            }
+        }
+    }, 100);
+}
+
+// Override remove for gallery context
+function distPODGalleryRemovePhoto(idx) {
+    if (!window._distPODGalleryPhotos) return;
+    window._distPODGalleryPhotos.splice(idx, 1);
+    distPODRenderPreview('dist-pod-gallery-preview', window._distPODGalleryPhotos, true, 'distPODGalleryRemovePhoto');
+}
+
+function distPODGalleryAddPhotos(input) {
+    var files = Array.from(input.files || []);
+    input.value = '';
+    if (!files.length) return;
+    var current = window._distPODGalleryPhotos || [];
+    var remaining = 6 - current.length;
+    if (remaining <= 0) { showToast('Keni arritur maksimumin (6 foto)', 'warning'); return; }
+    if (files.length > remaining) files = files.slice(0, remaining);
+    showToast('Duke kompresuar...', 'info');
+
+    distCaptureGPS(6000).then(function(gps) {
+        if (gps) window._distPODGalleryGPS = gps;
+        var shopName = distGetShopNameForWatermark(window._distPODGalleryDeliveryId);
+        var wmText = distBuildWatermarkText(shopName, gps);
+        return Promise.all(files.map(function(f){ return distCompressImage(f, 1000, 0.72, wmText); }));
+    }).then(function(urls) {
+        window._distPODGalleryPhotos = (window._distPODGalleryPhotos || []).concat(urls);
+        distPODRenderPreview('dist-pod-gallery-preview', window._distPODGalleryPhotos, true, 'distPODGalleryRemovePhoto');
+        var gpsMsg = window._distPODGalleryGPS ? ' (me GPS)' : '';
+        showToast('U shtuan ' + urls.length + ' foto' + gpsMsg, 'success');
+    }).catch(function(err){ showToast('Gabim: ' + err.message, 'error'); });
+}
+
+function saveDistPOD(deliveryId) {
+    var del = (state.distDeliveries || []).find(function(d){ return d.id === deliveryId; });
+    if (!del) return;
+    var canvas = document.getElementById('dist-pod-edit-sign');
+    var signature = null;
+    if (canvas && canvas.__hasSignature) signature = canvas.toDataURL('image/png');
+    var receiver = (document.getElementById('dist-pod-edit-receiver') || {}).value || '';
+    var condition = (document.getElementById('dist-pod-edit-condition') || {}).value || 'complete';
+    var photos = window._distPODGalleryPhotos || [];
+
+    if (photos.length === 0 && !signature && !receiver) {
+        // Nothing to save
+        if (del.pod) {
+            if (!confirm('Nuk ka asnjë të dhënë. Doni ta fshini POD-in aktual?')) return;
+            del.pod = null;
+        }
+    } else {
+        var prevGPS = (del.pod && del.pod.gps) ? del.pod.gps : null;
+        del.pod = {
+            photos: photos,
+            signature: signature,
+            receiverName: receiver,
+            condition: condition,
+            gps: window._distPODGalleryGPS || prevGPS || null,
+            timestamp: (del.pod && del.pod.timestamp) ? del.pod.timestamp : new Date().toISOString()
+        };
+    }
+    window._distPODGalleryGPS = null;
+    saveState();
+    closeModal();
+    showToast('POD u ruajt', 'success');
+    logActivity('dist_pod', 'POD u përditësua për dërgesën ' + (del.invoiceNum || del.id), 'distribution');
+    refreshDistribution();
+}
+
+function clearDistPOD(deliveryId) {
+    var del = (state.distDeliveries || []).find(function(d){ return d.id === deliveryId; });
+    if (!del) return;
+    modalConfirm('A jeni i sigurt që doni të hiqni provën e dorëzimit?', function() {
+        del.pod = null;
+        saveState();
+        closeModal();
+        showToast('POD u fshi', 'warning');
+        refreshDistribution();
+    });
+}
+
+function distPODWhatsApp(deliveryId) {
+    var del = (state.distDeliveries || []).find(function(d){ return d.id === deliveryId; });
+    if (!del) return;
+    var shop = getDistShop(del.shopId);
+    var pod = del.pod || {};
+    var total = del.items.reduce(function(s,i){ return s + i.quantity * i.price; }, 0);
+    var condLabels = { complete: 'I plotë', partial: 'Pjesërisht', damaged: 'I dëmtuar' };
+    var msg = '📋 PROVË DORËZIMI\n\n';
+    msg += 'Faturë: ' + (del.invoiceNum || '-') + '\n';
+    msg += 'Data: ' + del.date + '\n';
+    msg += 'Dyqani: ' + shop.name + '\n';
+    msg += 'Totali: ' + total + ' den\n';
+    if (pod.receiverName) msg += 'Pranuesi: ' + pod.receiverName + '\n';
+    msg += 'Gjendja: ' + (condLabels[pod.condition] || 'N/A') + '\n';
+    if ((pod.photos || []).length > 0) msg += 'Fotot: ' + pod.photos.length + ' copë (shkarko nga aplikacioni)\n';
+    if (pod.signature) msg += 'Nënshkrim: Po ✓\n';
+    if (pod.gps && typeof pod.gps.lat === 'number') {
+        msg += '📍 Vendndodhja: ' + distGPSMapsURL(pod.gps) + '\n';
+    }
+    msg += '\nProdukte:\n';
+    del.items.forEach(function(it) {
+        msg += '- ' + getDistProduct(it.productId).name + ' x' + it.quantity + ' = ' + (it.quantity*it.price) + ' den\n';
+    });
+    var phone = (shop.phone || '').replace(/[^0-9]/g, '');
+    var url = phone ? ('https://wa.me/' + phone + '?text=' + encodeURIComponent(msg)) : ('https://wa.me/?text=' + encodeURIComponent(msg));
+    window.open(url, '_blank');
+    showToast('WhatsApp u hap', 'success');
+}
+
+function distPODDownloadAll(deliveryId) {
+    var del = (state.distDeliveries || []).find(function(d){ return d.id === deliveryId; });
+    if (!del || !del.pod || !del.pod.photos || del.pod.photos.length === 0) return;
+    del.pod.photos.forEach(function(dataUrl, idx) {
+        var a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = 'POD_' + (del.invoiceNum || del.id) + '_' + (idx+1) + '.jpg';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    });
+    showToast('U shkarkuan ' + del.pod.photos.length + ' foto', 'success');
+}
+
+// ========================= GPS + WATERMARK HELPERS =========================
+// Kapërcim i sigurt — kthen Promise<{lat,lng,accuracy,timestamp}|null>
+function distCaptureGPS(timeoutMs) {
+    timeoutMs = timeoutMs || 8000;
+    return new Promise(function(resolve) {
+        if (!navigator || !navigator.geolocation || typeof navigator.geolocation.getCurrentPosition !== 'function') {
+            resolve(null); return;
+        }
+        var done = false;
+        var t = setTimeout(function(){ if (!done) { done = true; resolve(null); } }, timeoutMs);
+        try {
+            navigator.geolocation.getCurrentPosition(function(pos) {
+                if (done) return; done = true; clearTimeout(t);
+                resolve({
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude,
+                    accuracy: pos.coords.accuracy || null,
+                    timestamp: new Date().toISOString()
+                });
+            }, function() {
+                if (done) return; done = true; clearTimeout(t);
+                resolve(null);
+            }, { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 60000 });
+        } catch (e) { if (!done) { done = true; clearTimeout(t); resolve(null); } }
+    });
+}
+
+// Ndërton tekstin e watermark-it nga shopName + GPS opsional
+function distBuildWatermarkText(shopName, gps) {
+    var now = new Date();
+    var pad = function(n){ return (n < 10 ? '0' : '') + n; };
+    var dateStr = now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate()) +
+                  ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+    var lines = ['🌴 Hurma • ' + dateStr];
+    if (shopName) lines.push('📍 ' + shopName);
+    if (gps && typeof gps.lat === 'number') {
+        lines.push('GPS: ' + gps.lat.toFixed(5) + ', ' + gps.lng.toFixed(5));
+    }
+    return lines;
+}
+
+// Merr emrin e dyqanit nga select-i i dërgesës ose nga delivery obj
+function distGetShopNameForWatermark(deliveryId) {
+    try {
+        if (deliveryId) {
+            var del = (state.distDeliveries || []).find(function(d){ return d.id === deliveryId; });
+            if (del) { var s = getDistShop(del.shopId); if (s) return s.name; }
+        }
+        var sel = document.getElementById('dist-del-shop');
+        if (sel && sel.value) {
+            var sh = getDistShop(sel.value);
+            if (sh) return sh.name;
+        }
+    } catch(e) {}
+    return '';
+}
+
+// URL për Google Maps nga koordinata
+function distGPSMapsURL(gps) {
+    if (!gps || typeof gps.lat !== 'number') return '';
+    return 'https://www.google.com/maps?q=' + gps.lat + ',' + gps.lng;
+}
+
+// ========================= STORAGE / POD STATS =========================
+function computeStorageStats() {
+    var total = 0;
+    try {
+        for (var k in localStorage) {
+            if (Object.prototype.hasOwnProperty.call(localStorage, k)) {
+                var v = localStorage.getItem(k);
+                if (typeof v === 'string') total += v.length + k.length;
+            }
+        }
+    } catch(e) {}
+    // Characters ~ bytes for ASCII; JSON base64 is ASCII
+    var sizeKB = Math.round(total / 1024);
+    var sizeMB = (total / 1048576).toFixed(2);
+
+    var deliveries = (state && state.distDeliveries) ? state.distDeliveries : [];
+    var podPhotos = 0, podGPS = 0, podSigned = 0, podTotal = 0;
+    deliveries.forEach(function(d){
+        if (d.pod) {
+            podTotal++;
+            if (d.pod.photos) podPhotos += d.pod.photos.length;
+            if (d.pod.gps && typeof d.pod.gps.lat === 'number') podGPS++;
+            if (d.pod.signature) podSigned++;
+        }
+    });
+
+    return {
+        sizeKB: sizeKB,
+        sizeMB: sizeMB,
+        products: (typeof PRODUCTS !== 'undefined' && PRODUCTS) ? PRODUCTS.length : 0,
+        sales: (state && state.sales) ? state.sales.length : 0,
+        clients: (state && state.clients) ? state.clients.length : 0,
+        deliveries: deliveries.length,
+        podPhotos: podPhotos,
+        podGPS: podGPS,
+        podSigned: podSigned,
+        podTotal: podTotal
+    };
+}
+
+// ========================= DISTRIBUTION ANALYTICS =========================
+function renderDistAnalyticsTab() {
+    var h = '<h3 class="dist-section-title"><i class="fas fa-chart-line"></i> Analitika e Shpërndarjes</h3>';
+    var deliveries = state.distDeliveries || [];
+    if (deliveries.length === 0) {
+        return h + '<p style="color:#999;padding:20px;">Asnjë dërgesë ende — analitika do të shfaqet kur të fillosh regjistrimet.</p>';
+    }
+
+    // Computed KPIs
+    var now = new Date();
+    var thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    var lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    var lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+
+    var thisMonth = deliveries.filter(function(d){ return new Date(d.date) >= thisMonthStart; });
+    var lastMonth = deliveries.filter(function(d){ var dt = new Date(d.date); return dt >= lastMonthStart && dt <= lastMonthEnd; });
+    var sumTotal = function(arr){ return arr.reduce(function(s,d){ return s + d.items.reduce(function(a,i){ return a + i.quantity * i.price; }, 0); }, 0); };
+    var thisRev = sumTotal(thisMonth);
+    var lastRev = sumTotal(lastMonth);
+    var pctChange = lastRev === 0 ? (thisRev > 0 ? 100 : 0) : Math.round(((thisRev - lastRev) / lastRev) * 100);
+    var pctColor = pctChange >= 0 ? '#27ae60' : '#c0392b';
+    var pctArrow = pctChange >= 0 ? '▲' : '▼';
+
+    // KPI cards
+    h += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:16px;">';
+    h += '<div style="background:linear-gradient(135deg,#3498db,#2980b9);color:white;padding:14px;border-radius:10px;">';
+    h += '<div style="font-size:0.85em;opacity:.9;">Ky muaj</div><div style="font-size:1.6em;font-weight:700;">' + thisRev + ' den</div>';
+    h += '<div style="font-size:0.85em;">' + thisMonth.length + ' dërgesa</div></div>';
+    h += '<div style="background:linear-gradient(135deg,#95a5a6,#7f8c8d);color:white;padding:14px;border-radius:10px;">';
+    h += '<div style="font-size:0.85em;opacity:.9;">Muaji i kaluar</div><div style="font-size:1.6em;font-weight:700;">' + lastRev + ' den</div>';
+    h += '<div style="font-size:0.85em;">' + lastMonth.length + ' dërgesa</div></div>';
+    h += '<div style="background:' + pctColor + ';color:white;padding:14px;border-radius:10px;">';
+    h += '<div style="font-size:0.85em;opacity:.9;">Krahasim</div><div style="font-size:1.6em;font-weight:700;">' + pctArrow + ' ' + Math.abs(pctChange) + '%</div>';
+    h += '<div style="font-size:0.85em;">vs muaji i kaluar</div></div>';
+    var avgTicket = thisMonth.length ? Math.round(thisRev / thisMonth.length) : 0;
+    h += '<div style="background:linear-gradient(135deg,#9b59b6,#8e44ad);color:white;padding:14px;border-radius:10px;">';
+    h += '<div style="font-size:0.85em;opacity:.9;">Mesatarja / dërgesë</div><div style="font-size:1.6em;font-weight:700;">' + avgTicket + ' den</div>';
+    h += '<div style="font-size:0.85em;">ky muaj</div></div>';
+    h += '</div>';
+
+    // Action bar
+    h += '<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">';
+    h += '<button class="btn btn-sm" style="background:#27ae60;color:white;" onclick="distExportDeliveriesExcel()"><i class="fas fa-file-excel"></i> Eksport Excel (të gjitha)</button>';
+    h += '<button class="btn btn-sm" style="background:#27ae60;color:white;" onclick="distExportDeliveriesExcel(\'thisMonth\')"><i class="fas fa-file-excel"></i> Excel (ky muaj)</button>';
+    h += '<button class="btn btn-sm" style="background:#8e44ad;color:white;" onclick="showDistPODMap()"><i class="fas fa-map-marked-alt"></i> Hartë POD</button>';
+    h += '</div>';
+
+    // Charts grid
+    h += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;">';
+    h += '<div style="background:white;padding:14px;border-radius:10px;border:1px solid #e2e8f0;"><h4 style="margin:0 0 10px;"><i class="fas fa-chart-line"></i> Të ardhurat 6 muajt e fundit</h4><canvas id="dist-chart-monthly" style="max-height:260px;"></canvas></div>';
+    h += '<div style="background:white;padding:14px;border-radius:10px;border:1px solid #e2e8f0;"><h4 style="margin:0 0 10px;"><i class="fas fa-trophy"></i> Top 5 dyqane (ky muaj)</h4><canvas id="dist-chart-topshops" style="max-height:260px;"></canvas></div>';
+    h += '<div style="background:white;padding:14px;border-radius:10px;border:1px solid #e2e8f0;"><h4 style="margin:0 0 10px;"><i class="fas fa-box"></i> Top produktet (ky muaj)</h4><canvas id="dist-chart-topproducts" style="max-height:260px;"></canvas></div>';
+    h += '<div style="background:white;padding:14px;border-radius:10px;border:1px solid #e2e8f0;"><h4 style="margin:0 0 10px;"><i class="fas fa-money-bill-wave"></i> Lloji i pagesës</h4><canvas id="dist-chart-payment" style="max-height:260px;"></canvas></div>';
+    h += '</div>';
+
+    // Use requestAnimationFrame + setTimeout to ensure the DOM is fully painted
+    // before Chart.js tries to measure canvas dimensions
+    setTimeout(function() {
+        if (typeof requestAnimationFrame === 'function') {
+            requestAnimationFrame(distRenderAnalyticsCharts);
+        } else {
+            distRenderAnalyticsCharts();
+        }
+    }, 150);
+    return h;
+}
+
+function distRenderAnalyticsCharts() {
+    if (typeof Chart === 'undefined') return;
+    var deliveries = state.distDeliveries || [];
+    var now = new Date();
+
+    // ===== Monthly revenue (last 6 months) =====
+    var monthsData = [];
+    for (var i = 5; i >= 0; i--) {
+        var m = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        var mEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
+        var rev = deliveries.filter(function(d){ var dt = new Date(d.date); return dt >= m && dt <= mEnd; })
+            .reduce(function(s,d){ return s + d.items.reduce(function(a,i){ return a + i.quantity * i.price; }, 0); }, 0);
+        monthsData.push({ label: m.toLocaleDateString('sq-AL', { month: 'short', year: '2-digit' }), value: rev });
+    }
+    var el1 = document.getElementById('dist-chart-monthly');
+    if (el1) {
+        if (el1._chart) el1._chart.destroy();
+        el1._chart = new Chart(el1.getContext('2d'), {
+            type: 'line',
+            data: { labels: monthsData.map(function(x){ return x.label; }),
+                datasets: [{ label: 'Të ardhurat (den)', data: monthsData.map(function(x){ return x.value; }),
+                    borderColor: '#3498db', backgroundColor: 'rgba(52,152,219,0.15)', fill: true, tension: 0.3, pointRadius: 4 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+    }
+
+    // ===== Top 5 shops this month =====
+    var thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    var thisMonthDel = deliveries.filter(function(d){ return new Date(d.date) >= thisMonthStart; });
+    var shopRev = {};
+    thisMonthDel.forEach(function(d){
+        var tot = d.items.reduce(function(a,i){ return a + i.quantity * i.price; }, 0);
+        shopRev[d.shopId] = (shopRev[d.shopId] || 0) + tot;
+    });
+    var topShops = Object.keys(shopRev).map(function(k){ return { name: (getDistShop(k) || {}).name || '—', value: shopRev[k] }; })
+        .sort(function(a,b){ return b.value - a.value; }).slice(0, 5);
+    var el2 = document.getElementById('dist-chart-topshops');
+    if (el2 && topShops.length) {
+        if (el2._chart) el2._chart.destroy();
+        el2._chart = new Chart(el2.getContext('2d'), {
+            type: 'bar',
+            data: { labels: topShops.map(function(x){ return x.name; }),
+                datasets: [{ label: 'den', data: topShops.map(function(x){ return x.value; }),
+                    backgroundColor: ['#e74c3c','#e67e22','#f39c12','#27ae60','#2980b9'] }] },
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+    }
+
+    // ===== Top products this month =====
+    var prodQty = {};
+    thisMonthDel.forEach(function(d){
+        d.items.forEach(function(it){
+            prodQty[it.productId] = (prodQty[it.productId] || 0) + it.quantity;
+        });
+    });
+    var topProd = Object.keys(prodQty).map(function(k){ return { name: (getDistProduct(k) || {}).name || '—', value: prodQty[k] }; })
+        .sort(function(a,b){ return b.value - a.value; }).slice(0, 5);
+    var el3 = document.getElementById('dist-chart-topproducts');
+    if (el3 && topProd.length) {
+        if (el3._chart) el3._chart.destroy();
+        el3._chart = new Chart(el3.getContext('2d'), {
+            type: 'bar',
+            data: { labels: topProd.map(function(x){ return x.name; }),
+                datasets: [{ label: 'Njësi', data: topProd.map(function(x){ return x.value; }),
+                    backgroundColor: ['#9b59b6','#8e44ad','#3498db','#16a085','#d35400'] }] },
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+    }
+
+    // ===== Payment breakdown =====
+    var payBreakdown = { cash: 0, invoice_30: 0, invoice_60: 0, invoice_90: 0 };
+    thisMonthDel.forEach(function(d){
+        var tot = d.items.reduce(function(a,i){ return a + i.quantity * i.price; }, 0);
+        if (payBreakdown.hasOwnProperty(d.paymentType)) payBreakdown[d.paymentType] += tot;
+    });
+    var payLabels = { cash: 'Cash', invoice_30: 'Faturë 30', invoice_60: 'Faturë 60', invoice_90: 'Faturë 90' };
+    var payKeys = Object.keys(payBreakdown).filter(function(k){ return payBreakdown[k] > 0; });
+    var el4 = document.getElementById('dist-chart-payment');
+    if (el4 && payKeys.length) {
+        if (el4._chart) el4._chart.destroy();
+        el4._chart = new Chart(el4.getContext('2d'), {
+            type: 'doughnut',
+            data: { labels: payKeys.map(function(k){ return payLabels[k]; }),
+                datasets: [{ data: payKeys.map(function(k){ return payBreakdown[k]; }),
+                    backgroundColor: ['#27ae60','#3498db','#f39c12','#e74c3c'] }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+        });
+    }
+}
+
+// ========================= MAP VIEW (LEAFLET) =========================
+// Lazy-load Leaflet from CDN (njëherë të vetme)
+function distLoadLeaflet() {
+    return new Promise(function(resolve, reject) {
+        if (window.L && window.L.map) { resolve(); return; }
+        var css = document.createElement('link');
+        css.rel = 'stylesheet';
+        css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+        document.head.appendChild(css);
+        var sc = document.createElement('script');
+        sc.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        sc.onload = function(){ resolve(); };
+        sc.onerror = function(){ reject(new Error('Leaflet s\'u ngarkua — kontrollo internetin')); };
+        document.head.appendChild(sc);
+    });
+}
+
+// Shfaq hartën me të gjitha POD-et që kanë GPS
+function showDistPODMap() {
+    var items = [];
+    (state.distDeliveries || []).forEach(function(d) {
+        if (d.pod && d.pod.gps && typeof d.pod.gps.lat === 'number') {
+            items.push({ delivery: d, gps: d.pod.gps, shop: getDistShop(d.shopId) });
+        }
+    });
+
+    var h = '<div style="padding:5px;">';
+    if (items.length === 0) {
+        h += '<p style="color:#999;padding:20px;text-align:center;"><i class="fas fa-map-marker-alt fa-2x"></i><br>Asnjë dërgesë me GPS ende.<br><small>Kur të shtosh foto POD në modalin e dërgesës, GPS kapet automatikisht.</small></p>';
+        h += '</div>';
+        openModal('Hartë POD', h);
+        return;
+    }
+
+    h += '<div style="background:#eef7ff;padding:8px 12px;border-radius:6px;margin-bottom:8px;font-size:0.9em;">';
+    h += '📍 <strong>' + items.length + '</strong> dërgesa me koordinata GPS të regjistruara';
+    h += '</div>';
+    h += '<div id="dist-pod-map" style="width:100%;height:60vh;min-height:400px;border-radius:8px;border:1px solid #ddd;background:#f0f0f0;"></div>';
+    h += '<small style="color:#888;display:block;margin-top:8px;">Kliko markerin për detaje. Harta: OpenStreetMap.</small>';
+    h += '</div>';
+    openModal('Hartë POD — ' + items.length + ' vendndodhje', h);
+
+    // Load Leaflet + render
+    showToast('Duke ngarkuar hartën...', 'info');
+    distLoadLeaflet().then(function() {
+        var el = document.getElementById('dist-pod-map');
+        if (!el) return;
+        // Qendra = pika e parë
+        var first = items[0].gps;
+        var map = L.map('dist-pod-map').setView([first.lat, first.lng], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        var bounds = [];
+        items.forEach(function(it) {
+            var shop = it.shop || {};
+            var d = it.delivery;
+            var total = d.items.reduce(function(s,i){ return s + i.quantity * i.price; }, 0);
+            // Ngjyra sipas statusit të pagesës
+            var color = d.paid ? '#27ae60' : (d.paidAmount > 0 ? '#f39c12' : '#c0392b');
+            var marker = L.circleMarker([it.gps.lat, it.gps.lng], {
+                radius: 10, fillColor: color, color: '#fff', weight: 2, opacity: 1, fillOpacity: 0.9
+            }).addTo(map);
+            var escapedName = (shop.name || '—').replace(/'/g, "\\'");
+            var popupH = '<div style="min-width:180px;">';
+            popupH += '<strong>' + (shop.name || '—') + '</strong><br>';
+            popupH += '<small>Faturë: ' + (d.invoiceNum || '-') + '</small><br>';
+            popupH += '<small>Data: ' + d.date + '</small><br>';
+            popupH += '<small>Total: <b>' + total + ' den</b></small><br>';
+            if (d.paid) popupH += '<small style="color:#27ae60;">✅ Paguar</small>';
+            else popupH += '<small style="color:#c0392b;">⏳ Borxh: ' + (total - (d.paidAmount || 0)) + ' den</small>';
+            popupH += '<br><button class="btn btn-sm" style="background:#2980b9;color:white;margin-top:6px;width:100%;" onclick="closeModal();openDistPODGallery(\'' + d.id + '\');">Hap POD</button>';
+            popupH += '</div>';
+            marker.bindPopup(popupH);
+            bounds.push([it.gps.lat, it.gps.lng]);
+        });
+
+        if (bounds.length > 1) {
+            map.fitBounds(bounds, { padding: [30, 30] });
+        }
+        // Legend
+        var legend = L.control({ position: 'bottomright' });
+        legend.onAdd = function() {
+            var div = L.DomUtil.create('div');
+            div.style.cssText = 'background:white;padding:8px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,0.2);font-size:0.85em;';
+            div.innerHTML = '<div><span style="display:inline-block;width:12px;height:12px;background:#27ae60;border-radius:50%;"></span> Paguar</div>' +
+                            '<div><span style="display:inline-block;width:12px;height:12px;background:#f39c12;border-radius:50%;"></span> Pjesërisht</div>' +
+                            '<div><span style="display:inline-block;width:12px;height:12px;background:#c0392b;border-radius:50%;"></span> Papaguar</div>';
+            return div;
+        };
+        legend.addTo(map);
+    }).catch(function(err){
+        showToast(err.message, 'error');
+    });
+}
+
+// ========================= EXCEL EXPORT =========================
+function distExportDeliveriesExcel(scope) {
+    if (typeof XLSX === 'undefined') { showToast('XLSX nuk u ngarkua', 'error'); return; }
+    var deliveries = (state.distDeliveries || []).slice();
+    if (scope === 'thisMonth') {
+        var start = new Date(); start.setDate(1); start.setHours(0,0,0,0);
+        deliveries = deliveries.filter(function(d){ return new Date(d.date) >= start; });
+    }
+    if (deliveries.length === 0) { showToast('Asnjë dërgesë për t\'u eksportuar', 'warning'); return; }
+    deliveries.sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
+
+    var rows = deliveries.map(function(d){
+        var shop = getDistShop(d.shopId) || {};
+        var total = d.items.reduce(function(s,i){ return s + i.quantity * i.price; }, 0);
+        var paid = d.paidAmount || 0;
+        var days = d.paymentType === 'invoice_30' ? 30 : d.paymentType === 'invoice_60' ? 60 : d.paymentType === 'invoice_90' ? 90 : 0;
+        var due = days ? new Date(new Date(d.date).getTime() + days * 86400000).toISOString().split('T')[0] : '';
+        var pod = d.pod || {};
+        return {
+            'Fatura': d.invoiceNum || '',
+            'Data': d.date,
+            'Dyqani': shop.name || '',
+            'Telefon': shop.phone || '',
+            'Adresa': shop.address || '',
+            'Produkte': d.items.map(function(i){ return (getDistProduct(i.productId) || {}).name + ' x' + i.quantity; }).join('; '),
+            'Totali (den)': total,
+            'Paguar (den)': paid,
+            'Borxhi (den)': total - paid,
+            'Lloji Pagesës': d.paymentType,
+            'Afati': due,
+            'Status': d.paid ? 'Paguar' : (paid > 0 ? 'Pjesërisht' : 'Papaguar'),
+            'POD': pod.photos || pod.signature || pod.receiverName ? 'Po' : 'Jo',
+            'Pranuesi': pod.receiverName || '',
+            'Foto POD': (pod.photos || []).length,
+            'Nënshkrim': pod.signature ? 'Po' : 'Jo',
+            'GPS': pod.gps && typeof pod.gps.lat === 'number' ? (pod.gps.lat.toFixed(5) + ', ' + pod.gps.lng.toFixed(5)) : ''
+        };
+    });
+
+    try {
+        var ws = XLSX.utils.json_to_sheet(rows);
+        var wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Dërgesat');
+        var suffix = scope === 'thisMonth' ? '_ky_muaj' : '';
+        var filename = 'Dergesat' + suffix + '_' + new Date().toISOString().split('T')[0] + '.xlsx';
+        XLSX.writeFile(wb, filename);
+        showToast('U eksportuan ' + rows.length + ' dërgesa: ' + filename, 'success');
+    } catch(e) {
+        showToast('Gabim Excel: ' + e.message, 'error');
+    }
+}
+
+// ========================= OVERDUE DISTRIBUTION INVOICES =========================
+// Kthen listën e dërgesave të vonuara (afati ka kaluar dhe nuk janë paguar)
+function computeOverdueDeliveries() {
+    var today = new Date(); today.setHours(0,0,0,0);
+    var overdue = [];
+    (state.distDeliveries || []).forEach(function(d) {
+        if (d.paid) return;
+        if (d.paymentType === 'cash') return;
+        var days = d.paymentType === 'invoice_30' ? 30 : d.paymentType === 'invoice_60' ? 60 : d.paymentType === 'invoice_90' ? 90 : 0;
+        if (!days) return;
+        var delDate = new Date(d.date); delDate.setHours(0,0,0,0);
+        var due = new Date(delDate.getTime() + days * 86400000);
+        if (due < today) {
+            var total = d.items.reduce(function(s,i){ return s + i.quantity * i.price; }, 0);
+            var remaining = total - (d.paidAmount || 0);
+            var daysOverdue = Math.floor((today - due) / 86400000);
+            overdue.push({
+                delivery: d,
+                dueDate: due,
+                daysOverdue: daysOverdue,
+                remaining: remaining,
+                total: total
+            });
+        }
+    });
+    return overdue.sort(function(a,b){ return b.daysOverdue - a.daysOverdue; });
+}
+
+// Shfaq modalin me faturat e vonuara
+function showOverdueDeliveriesModal() {
+    var overdue = computeOverdueDeliveries();
+    var h = '<div style="padding:5px;">';
+    if (overdue.length === 0) {
+        h += '<p style="color:#27ae60;padding:20px;text-align:center;"><i class="fas fa-check-circle fa-2x"></i><br>Asnjë faturë e vonuar! 🎉</p>';
+    } else {
+        var totalOverdue = overdue.reduce(function(s,o){ return s + o.remaining; }, 0);
+        h += '<div style="background:#ffeaea;border-left:4px solid #c0392b;padding:10px;border-radius:6px;margin-bottom:10px;">';
+        h += '<strong style="color:#c0392b;">⚠️ ' + overdue.length + ' fatura të vonuara, gjithsej ' + totalOverdue + ' den për t\'u paguar</strong>';
+        h += '</div>';
+        h += '<div class="table-container"><table class="dist-table"><thead><tr>';
+        h += '<th>Fatura</th><th>Dyqani</th><th>Data</th><th>Afati</th><th>Vonesa</th><th>Borxhi</th><th>Veprime</th>';
+        h += '</tr></thead><tbody>';
+        overdue.forEach(function(o) {
+            var shop = getDistShop(o.delivery.shopId);
+            var severityColor = o.daysOverdue > 30 ? '#c0392b' : o.daysOverdue > 14 ? '#e67e22' : '#f39c12';
+            h += '<tr>';
+            h += '<td><strong>' + (o.delivery.invoiceNum || '-') + '</strong></td>';
+            h += '<td>' + shop.name + '</td>';
+            h += '<td>' + o.delivery.date + '</td>';
+            h += '<td>' + o.dueDate.toISOString().split('T')[0] + '</td>';
+            h += '<td><span style="background:' + severityColor + ';color:white;padding:2px 8px;border-radius:10px;font-weight:bold;">' + o.daysOverdue + ' ditë</span></td>';
+            h += '<td><strong style="color:#c0392b;">' + o.remaining + ' den</strong></td>';
+            h += '<td>';
+            h += '<button class="btn btn-sm btn-success" onclick="closeModal();openDistCollectPaymentModal(\'' + o.delivery.id + '\')" title="Arkëto"><i class="fas fa-money-bill"></i></button> ';
+            h += '<button class="btn btn-sm" style="background:#25d366;color:white;" onclick="sendOverdueReminderWhatsApp(\'' + o.delivery.id + '\')" title="Kujtesë WhatsApp"><i class="fab fa-whatsapp"></i></button>';
+            h += '</td>';
+            h += '</tr>';
+        });
+        h += '</tbody></table></div>';
+    }
+    h += '</div>';
+    openModal('Fatura të Vonuara', h);
+}
+
+// Dërgo kujtesë me WhatsApp për faturë të vonuar
+function sendOverdueReminderWhatsApp(deliveryId) {
+    var del = (state.distDeliveries || []).find(function(d){ return d.id === deliveryId; });
+    if (!del) return;
+    var shop = getDistShop(del.shopId);
+    var total = del.items.reduce(function(s,i){ return s + i.quantity * i.price; }, 0);
+    var remaining = total - (del.paidAmount || 0);
+    var days = del.paymentType === 'invoice_30' ? 30 : del.paymentType === 'invoice_60' ? 60 : 90;
+    var due = new Date(new Date(del.date).getTime() + days * 86400000);
+    var daysOverdue = Math.floor((Date.now() - due.getTime()) / 86400000);
+
+    var msg = '🔔 KUJTESË PAGESE\n\n';
+    msg += 'I nderuar ' + shop.name + ',\n\n';
+    msg += 'Ju njoftojmë se fatura juaj ka kaluar afatin:\n\n';
+    msg += '📋 Faturë Nr: ' + (del.invoiceNum || '-') + '\n';
+    msg += '📅 Data: ' + del.date + '\n';
+    msg += '⏰ Afati: ' + due.toISOString().split('T')[0] + '\n';
+    msg += '⚠️ Vonesa: ' + daysOverdue + ' ditë\n';
+    msg += '💰 Borxhi: ' + remaining + ' den\n\n';
+    msg += 'Ju lutemi të bëni pagesën sa më shpejt të jetë e mundur.\n\n';
+    msg += 'Faleminderit për bashkëpunimin,\nHurma Distribution';
+
+    var phone = (shop.phone || '').replace(/[^0-9]/g, '');
+    var url = phone ? ('https://wa.me/' + phone + '?text=' + encodeURIComponent(msg)) : ('https://wa.me/?text=' + encodeURIComponent(msg));
+    window.open(url, '_blank');
+    showToast('Kujtesa u përgatit për WhatsApp', 'success');
+}
+
+// ========================= PDF POD GENERATOR =========================
+function distPODGeneratePDF(deliveryId) {
+    var del = (state.distDeliveries || []).find(function(d){ return d.id === deliveryId; });
+    if (!del) { showToast('Dërgesa nuk u gjet', 'error'); return; }
+    if (!window.jspdf || !window.jspdf.jsPDF) { showToast('jsPDF nuk u ngarkua', 'error'); return; }
+
+    try {
+        var shop = getDistShop(del.shopId);
+        var pod = del.pod || {};
+        var total = del.items.reduce(function(s,i){ return s + i.quantity * i.price; }, 0);
+        var condLabels = { complete: 'I plote / OK', partial: 'Pjeserisht', damaged: 'I demtuar' };
+
+        var jsPDF = window.jspdf.jsPDF;
+        var doc = new jsPDF({ unit: 'mm', format: 'a4' });
+        var pageW = 210, pageH = 297;
+        var y = 15;
+
+        // Header band
+        doc.setFillColor(41, 128, 185);
+        doc.rect(0, 0, pageW, 25, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(18);
+        doc.setFont(undefined, 'bold');
+        doc.text('PROVE E DORËZIMIT (POD)', 15, 15);
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        doc.text('Hurma App - Distribution', 15, 21);
+
+        y = 35;
+        doc.setTextColor(0, 0, 0);
+
+        // Invoice info box
+        doc.setDrawColor(200, 200, 200);
+        doc.setFillColor(248, 249, 250);
+        doc.rect(15, y, pageW - 30, 30, 'FD');
+        doc.setFontSize(11);
+        doc.setFont(undefined, 'bold');
+        doc.text('Faturë Nr.: ' + (del.invoiceNum || '-'), 20, y + 7);
+        doc.text('Data: ' + del.date, pageW - 60, y + 7);
+        doc.setFont(undefined, 'normal');
+        doc.setFontSize(10);
+        doc.text('Dyqani: ' + (shop.name || '-'), 20, y + 14);
+        if (shop.phone) doc.text('Tel: ' + shop.phone, pageW - 60, y + 14);
+        if (shop.address) doc.text('Adresa: ' + shop.address, 20, y + 21);
+        doc.setFont(undefined, 'bold');
+        doc.text('TOTALI: ' + total + ' den', 20, y + 28);
+        doc.setFont(undefined, 'normal');
+        y += 36;
+
+        // Items table
+        doc.setFontSize(11);
+        doc.setFont(undefined, 'bold');
+        doc.text('Produktet:', 15, y);
+        y += 5;
+        doc.setFillColor(41, 128, 185);
+        doc.rect(15, y, pageW - 30, 7, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(9);
+        doc.text('Produkti', 17, y + 5);
+        doc.text('Sasia', 110, y + 5);
+        doc.text('Çmimi', 135, y + 5);
+        doc.text('Totali', 165, y + 5);
+        doc.setTextColor(0, 0, 0);
+        y += 7;
+        doc.setFont(undefined, 'normal');
+        del.items.forEach(function(it, i) {
+            if (i % 2 === 0) { doc.setFillColor(245, 247, 250); doc.rect(15, y, pageW - 30, 6, 'F'); }
+            var p = getDistProduct(it.productId);
+            doc.text((p.name || '').substring(0, 50), 17, y + 4);
+            doc.text(String(it.quantity), 110, y + 4);
+            doc.text(it.price + ' den', 135, y + 4);
+            doc.text((it.quantity * it.price) + ' den', 165, y + 4);
+            y += 6;
+        });
+        y += 4;
+
+        // POD details
+        doc.setFillColor(230, 247, 230);
+        doc.rect(15, y, pageW - 30, 24, 'FD');
+        doc.setFont(undefined, 'bold');
+        doc.setFontSize(11);
+        doc.text('Prova e Dorëzimit:', 20, y + 6);
+        doc.setFont(undefined, 'normal');
+        doc.setFontSize(10);
+        doc.text('Pranuesi: ' + (pod.receiverName || '-'), 20, y + 12);
+        doc.text('Gjendja: ' + (condLabels[pod.condition] || 'N/A'), 110, y + 12);
+        doc.text('Nënshkrim: ' + (pod.signature ? 'Po' : 'Jo'), 20, y + 18);
+        doc.text('Foto: ' + ((pod.photos || []).length) + ' copë', 60, y + 18);
+        if (pod.timestamp) doc.text('Koha: ' + new Date(pod.timestamp).toLocaleString('sq-AL'), 110, y + 18);
+        y += 28;
+
+        // GPS
+        if (pod.gps && typeof pod.gps.lat === 'number') {
+            doc.setFillColor(255, 247, 230);
+            doc.rect(15, y, pageW - 30, 12, 'FD');
+            doc.setFont(undefined, 'bold');
+            doc.text('GPS:', 20, y + 5);
+            doc.setFont(undefined, 'normal');
+            var gpsText = pod.gps.lat.toFixed(5) + ', ' + pod.gps.lng.toFixed(5);
+            if (pod.gps.accuracy) gpsText += ' (+/-' + Math.round(pod.gps.accuracy) + 'm)';
+            doc.text(gpsText, 30, y + 5);
+            doc.setTextColor(41, 128, 185);
+            doc.textWithLink('Hap në Google Maps', 20, y + 10, { url: distGPSMapsURL(pod.gps) });
+            doc.setTextColor(0, 0, 0);
+            y += 16;
+        }
+
+        // Signature image
+        if (pod.signature && y < pageH - 50) {
+            doc.setFont(undefined, 'bold');
+            doc.text('Nënshkrimi:', 15, y + 5);
+            doc.setFont(undefined, 'normal');
+            try {
+                doc.addImage(pod.signature, 'PNG', 15, y + 7, 80, 25);
+            } catch(e) {}
+            y += 36;
+        }
+
+        // Photos grid on new page (if any)
+        var photos = pod.photos || [];
+        if (photos.length > 0) {
+            doc.addPage();
+            y = 15;
+            doc.setFillColor(41, 128, 185);
+            doc.rect(0, 0, pageW, 15, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text('Fotografitë e POD (' + photos.length + ')', 15, 10);
+            doc.setTextColor(0, 0, 0);
+            y = 22;
+            // 2x3 grid, ~85mm wide
+            var cellW = 85, cellH = 85, gap = 5;
+            var col = 0;
+            photos.forEach(function(dataUrl, idx) {
+                var x = 15 + col * (cellW + gap);
+                if (y + cellH > pageH - 15) {
+                    doc.addPage(); y = 15;
+                }
+                try { doc.addImage(dataUrl, 'JPEG', x, y, cellW, cellH); } catch(e) {}
+                doc.setFontSize(8);
+                doc.text('Foto ' + (idx + 1), x, y + cellH + 4);
+                col++;
+                if (col >= 2) { col = 0; y += cellH + 10; }
+            });
+        }
+
+        // Footer on last page
+        var totalPages = doc.internal.getNumberOfPages();
+        for (var p = 1; p <= totalPages; p++) {
+            doc.setPage(p);
+            doc.setFontSize(8);
+            doc.setTextColor(120, 120, 120);
+            doc.text('Gjeneruar: ' + new Date().toLocaleString('sq-AL') + ' | Hurma App | Faqe ' + p + '/' + totalPages, 15, pageH - 8);
+        }
+
+        var filename = 'POD_' + (del.invoiceNum || del.id) + '_' + del.date + '.pdf';
+        doc.save(filename);
+        showToast('PDF u krijua: ' + filename, 'success');
+    } catch(err) {
+        showToast('Gabim PDF: ' + err.message, 'error');
+    }
+}
+
+// Shfaq listën e dërgesave që s'kanë POD (30 ditët e fundit)
+function showMissingPODDeliveries() {
+    var cutoff = Date.now() - 30 * 86400000;
+    var missing = (state.distDeliveries || []).filter(function(d) {
+        var t = new Date(d.date || 0).getTime();
+        if (t < cutoff) return false;
+        return !(d.pod && ((d.pod.photos && d.pod.photos.length) || d.pod.signature || d.pod.receiverName));
+    }).sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
+
+    var h = '<div style="padding:5px;">';
+    if (missing.length === 0) {
+        h += '<p style="color:#27ae60;padding:20px;text-align:center;"><i class="fas fa-check-circle fa-2x"></i><br>Të gjitha dërgesat kanë POD! 🎉</p>';
+    } else {
+        h += '<p style="color:#666;margin-bottom:10px;">Këto dërgesa nuk kanë provë dorëzimi. Shtoji për dokumentim të plotë:</p>';
+        h += '<div class="table-container"><table class="dist-table"><thead><tr>';
+        h += '<th>Fatura</th><th>Data</th><th>Dyqani</th><th>Totali</th><th>Veprim</th>';
+        h += '</tr></thead><tbody>';
+        missing.forEach(function(d) {
+            var shop = getDistShop(d.shopId);
+            var total = d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+            h += '<tr>';
+            h += '<td><strong>' + (d.invoiceNum || '-') + '</strong></td>';
+            h += '<td>' + d.date + '</td>';
+            h += '<td>' + shop.name + '</td>';
+            h += '<td>' + total + ' den</td>';
+            h += '<td><button class="btn btn-sm" style="background:#2980b9;color:white;" onclick="closeModal();openDistPODGallery(\'' + d.id + '\')"><i class="fas fa-camera"></i> Shto POD</button></td>';
+            h += '</tr>';
+        });
+        h += '</tbody></table></div>';
+    }
+    h += '</div>';
+    openModal('Dërgesa pa POD — 30 ditë', h);
+}
+
+// Llogarit % e dërgesave me POD në 30 ditët e fundit
+function computePODCompletionRate(days) {
+    days = days || 30;
+    var cutoff = Date.now() - days * 86400000;
+    var total = 0, withPOD = 0;
+    (state.distDeliveries || []).forEach(function(d) {
+        var t = new Date(d.date || d.timestamp || 0).getTime();
+        if (t >= cutoff) {
+            total++;
+            if (d.pod && ((d.pod.photos && d.pod.photos.length) || d.pod.signature || d.pod.receiverName)) withPOD++;
+        }
+    });
+    return { total: total, withPOD: withPOD, rate: total ? Math.round(withPOD * 100 / total) : 0 };
 }

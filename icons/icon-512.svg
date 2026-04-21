@@ -1,20 +1,36 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <!-- Background circle -->
-  <circle cx="256" cy="256" r="256" fill="#2c7a4b"/>
-  <!-- Palm tree trunk -->
-  <rect x="234" y="295" width="44" height="145" rx="22" fill="#8B6914"/>
-  <!-- Palm leaves -->
-  <ellipse cx="256" cy="210" rx="32" ry="100" fill="#4caf7d" transform="rotate(-40 256 210)"/>
-  <ellipse cx="256" cy="210" rx="32" ry="100" fill="#3d9966" transform="rotate(-15 256 210)"/>
-  <ellipse cx="256" cy="210" rx="32" ry="100" fill="#4caf7d" transform="rotate(10 256 210)"/>
-  <ellipse cx="256" cy="210" rx="32" ry="100" fill="#3d9966" transform="rotate(35 256 210)"/>
-  <ellipse cx="256" cy="210" rx="32" ry="100" fill="#4caf7d" transform="rotate(60 256 210)"/>
-  <!-- Hurma fruits cluster -->
-  <circle cx="256" cy="300" r="18" fill="#c0392b"/>
-  <circle cx="224" cy="288" r="16" fill="#a93226"/>
-  <circle cx="288" cy="288" r="16" fill="#c0392b"/>
-  <circle cx="238" cy="320" r="16" fill="#a93226"/>
-  <circle cx="274" cy="320" r="16" fill="#c0392b"/>
-  <!-- App name -->
-  <text x="256" y="478" font-family="Arial,sans-serif" font-size="48" font-weight="bold" fill="rgba(255,255,255,0.95)" text-anchor="middle">HURMA</text>
+  <defs>
+    <linearGradient id="sq" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F4B24A"/>
+      <stop offset="1" stop-color="#B8731A"/>
+    </linearGradient>
+    <linearGradient id="pit" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FCE7C2"/>
+      <stop offset="1" stop-color="#E29A2B"/>
+    </linearGradient>
+    <radialGradient id="gloss" cx="0.3" cy="0.2" r="0.9">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.35"/>
+      <stop offset="0.6" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- iOS squircle background (corner radius ~ 22.37% of side) -->
+  <rect x="0" y="0" width="512" height="512" rx="115" ry="115" fill="url(#sq)"/>
+  <rect x="0" y="0" width="512" height="512" rx="115" ry="115" fill="url(#gloss)"/>
+
+  <!-- Date-pit mark, centered and scaled -->
+  <g transform="translate(256 256)">
+    <path d="M0 -138
+             C 80 -80, 150 -32, 150 0
+             C 150 32, 80 80, 0 138
+             C -80 80, -150 32, -150 0
+             C -150 -32, -80 -80, 0 -138 Z"
+          fill="url(#pit)"
+          stroke="#3A2410" stroke-opacity="0.15" stroke-width="2.5"/>
+    <path d="M -112 0
+             C -75 -11, 75 -11, 112 0
+             C 75 11, -75 11, -112 0 Z"
+          fill="#3A2410" opacity="0.55"/>
+    <ellipse cx="-36" cy="-58" rx="24" ry="11" fill="#FFFFFF" opacity="0.35"/>
+  </g>
 </svg>

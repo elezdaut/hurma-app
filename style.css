@@ -1,28 +1,63 @@
-/* CSS Variables */
+/* ========================================================================
+   Hurma — Design Tokens (iOS / App Store ready)
+   "Honey & date pit" palette — amber primary, deep cocoa, ivory cream.
+   ======================================================================== */
 :root {
-    --bg-primary: #f5f7fa;
-    --bg-secondary: #ffffff;
-    --bg-sidebar: #1a1a2e;
-    --text-primary: #2d3436;
-    --text-secondary: #636e72;
-    --accent: #e17055;
-    --accent-hover: #d35400;
-    --success: #00b894;
-    --warning: #fdcb6e;
-    --danger: #e74c3c;
-    --border: #dfe6e9;
-    --shadow: 0 2px 10px rgba(0,0,0,0.1);
-    --radius: 10px;
+    /* Brand */
+    --hurma-amber:      #E29A2B;
+    --hurma-amber-deep: #B8731A;
+    --hurma-amber-soft: #FCE7C2;
+    --hurma-cocoa:      #3A2410;
+    --hurma-cocoa-soft: #6B4426;
+    --hurma-cream:      #FBF6EE;
+    --hurma-cream-deep: #F3E9D6;
+
+    /* Surfaces */
+    --bg-primary:   #F6EFE2;   /* warm canvas */
+    --bg-secondary: #FFFFFF;
+    --bg-sidebar:   #3A2410;   /* cocoa */
+
+    /* Ink */
+    --text-primary:   #1A140C;
+    --text-secondary: #5A4A38;
+    --text-tertiary:  #9A8770;
+
+    /* Accent (map legacy --accent to Hurma amber so existing rules inherit the new brand) */
+    --accent:       #E29A2B;
+    --accent-hover: #B8731A;
+
+    /* Semantic states */
+    --success: #2F8F4E;
+    --warning: #D17E12;
+    --danger:  #C0392B;
+
+    /* Lines & shadows */
+    --border:   rgba(58, 36, 16, 0.10);
+    --hairline: rgba(58, 36, 16, 0.10);
+    --shadow:   0 1px 0 rgba(58,36,16,0.04), 0 8px 24px rgba(58,36,16,0.06);
+
+    /* Geometry */
+    --radius: 14px;
+    --radius-lg: 22px;
     --sidebar-width: 250px;
+
+    /* Safe-area insets for iOS notch / home-indicator */
+    --safe-top:    env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left:   env(safe-area-inset-left, 0px);
+    --safe-right:  env(safe-area-inset-right, 0px);
 }
 
 [data-theme="dark"] {
-    --bg-primary: #1a1a2e;
-    --bg-secondary: #16213e;
-    --text-primary: #ecf0f1;
-    --text-secondary: #b2bec3;
-    --border: #2d3436;
-    --shadow: 0 2px 10px rgba(0,0,0,0.3);
+    --bg-primary:   #120D06;
+    --bg-secondary: #1F1810;
+    --bg-sidebar:   #0E0805;
+    --text-primary: #F5EBD9;
+    --text-secondary: rgba(245,235,217,0.62);
+    --text-tertiary:  rgba(245,235,217,0.40);
+    --border:   rgba(255,220,170,0.08);
+    --hairline: rgba(255,220,170,0.08);
+    --shadow:   0 1px 0 rgba(0,0,0,0.3), 0 10px 28px rgba(0,0,0,0.45);
 }
 
 * {
@@ -32,12 +67,33 @@
 }
 
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+                 "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "tnum" 1, "ss01" 1;
+    letter-spacing: -0.01em;
     background: var(--bg-primary);
     color: var(--text-primary);
     display: flex;
     min-height: 100vh;
-    transition: all 0.3s ease;
+    min-height: -webkit-fill-available;
+    padding-left:   var(--safe-left);
+    padding-right:  var(--safe-right);
+    transition: background-color 0.3s ease, color 0.3s ease;
+    overscroll-behavior-y: contain;
+}
+
+/* Brand mark in sidebar header */
+.sidebar-header h2 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    letter-spacing: -0.3px;
+}
+.sidebar-header .brand-mark {
+    flex-shrink: 0;
+    filter: drop-shadow(0 2px 4px rgba(226,154,43,0.35));
 }
 
 /* Sidebar */
@@ -87,6 +143,7 @@ body {
     gap: 12px;
     transition: all 0.2s;
     font-size: 0.95em;
+    position: relative;
 }
 
 .nav-item:hover {
@@ -897,26 +954,229 @@ input:checked + .slider:before {
 }
 
 /* Invoice */
-.invoice-header {
-    text-align: center;
-    margin-bottom: 20px;
-    padding-bottom: 15px;
-    border-bottom: 2px solid var(--border);
+.invoice-document {
+    background: linear-gradient(180deg, #fffdf9 0%, #ffffff 100%);
+    border: 1px solid #eadfce;
+    border-radius: 24px;
+    padding: 26px;
+    box-shadow: 0 24px 60px rgba(67, 42, 11, 0.12);
+    color: #261d13;
+    max-width: 920px;
+    margin: 0 auto;
 }
 
-.invoice-details {
-    margin-bottom: 20px;
+.invoice-screen-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
 }
 
-.invoice-table {
+.invoice-toolbar-chip {
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: #f3eadf;
+    color: #6b4d2a;
+    font-weight: 700;
+    font-size: 0.82rem;
+}
+
+.invoice-hero {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
+    padding-bottom: 18px;
+    border-bottom: 1px solid #ecdfcf;
+    margin-bottom: 18px;
+}
+
+.invoice-hero > div:first-child {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+}
+
+.invoice-brand-mark {
+    width: 58px;
+    height: 58px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--invoice-accent, #8b5a2b);
+    color: #fff;
+    font-size: 1.8rem;
+    font-weight: 800;
+    box-shadow: 0 10px 25px rgba(139, 90, 43, 0.25);
+}
+
+.invoice-brand-copy h2 {
+    margin: 0;
+    font-size: 1.85rem;
+    font-weight: 800;
+}
+
+.invoice-brand-copy p {
+    margin: 4px 0 0;
+    color: #766655;
+    font-weight: 600;
+}
+
+.invoice-status-pill {
+    padding: 10px 14px;
+    border: 2px solid currentColor;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    font-weight: 800;
+    background: #fff;
+}
+
+.invoice-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.invoice-meta-card {
+    background: #fbf7f1;
+    border: 1px solid #eadfce;
+    border-radius: 18px;
+    padding: 16px;
+}
+
+.invoice-meta-card strong {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 1rem;
+}
+
+.invoice-meta-card p {
+    margin: 4px 0;
+    color: #62513f;
+}
+
+.invoice-meta-label {
+    display: inline-block;
+    margin-bottom: 8px;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #9b8366;
+    font-weight: 800;
+}
+
+.invoice-table-pro {
     width: 100%;
-    margin-bottom: 20px;
+    border-collapse: collapse;
+    margin-bottom: 18px;
+    overflow: hidden;
+    border-radius: 18px;
 }
 
-.invoice-total {
-    text-align: right;
-    font-size: 1.1em;
-    font-weight: bold;
+.invoice-table-pro th,
+.invoice-table-pro td {
+    padding: 14px 12px;
+    border-bottom: 1px solid #ecdfcf;
+    text-align: left;
+    vertical-align: top;
+}
+
+.invoice-table-pro th {
+    background: var(--invoice-accent, #8b5a2b);
+    color: #fff8f1;
+    font-size: 0.84rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.invoice-table-pro td {
+    background: #fff;
+    font-weight: 600;
+}
+
+.invoice-table-pro td span {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.82rem;
+    color: #7d6a56;
+    font-weight: 500;
+}
+
+.invoice-summary-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(290px, 0.9fr);
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.invoice-terms-card,
+.invoice-totals-card {
+    border: 1px solid #eadfce;
+    border-radius: 18px;
+    padding: 16px;
+    background: #fff;
+}
+
+.invoice-terms-card h4 {
+    margin: 0 0 10px;
+    font-size: 1rem;
+}
+
+.invoice-terms-card p {
+    margin: 0 0 8px;
+    color: #655340;
+    line-height: 1.6;
+}
+
+.invoice-total-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 0;
+    color: #5d4d3c;
+}
+
+.invoice-total-row.is-due strong {
+    color: #b63b2d;
+}
+
+.invoice-total-row.is-clear strong {
+    color: #2e8b57;
+}
+
+.invoice-grand-total {
+    margin-top: 10px;
+    padding-top: 12px;
+    border-top: 1px solid #ecdfcf;
+    font-size: 1.08rem;
+    color: #1f1a14;
+}
+
+.invoice-payment-meta {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed #eadfce;
+}
+
+.invoice-payment-meta p {
+    margin: 5px 0;
+    color: #675847;
+}
+
+.invoice-footer-pro {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    padding-top: 16px;
+    border-top: 1px solid #ecdfcf;
+}
+
+.invoice-footer-pro p {
+    margin: 4px 0;
+    color: #6b5a48;
 }
 
 /* Print Styles */
@@ -929,6 +1189,33 @@ input:checked + .slider:before {
     }
     .page {
         display: block !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .invoice-document {
+        padding: 16px;
+        border-radius: 16px;
+    }
+
+    .invoice-hero,
+    .invoice-summary-grid {
+        grid-template-columns: 1fr;
+        display: grid;
+    }
+
+    .invoice-hero {
+        gap: 12px;
+    }
+
+    .invoice-brand-copy h2 {
+        font-size: 1.35rem;
+    }
+
+    .invoice-table-pro th,
+    .invoice-table-pro td {
+        padding: 10px 8px;
+        font-size: 0.88rem;
     }
 }
 
@@ -2219,16 +2506,19 @@ input:checked + .slider:before {
 /* Badge for sidebar */
 .nav-badge {
     position: absolute;
-    top: 5px;
+    top: 50%;
+    transform: translateY(-50%);
     right: 10px;
-    background: #e74c3c;
+    background: linear-gradient(135deg, #ff6b35, #e55a2b);
     color: white;
-    font-size: 0.65em;
-    padding: 2px 6px;
-    border-radius: 10px;
+    font-size: 0.7em;
+    padding: 3px 8px;
+    border-radius: 12px;
     font-weight: 700;
-    min-width: 18px;
+    min-width: 22px;
     text-align: center;
+    box-shadow: 0 1px 4px rgba(229,90,43,0.3);
+    line-height: 1.3;
 }
 
 /* Dynamic time-based tinting handled via JS */
@@ -2758,3 +3048,2785 @@ tr.swipe-left-active {
     .skeleton-row { flex-wrap: wrap; gap: 8px; }
     .skeleton-block { min-width: 60px; }
 }
+
+/* ===== MARKET HISTORY REPORT ===== */
+.market-history-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+}
+
+.market-history-actions input[type="date"] {
+    min-height: 40px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.market-history-report {
+    padding: 8px 0 4px;
+}
+
+.market-history-paper {
+    background: #fff;
+    color: #222;
+    border: 1px solid #d9d9d9;
+    border-radius: 14px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+    padding: 22px;
+    max-width: 920px;
+    margin: 0 auto;
+}
+
+.market-history-paper h2 {
+    margin: 0 0 10px;
+    font-size: 1.55rem;
+    font-weight: 800;
+}
+
+.market-history-meta {
+    margin: 0 0 18px;
+    color: #4b4b4b;
+    font-size: 0.98rem;
+    font-weight: 600;
+}
+
+.market-history-range {
+    margin: -8px 0 18px;
+    color: #7a6d5a;
+    font-size: 0.92rem;
+    font-weight: 600;
+}
+
+.market-history-section + .market-history-section {
+    margin-top: 18px;
+}
+
+.market-history-section h3 {
+    margin: 0 0 10px;
+    font-size: 1.05rem;
+    font-weight: 800;
+}
+
+.market-history-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.market-history-table th,
+.market-history-table td {
+    border: 1px solid #dadada;
+    padding: 9px 10px;
+    text-align: left;
+    vertical-align: top;
+    word-break: break-word;
+}
+
+.market-history-table th {
+    color: #8a8a8a;
+    font-weight: 700;
+    background: #fbfbfb;
+}
+
+@media (max-width: 768px) {
+    .market-history-paper {
+        padding: 16px;
+        border-radius: 10px;
+    }
+
+    .market-history-paper h2 {
+        font-size: 1.15rem;
+        line-height: 1.35;
+    }
+
+    .market-history-meta {
+        font-size: 0.9rem;
+    }
+
+    .market-history-table th,
+    .market-history-table td {
+        padding: 8px 7px;
+        font-size: 0.88rem;
+    }
+}
+
+/* ===================== DISTRIBUTION PAGE ===================== */
+.dist-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #e67e22, #f39c12);
+    border-radius: 14px;
+    color: white;
+    box-shadow: 0 4px 15px rgba(230, 126, 34, 0.3);
+}
+
+.dist-header i {
+    font-size: 2em;
+}
+
+.dist-header h3 {
+    font-size: 1.3em;
+    margin: 0;
+}
+
+.dist-header small {
+    opacity: 0.9;
+    font-size: 0.85em;
+}
+
+.dist-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.dist-card {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    border-left: 4px solid #e67e22;
+    box-shadow: var(--shadow);
+    transition: transform 0.2s;
+}
+
+.dist-card:hover {
+    transform: translateY(-2px);
+}
+
+.dist-card-warn {
+    border-left-color: #e74c3c;
+    background: linear-gradient(135deg, var(--bg-secondary), #fff5f5);
+}
+
+.dist-card-icon {
+    font-size: 1.6em;
+    margin-bottom: 6px;
+}
+
+.dist-card-label {
+    font-size: 0.8em;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.dist-card-value {
+    font-size: 1.15em;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.dist-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.dist-btn-receive {
+    background: #e67e22 !important;
+    color: white !important;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.dist-btn-receive:hover {
+    background: #d35400 !important;
+}
+
+.dist-btn-deliver {
+    background: #2980b9 !important;
+    color: white !important;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.dist-btn-deliver:hover {
+    background: #1a6da0 !important;
+}
+
+.dist-btn-collect {
+    background: #27ae60 !important;
+    color: white !important;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.dist-btn-collect:hover {
+    background: #1e8449 !important;
+}
+
+.dist-btn-pay {
+    background: #8e44ad !important;
+    color: white !important;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.dist-btn-pay:hover {
+    background: #7d3c98 !important;
+}
+
+.dist-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 20px;
+    border-bottom: 3px solid #e67e22;
+    padding-bottom: 6px;
+}
+
+.dist-tab {
+    padding: 8px 16px;
+    border: none;
+    background: var(--bg-secondary);
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    font-size: 0.9em;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.dist-tab:hover {
+    background: #fff3e0;
+    color: #e67e22;
+}
+
+.dist-tab.active {
+    background: #e67e22;
+    color: white;
+    font-weight: 700;
+}
+
+.dist-tab-content {
+    min-height: 200px;
+}
+
+.dist-section-title {
+    color: #e67e22;
+    font-size: 1.15em;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #f5deb3;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dist-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9em;
+}
+
+.dist-table th {
+    background: #e67e22;
+    color: white;
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.88em;
+}
+
+.dist-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border);
+}
+
+.dist-table tbody tr:hover {
+    background: #fff8f0;
+}
+
+.dist-table tbody tr:nth-child(even) {
+    background: #fef9f3;
+}
+
+.dist-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.8em;
+    font-weight: 600;
+}
+
+.dist-badge-paid {
+    background: #d4edda;
+    color: #155724;
+}
+
+.dist-badge-unpaid {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.dist-badge-partial {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.dist-badge-warn {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.dist-invoice {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.dist-invoice-header {
+    text-align: center;
+    border-bottom: 3px solid #e67e22;
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+}
+
+.dist-invoice-header h2 {
+    color: #e67e22;
+    margin-bottom: 5px;
+}
+
+.dist-invoice-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+    font-size: 0.9em;
+}
+
+.dist-invoice-table th {
+    background: #e67e22;
+    color: white;
+    padding: 8px 10px;
+    text-align: left;
+}
+
+.dist-invoice-table td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.dist-report-summary {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 16px 20px;
+    border-left: 4px solid #e67e22;
+    box-shadow: var(--shadow);
+}
+
+.dist-report-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.dist-report-row:last-child {
+    border-bottom: none;
+}
+
+.dist-del-item {
+    margin-bottom: 8px;
+}
+
+/* Distribution responsive */
+@media (max-width: 768px) {
+    .dist-cards-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+
+    .dist-card {
+        padding: 12px;
+    }
+
+    .dist-actions {
+        flex-direction: column;
+    }
+
+    .dist-tabs {
+        gap: 4px;
+    }
+
+    .dist-tab {
+        padding: 6px 10px;
+        font-size: 0.8em;
+    }
+
+    .dist-table {
+        font-size: 0.8em;
+    }
+
+    .dist-table th, .dist-table td {
+        padding: 6px 8px;
+    }
+
+    .dist-header {
+        padding: 12px 16px;
+    }
+}
+
+[data-theme="dark"] .dist-table tbody tr:hover {
+    background: rgba(230, 126, 34, 0.1);
+}
+
+[data-theme="dark"] .dist-table tbody tr:nth-child(even) {
+    background: rgba(230, 126, 34, 0.05);
+}
+
+[data-theme="dark"] .dist-card {
+    border-left-color: #f39c12;
+}
+
+[data-theme="dark"] .dist-tab:hover {
+    background: rgba(230, 126, 34, 0.15);
+}
+
+[data-theme="dark"] .dist-report-summary {
+    border-left-color: #f39c12;
+}
+
+/* ==================== DISTRIBUTION IMPROVEMENTS (30 features) ==================== */
+
+/* #12, #13, #14 Alarm Banners */
+.dist-alarm-banner {
+    padding: 12px 16px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    font-size: 0.95em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    animation: distSlideIn 0.4s ease-out;
+}
+
+.dist-alarm-overdue {
+    background: linear-gradient(135deg, #fee2e2, #fecaca);
+    border-left: 4px solid #dc2626;
+    color: #991b1b;
+}
+
+.dist-alarm-stock {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    border-left: 4px solid #d97706;
+    color: #92400e;
+}
+
+.dist-alarm-faton {
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+    border-left: 4px solid #2563eb;
+    color: #1e40af;
+}
+
+.dist-alarm-banner .btn-sm {
+    background: rgba(255,255,255,0.8);
+    border: 1px solid rgba(0,0,0,0.15);
+    padding: 3px 10px;
+    font-size: 0.85em;
+}
+
+/* #10 Search Box */
+.dist-search-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg-secondary);
+    border: 2px solid #e67e22;
+    border-radius: 12px;
+    padding: 8px 16px;
+    margin-bottom: 15px;
+    transition: box-shadow 0.3s;
+}
+
+.dist-search-box:focus-within {
+    box-shadow: 0 0 0 3px rgba(230, 126, 34, 0.2);
+}
+
+.dist-search-box i {
+    color: #e67e22;
+    font-size: 1.1em;
+}
+
+.dist-search-box input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 1em;
+    outline: none;
+    color: var(--text-primary);
+}
+
+/* #11 Date Filter */
+.dist-date-filter {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    padding: 8px 12px;
+    background: var(--bg-secondary);
+    border-radius: 10px;
+}
+
+.dist-date-filter label {
+    font-size: 0.9em;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.dist-date-filter input[type="date"] {
+    padding: 4px 8px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.9em;
+}
+
+/* #25 Enhanced Color Coding - Row Styles */
+.dist-row-paid {
+    border-left: 3px solid #27ae60 !important;
+}
+
+.dist-row-unpaid {
+    border-left: 3px solid #e74c3c !important;
+}
+
+.dist-row-partial {
+    border-left: 3px solid #f39c12 !important;
+}
+
+/* #6 Shop 360 */
+.dist-shop-360 {
+    max-height: 75vh;
+    overflow-y: auto;
+}
+
+.dist-shop-360-header {
+    border-bottom: 3px solid #e67e22;
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+}
+
+.dist-shop-360-header h2 {
+    color: #e67e22;
+    margin-bottom: 8px;
+}
+
+.dist-shop-360-info p {
+    margin: 4px 0;
+    font-size: 0.95em;
+}
+
+.dist-shop-link {
+    color: #e67e22;
+    cursor: pointer;
+    text-decoration: underline;
+    font-weight: 600;
+}
+
+.dist-shop-link:hover {
+    color: #d35400;
+}
+
+/* #24 Contact Icons */
+.dist-contact-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    text-decoration: none;
+    font-size: 0.85em;
+    margin-left: 4px;
+    color: #3498db;
+    transition: transform 0.2s;
+}
+
+.dist-contact-icon:hover {
+    transform: scale(1.2);
+}
+
+/* #6 Simple Chart */
+.dist-simple-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    height: 120px;
+    padding: 10px;
+    background: var(--bg-secondary);
+    border-radius: 10px;
+    overflow-x: auto;
+}
+
+.dist-chart-bar-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    min-width: 30px;
+    height: 100%;
+    justify-content: flex-end;
+}
+
+.dist-chart-bar {
+    width: 100%;
+    max-width: 40px;
+    background: linear-gradient(180deg, #e67e22, #f39c12);
+    border-radius: 4px 4px 0 0;
+    min-height: 2px;
+    transition: height 0.5s ease;
+}
+
+.dist-chart-bar-container small {
+    font-size: 0.7em;
+    margin-top: 4px;
+    color: var(--text-secondary);
+}
+
+/* #8 Daily Route */
+.dist-route-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.dist-route-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    background: var(--bg-secondary);
+    border-radius: 10px;
+    border-left: 4px solid #e67e22;
+    transition: all 0.3s;
+}
+
+.dist-route-done {
+    border-left-color: #27ae60;
+    opacity: 0.7;
+}
+
+.dist-route-number {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #e67e22;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.1em;
+    flex-shrink: 0;
+}
+
+.dist-route-done .dist-route-number {
+    background: #27ae60;
+}
+
+.dist-route-details {
+    flex: 1;
+}
+
+.dist-route-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+/* #9 Calendar */
+.dist-calendar {
+    margin: 10px 0;
+}
+
+.dist-cal-header {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    margin-bottom: 4px;
+}
+
+.dist-cal-header div {
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.85em;
+    padding: 6px;
+    color: #e67e22;
+}
+
+.dist-cal-body {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+}
+
+.dist-cal-cell {
+    min-height: 50px;
+    padding: 4px;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    text-align: center;
+    position: relative;
+    transition: background 0.2s;
+}
+
+.dist-cal-cell:hover {
+    background: rgba(230, 126, 34, 0.1);
+}
+
+.dist-cal-empty {
+    background: transparent;
+}
+
+.dist-cal-today {
+    border: 2px solid #e67e22;
+    font-weight: 700;
+}
+
+.dist-cal-has-delivery {
+    background: rgba(230, 126, 34, 0.15);
+}
+
+.dist-cal-day {
+    font-size: 0.85em;
+    display: block;
+}
+
+.dist-cal-count {
+    display: inline-block;
+    background: #e67e22;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    line-height: 20px;
+    font-size: 0.75em;
+    font-weight: 700;
+    margin-top: 2px;
+}
+
+/* #17 Top Shops */
+.dist-top-shops-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.dist-top-shop-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+}
+
+.dist-top-rank {
+    font-weight: 700;
+    font-size: 1.1em;
+    width: 35px;
+    text-align: center;
+}
+
+.dist-top-name {
+    width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dist-top-bar-bg {
+    flex: 1;
+    height: 20px;
+    background: #f0f0f0;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.dist-top-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #e67e22, #f39c12);
+    border-radius: 10px;
+    transition: width 0.5s ease;
+}
+
+/* #18 Cash Flow Chart */
+.dist-cashflow-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 160px;
+    padding: 10px 0;
+    overflow-x: auto;
+}
+
+.dist-cf-day {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    min-width: 16px;
+    height: 100%;
+    justify-content: flex-end;
+    cursor: pointer;
+}
+
+.dist-cf-bars {
+    display: flex;
+    gap: 1px;
+    align-items: flex-end;
+    height: 100%;
+}
+
+.dist-cf-bar-in {
+    width: 6px;
+    background: #27ae60;
+    border-radius: 2px 2px 0 0;
+    min-height: 1px;
+}
+
+.dist-cf-bar-out {
+    width: 6px;
+    background: #e74c3c;
+    border-radius: 2px 2px 0 0;
+    min-height: 1px;
+}
+
+.dist-cf-day small {
+    font-size: 0.65em;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+/* #5 Dashboard Widget */
+.dist-dashboard-widget-box {
+    background: linear-gradient(135deg, rgba(230, 126, 34, 0.05), rgba(230, 126, 34, 0.1));
+    border: 1px solid rgba(230, 126, 34, 0.3);
+    border-radius: 14px;
+    padding: 16px 20px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.dist-dashboard-widget-box:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(230, 126, 34, 0.2);
+}
+
+/* #26 Animation on new delivery */
+@keyframes distSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes distPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
+
+.dist-delivery-row {
+    animation: distSlideIn 0.3s ease-out;
+}
+
+.dist-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.dist-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+}
+
+/* #27 Print Mode for Invoices */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    .modal, .modal * {
+        visibility: visible;
+    }
+    .modal {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background: white;
+    }
+    .modal .btn, .modal button {
+        display: none !important;
+    }
+    .dist-invoice {
+        max-height: none;
+        overflow: visible;
+    }
+    .dist-invoice-header {
+        border-bottom: 3px solid #333;
+    }
+    .dist-invoice-table th {
+        background: #333 !important;
+        color: white !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    .dist-badge {
+        border: 1px solid #333;
+    }
+    .dist-alarm-banner {
+        display: none;
+    }
+}
+
+/* #28 Mobile Responsive Enhancements */
+@media (max-width: 768px) {
+    .dist-search-box {
+        padding: 6px 10px;
+    }
+
+    .dist-date-filter {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .dist-alarm-banner {
+        font-size: 0.85em;
+        padding: 8px 10px;
+    }
+
+    .dist-route-item {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .dist-route-number {
+        width: 28px;
+        height: 28px;
+        font-size: 0.9em;
+    }
+
+    .dist-top-shop-item {
+        flex-wrap: wrap;
+    }
+
+    .dist-top-name {
+        width: auto;
+        flex: 1;
+    }
+
+    .dist-cal-cell {
+        min-height: 36px;
+        font-size: 0.8em;
+    }
+
+    .dist-cal-count {
+        width: 16px;
+        height: 16px;
+        line-height: 16px;
+        font-size: 0.65em;
+    }
+
+    .dist-cashflow-chart {
+        height: 100px;
+    }
+
+    .dist-shop-360 {
+        max-height: 85vh;
+    }
+
+    .dist-simple-chart {
+        height: 80px;
+    }
+
+    .dist-dashboard-widget-box .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .dist-cards-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dist-tabs {
+        flex-wrap: wrap;
+    }
+
+    .dist-tab {
+        flex: 1;
+        min-width: 80px;
+        text-align: center;
+    }
+
+    .dist-actions {
+        gap: 6px;
+    }
+
+    .dist-actions .btn {
+        font-size: 0.8em;
+        padding: 6px 10px;
+    }
+}
+
+/* #29 Dark Mode Support */
+[data-theme="dark"] .dist-alarm-overdue {
+    background: linear-gradient(135deg, rgba(220, 38, 38, 0.2), rgba(220, 38, 38, 0.1));
+    color: #fca5a5;
+}
+
+[data-theme="dark"] .dist-alarm-stock {
+    background: linear-gradient(135deg, rgba(217, 119, 6, 0.2), rgba(217, 119, 6, 0.1));
+    color: #fcd34d;
+}
+
+[data-theme="dark"] .dist-alarm-faton {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.2), rgba(37, 99, 235, 0.1));
+    color: #93c5fd;
+}
+
+[data-theme="dark"] .dist-search-box {
+    border-color: #f39c12;
+    background: var(--bg-secondary);
+}
+
+[data-theme="dark"] .dist-date-filter {
+    background: var(--bg-secondary);
+}
+
+[data-theme="dark"] .dist-date-filter input[type="date"] {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border-color: #555;
+}
+
+[data-theme="dark"] .dist-row-paid {
+    border-left-color: #27ae60;
+}
+
+[data-theme="dark"] .dist-row-unpaid {
+    border-left-color: #e74c3c;
+}
+
+[data-theme="dark"] .dist-row-partial {
+    border-left-color: #f39c12;
+}
+
+[data-theme="dark"] .dist-route-item {
+    background: var(--bg-secondary);
+    border-left-color: #f39c12;
+}
+
+[data-theme="dark"] .dist-cal-cell {
+    background: var(--bg-secondary);
+}
+
+[data-theme="dark"] .dist-cal-has-delivery {
+    background: rgba(243, 156, 18, 0.2);
+}
+
+[data-theme="dark"] .dist-cal-today {
+    border-color: #f39c12;
+}
+
+[data-theme="dark"] .dist-top-shop-item {
+    background: var(--bg-secondary);
+}
+
+[data-theme="dark"] .dist-top-bar-bg {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .dist-dashboard-widget-box {
+    background: linear-gradient(135deg, rgba(230, 126, 34, 0.1), rgba(230, 126, 34, 0.15));
+    border-color: rgba(243, 156, 18, 0.4);
+}
+
+[data-theme="dark"] .dist-shop-360-header {
+    border-bottom-color: #f39c12;
+}
+
+[data-theme="dark"] .dist-shop-link {
+    color: #f39c12;
+}
+
+[data-theme="dark"] .dist-shop-link:hover {
+    color: #e67e22;
+}
+
+[data-theme="dark"] .dist-badge-paid {
+    background: rgba(39, 174, 96, 0.2);
+    color: #2ecc71;
+}
+
+[data-theme="dark"] .dist-badge-unpaid {
+    background: rgba(231, 76, 60, 0.2);
+    color: #e74c3c;
+}
+
+[data-theme="dark"] .dist-badge-partial {
+    background: rgba(243, 156, 18, 0.2);
+    color: #f39c12;
+}
+
+[data-theme="dark"] .dist-badge-warn {
+    background: rgba(231, 76, 60, 0.2);
+    color: #e74c3c;
+}
+
+[data-theme="dark"] .dist-invoice-header {
+    border-bottom-color: #f39c12;
+}
+
+[data-theme="dark"] .dist-invoice-header h2 {
+    color: #f39c12;
+}
+
+[data-theme="dark"] .dist-invoice-table th {
+    background: #f39c12;
+}
+
+[data-theme="dark"] .dist-header {
+    background: linear-gradient(135deg, rgba(230, 126, 34, 0.15), rgba(230, 126, 34, 0.05));
+}
+
+[data-theme="dark"] .dist-alarm-banner .btn-sm {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: inherit;
+}
+
+/* ==========================================================================
+   HURMA — App Store Polish Layer (v11+)
+   All rules below are NEW selectors (hurma-* prefix, #hurma-*, or
+   device-specific media queries). They do NOT override any existing rule.
+   Safe to remove as a block without breaking the app.
+   ========================================================================== */
+
+/* ---------- 1. Splash screen (iOS-launch style) ---------- */
+#hurma-splash {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+    background:
+        radial-gradient(circle at 30% 25%, rgba(252,231,194,0.18), transparent 55%),
+        linear-gradient(160deg, #B8731A 0%, #3A2410 95%);
+    color: #FBF6EE;
+    opacity: 1;
+    transition: opacity 0.55s ease, visibility 0.55s;
+    padding-top: var(--safe-top);
+    padding-bottom: var(--safe-bottom);
+    -webkit-user-select: none;
+    user-select: none;
+}
+#hurma-splash.hurma-splash-hide {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+#hurma-splash .hurma-splash-mark {
+    width: 108px;
+    height: 108px;
+    filter: drop-shadow(0 12px 32px rgba(0,0,0,0.35));
+    animation: hurma-splash-pop 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+#hurma-splash .hurma-splash-name {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.8px;
+    color: #FBF6EE;
+    animation: hurma-splash-fade 0.9s 0.2s ease both;
+}
+#hurma-splash .hurma-splash-tagline {
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.4px;
+    color: rgba(251,246,238,0.68);
+    margin-top: -12px;
+    animation: hurma-splash-fade 0.9s 0.35s ease both;
+}
+#hurma-splash .hurma-splash-ring {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2.5px solid rgba(251,246,238,0.22);
+    border-top-color: #E29A2B;
+    animation: hurma-splash-spin 0.9s linear infinite;
+    margin-top: 14px;
+}
+@keyframes hurma-splash-pop {
+    0%   { transform: scale(0.7) rotate(-8deg); opacity: 0; }
+    60%  { transform: scale(1.06) rotate(2deg); opacity: 1; }
+    100% { transform: scale(1)    rotate(0); }
+}
+@keyframes hurma-splash-fade {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes hurma-splash-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ---------- 2. iOS-style bottom tab bar (mobile only) ---------- */
+.hurma-tab-bar {
+    display: none;
+}
+@media (max-width: 768px) {
+    .hurma-tab-bar {
+        position: fixed;
+        left: 12px;
+        right: 12px;
+        bottom: calc(12px + var(--safe-bottom));
+        z-index: 9500;
+        height: 64px;
+        border-radius: 24px;
+        background: rgba(255, 251, 242, 0.82);
+        backdrop-filter: blur(24px) saturate(170%);
+        -webkit-backdrop-filter: blur(24px) saturate(170%);
+        border: 0.5px solid rgba(58, 36, 16, 0.08);
+        box-shadow:
+            0 12px 32px rgba(58, 36, 16, 0.18),
+            0 2px 6px rgba(58, 36, 16, 0.06),
+            inset 0 1px 0 rgba(255, 255, 255, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: space-around;
+        padding: 0 8px;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+    [data-theme="dark"] .hurma-tab-bar {
+        background: rgba(31, 24, 16, 0.78);
+        border-color: rgba(255, 220, 170, 0.10);
+    }
+    .hurma-tab-bar__btn {
+        appearance: none;
+        -webkit-appearance: none;
+        background: none;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        color: var(--text-tertiary, #9A8770);
+        padding: 8px 10px;
+        min-width: 48px;
+        min-height: 48px;
+        border-radius: 14px;
+        font: inherit;
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0.1px;
+        transition: color 0.18s ease, transform 0.12s ease;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .hurma-tab-bar__btn:active { transform: scale(0.94); }
+    .hurma-tab-bar__btn i {
+        font-size: 20px;
+        line-height: 1;
+    }
+    .hurma-tab-bar__btn.is-active {
+        color: var(--hurma-amber-deep, #B8731A);
+        font-weight: 600;
+    }
+    .hurma-tab-bar__btn.is-active i {
+        transform: translateY(-1px);
+    }
+    .hurma-tab-bar__fab {
+        width: 54px;
+        height: 54px;
+        min-width: 54px;
+        border-radius: 18px;
+        background: linear-gradient(180deg, #E29A2B, #B8731A);
+        color: #fff !important;
+        border: none;
+        box-shadow:
+            0 6px 14px rgba(184, 115, 26, 0.5),
+            inset 0 1px 0 rgba(255, 255, 255, 0.35);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: transform 0.12s ease;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .hurma-tab-bar__fab:active { transform: scale(0.95); }
+    .hurma-tab-bar__fab i { font-size: 22px; }
+    /* ensure content is not hidden behind the floating bar on mobile */
+    body.hurma-has-tab-bar .main-content {
+        padding-bottom: calc(90px + var(--safe-bottom));
+    }
+}
+
+/* ---------- 3. Rebranded PWA banners (amber, matching Hurma) ---------- */
+#pwa-install-banner.hurma-install {
+    border: 0.5px solid rgba(58, 36, 16, 0.08) !important;
+    border-radius: 22px !important;
+    box-shadow:
+        0 12px 32px rgba(58, 36, 16, 0.18),
+        0 2px 6px rgba(58, 36, 16, 0.06),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+    background: rgba(255, 251, 242, 0.96) !important;
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    padding: 16px 18px !important;
+    min-width: 300px !important;
+}
+#pwa-install-banner.hurma-install .hurma-install-mark {
+    margin: 0 auto 8px;
+    display: block;
+}
+#pwa-install-banner.hurma-install strong {
+    color: var(--text-primary);
+    font-size: 15px;
+    letter-spacing: -0.2px;
+}
+#pwa-install-banner.hurma-install small {
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+#pwa-install-banner.hurma-install #pwa-install-btn {
+    background: linear-gradient(180deg, #E29A2B, #B8731A) !important;
+    color: #fff !important;
+    border-radius: 12px !important;
+    padding: 10px 22px !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.1px;
+    box-shadow:
+        0 4px 12px rgba(184, 115, 26, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    transition: transform 0.12s ease, box-shadow 0.2s ease;
+}
+#pwa-install-banner.hurma-install #pwa-install-btn:active {
+    transform: scale(0.96);
+}
+
+#pwa-update-banner.hurma-update {
+    background: linear-gradient(180deg, #E29A2B, #B8731A) !important;
+    border-radius: 16px !important;
+    box-shadow:
+        0 8px 24px rgba(184, 115, 26, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+    padding: 12px 18px !important;
+    font-weight: 600;
+}
+#pwa-update-banner.hurma-update button[onclick^="pwaApplyUpdate"] {
+    color: var(--hurma-cocoa, #3A2410) !important;
+    font-weight: 700 !important;
+    border-radius: 10px !important;
+    padding: 6px 14px !important;
+}
+
+/* ---------- 4. Toast / button micro-press ---------- */
+@media (hover: none) {
+    .btn:active,
+    button:not(.nav-item):not(.sidebar-toggle):active {
+        transform: scale(0.97);
+        transition: transform 0.08s ease;
+    }
+}
+
+/* ---------- 5. Accessibility focus ring ---------- */
+*:focus-visible {
+    outline: 2px solid var(--hurma-amber, #E29A2B);
+    outline-offset: 2px;
+    border-radius: 6px;
+}
+
+/* ---------- 6. Better scrollbars (webkit) ---------- */
+@media (pointer: fine) {
+    ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: rgba(58, 36, 16, 0.22);
+        border-radius: 10px;
+        border: 2px solid transparent;
+        background-clip: padding-box;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: rgba(58, 36, 16, 0.38);
+        background-clip: padding-box;
+        border: 2px solid transparent;
+    }
+    [data-theme="dark"] ::-webkit-scrollbar-thumb {
+        background: rgba(255, 220, 170, 0.22);
+        background-clip: padding-box;
+        border: 2px solid transparent;
+    }
+}
+
+/* ---------- 7. Utility: Hurma hero card (optional) ---------- */
+.hurma-hero {
+    position: relative;
+    padding: 22px 22px 26px;
+    border-radius: 26px;
+    background: linear-gradient(160deg, #B8731A 0%, #3A2410 92%);
+    color: #FBF6EE;
+    overflow: hidden;
+    box-shadow: 0 12px 32px rgba(58, 36, 16, 0.20);
+    margin-bottom: 16px;
+}
+.hurma-hero::before,
+.hurma-hero::after {
+    content: "";
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+}
+.hurma-hero::before {
+    top: -60px; right: -40px;
+    width: 220px; height: 220px;
+    background: radial-gradient(circle, rgba(252,231,194,0.18), transparent 65%);
+}
+.hurma-hero::after {
+    bottom: -100px; left: -50px;
+    width: 240px; height: 240px;
+    background: radial-gradient(circle, rgba(226,154,43,0.22), transparent 65%);
+}
+.hurma-hero__label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    opacity: 0.7;
+}
+.hurma-hero__value {
+    font-size: 42px;
+    font-weight: 800;
+    letter-spacing: -1.2px;
+    line-height: 1.05;
+    margin-top: 4px;
+    font-variant-numeric: tabular-nums;
+}
+.hurma-hero__sub {
+    font-size: 13px;
+    opacity: 0.78;
+    margin-top: 8px;
+}
+
+/* ---------- 8. Utility: chips in Hurma palette ---------- */
+.hurma-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1px;
+    background: var(--hurma-cream-deep, #F3E9D6);
+    color: var(--hurma-cocoa, #3A2410);
+}
+.hurma-chip--amber { background: var(--hurma-amber-soft, #FCE7C2); color: var(--hurma-amber-deep, #B8731A); }
+.hurma-chip--good  { background: #D6F0DD; color: #2F8F4E; }
+.hurma-chip--warn  { background: #FCE9C8; color: #D17E12; }
+.hurma-chip--bad   { background: #F8DAD4; color: #C0392B; }
+
+/* ---------- 9. Skeleton shimmer ---------- */
+.hurma-skeleton {
+    position: relative;
+    overflow: hidden;
+    background: var(--hurma-cream-deep, #F3E9D6);
+    border-radius: 10px;
+}
+.hurma-skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.6) 50%,
+        transparent 100%);
+    animation: hurma-shimmer 1.3s infinite;
+    transform: translateX(-100%);
+}
+@keyframes hurma-shimmer {
+    to { transform: translateX(100%); }
+}
+
+/* ---------- 10. Motion & safe-area respect ---------- */
+@media (prefers-reduced-motion: reduce) {
+    #hurma-splash,
+    .hurma-splash-mark,
+    .hurma-splash-name,
+    .hurma-splash-tagline,
+    .hurma-splash-ring,
+    .hurma-skeleton::after {
+        animation: none !important;
+        transition: opacity 0.15s ease !important;
+    }
+}
+
+/* iOS standalone mode tweaks (when launched from home screen) */
+@media (display-mode: standalone) {
+    body { overscroll-behavior-y: none; }
+    /* small breathing room at top for the status bar in black-translucent mode */
+    .main-content { padding-top: max(var(--safe-top), 0px); }
+}
+
+/* ==========================================================================
+   HURMA — Polish Layer v1 (10 premium enhancements)
+   All selectors are new / prefixed. Zero overrides of existing rules.
+   ========================================================================== */
+
+/* ---- Pull-to-refresh indicator ---- */
+#hurma-pull-indicator {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translate(-50%, -60px);
+    z-index: 9600;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: rgba(255, 251, 242, 0.92);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 0.5px solid rgba(58, 36, 16, 0.10);
+    box-shadow: 0 6px 18px rgba(58, 36, 16, 0.16);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    pointer-events: none;
+    padding-top: var(--safe-top);
+}
+[data-theme="dark"] #hurma-pull-indicator {
+    background: rgba(31, 24, 16, 0.88);
+    border-color: rgba(255, 220, 170, 0.12);
+}
+.hurma-pull-ring {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2.5px solid rgba(226, 154, 43, 0.28);
+    border-top-color: #E29A2B;
+    transition: transform 0.2s ease;
+}
+#hurma-pull-indicator.hurma-pull-ready .hurma-pull-ring {
+    border-top-color: #B8731A;
+    transform: rotate(180deg);
+}
+#hurma-pull-indicator.hurma-pull-spinning .hurma-pull-ring {
+    animation: hurma-pull-spin 0.85s linear infinite;
+}
+@keyframes hurma-pull-spin { to { transform: rotate(360deg); } }
+
+/* ---- Command palette ⌘K ---- */
+.hurma-palette {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 10vh;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+}
+.hurma-palette.is-open {
+    opacity: 1;
+    pointer-events: auto;
+}
+.hurma-palette.hidden { display: none; }
+.hurma-palette__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(26, 20, 12, 0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+.hurma-palette__panel {
+    position: relative;
+    width: min(620px, 92vw);
+    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-secondary, #fff);
+    border-radius: 22px;
+    box-shadow: 0 32px 80px rgba(26, 20, 12, 0.45), 0 4px 10px rgba(26, 20, 12, 0.12);
+    overflow: hidden;
+    transform: translateY(-10px) scale(0.98);
+    transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.hurma-palette.is-open .hurma-palette__panel {
+    transform: translateY(0) scale(1);
+}
+[data-theme="dark"] .hurma-palette__panel {
+    background: var(--bg-secondary, #1F1810);
+    border: 0.5px solid rgba(255, 220, 170, 0.10);
+}
+.hurma-palette__search {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 0.5px solid var(--hairline, rgba(58, 36, 16, 0.10));
+}
+.hurma-palette__search i {
+    color: var(--text-tertiary, #9A8770);
+    font-size: 16px;
+}
+.hurma-palette__search input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    font: inherit;
+    font-size: 17px;
+    color: var(--text-primary);
+    letter-spacing: -0.2px;
+    min-width: 0;
+}
+.hurma-palette__search kbd {
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 7px;
+    border-radius: 6px;
+    background: var(--hurma-cream-deep, #F3E9D6);
+    color: var(--text-secondary);
+    border: 0.5px solid var(--hairline);
+}
+[data-theme="dark"] .hurma-palette__search kbd {
+    background: rgba(255, 220, 170, 0.08);
+}
+.hurma-palette__list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px;
+}
+.hurma-palette__group {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-tertiary, #9A8770);
+    padding: 10px 12px 4px;
+}
+.hurma-palette__item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    color: var(--text-primary);
+    transition: background 0.12s ease;
+}
+.hurma-palette__item > i:first-child {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: var(--hurma-amber-soft, #FCE7C2);
+    color: var(--hurma-amber-deep, #B8731A);
+    flex-shrink: 0;
+    font-size: 14px;
+}
+.hurma-palette__item-main { flex: 1; min-width: 0; }
+.hurma-palette__item-label {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.1px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.hurma-palette__item-sub {
+    font-size: 12px;
+    color: var(--text-tertiary, #9A8770);
+    margin-top: 1px;
+}
+.hurma-palette__item-arrow {
+    color: var(--text-tertiary, #9A8770);
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.hurma-palette__item.is-selected {
+    background: var(--hurma-cream-deep, #F3E9D6);
+}
+.hurma-palette__item.is-selected .hurma-palette__item-arrow {
+    opacity: 1;
+    transform: translateX(2px);
+}
+[data-theme="dark"] .hurma-palette__item.is-selected {
+    background: rgba(255, 220, 170, 0.08);
+}
+.hurma-palette__empty {
+    padding: 24px 20px;
+    text-align: center;
+    color: var(--text-tertiary);
+    font-size: 14px;
+}
+.hurma-palette__footer {
+    display: flex;
+    gap: 18px;
+    padding: 10px 20px;
+    border-top: 0.5px solid var(--hairline, rgba(58, 36, 16, 0.10));
+    font-size: 11px;
+    color: var(--text-tertiary, #9A8770);
+}
+.hurma-palette__footer kbd {
+    font-family: inherit;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--hurma-cream-deep, #F3E9D6);
+    color: var(--text-secondary);
+    margin-right: 4px;
+}
+
+/* Mobile-friendly palette */
+@media (max-width: 768px) {
+    .hurma-palette { padding-top: 6vh; align-items: stretch; }
+    .hurma-palette__panel { max-height: 88vh; width: 96vw; border-radius: 20px; }
+}
+
+/* ---- Polished toasts ---- */
+.hurma-toast {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    border-radius: 14px;
+    background: rgba(255, 251, 242, 0.94);
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    border: 0.5px solid rgba(58, 36, 16, 0.10);
+    box-shadow: 0 12px 30px rgba(58, 36, 16, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.1px;
+    min-width: 240px;
+    max-width: 360px;
+    transform: translateX(calc(100% + 40px));
+    opacity: 0;
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.22s ease;
+}
+.hurma-toast.is-visible {
+    transform: translateX(0);
+    opacity: 1;
+}
+.hurma-toast > i {
+    font-size: 18px;
+    flex-shrink: 0;
+}
+.hurma-toast--success > i { color: var(--success, #2F8F4E); }
+.hurma-toast--error   > i { color: var(--danger,  #C0392B); }
+.hurma-toast--warn    > i { color: var(--warning, #D17E12); }
+.hurma-toast--info    > i { color: var(--hurma-amber-deep, #B8731A); }
+[data-theme="dark"] .hurma-toast {
+    background: rgba(31, 24, 16, 0.92);
+    border-color: rgba(255, 220, 170, 0.12);
+    color: var(--text-primary);
+}
+
+/* ---- Onboarding ---- */
+.hurma-onboarding {
+    position: fixed;
+    inset: 0;
+    z-index: 10500;
+    background: rgba(26, 20, 12, 0.55);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+.hurma-onboarding.is-open { opacity: 1; }
+.hurma-onboarding__panel {
+    width: min(380px, 96vw);
+    background: var(--bg-secondary, #fff);
+    border-radius: 26px;
+    padding: 32px 28px 24px;
+    text-align: center;
+    box-shadow: 0 32px 80px rgba(26, 20, 12, 0.45);
+    transform: translateY(18px) scale(0.96);
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.hurma-onboarding.is-open .hurma-onboarding__panel {
+    transform: translateY(0) scale(1);
+}
+.hurma-onboarding__art {
+    width: 140px;
+    height: 100px;
+    margin: 0 auto 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.hurma-onboarding__panel h2 {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--text-primary);
+    margin: 0 0 8px;
+}
+.hurma-onboarding__panel p {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+    margin: 0 0 20px;
+}
+.hurma-onboarding__dots {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+.hurma-onboarding__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--hurma-cream-deep, #F3E9D6);
+    transition: background 0.18s ease, width 0.18s ease;
+}
+.hurma-onboarding__dot.is-active {
+    background: var(--hurma-amber, #E29A2B);
+    width: 18px;
+    border-radius: 3px;
+}
+.hurma-onboarding__actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+.hurma-onboarding__skip {
+    background: none;
+    border: none;
+    color: var(--text-tertiary, #9A8770);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 10px 14px;
+    border-radius: 10px;
+    transition: background 0.15s ease;
+}
+.hurma-onboarding__skip:hover {
+    background: var(--hurma-cream-deep, #F3E9D6);
+}
+.hurma-onboarding__next {
+    background: linear-gradient(180deg, #E29A2B, #B8731A);
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    padding: 12px 28px;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: -0.1px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(184, 115, 26, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    transition: transform 0.12s ease;
+}
+.hurma-onboarding__next:active { transform: scale(0.96); }
+
+/* ---- Topbar blur on scroll (large-title iOS effect) ---- */
+.topbar.is-scrolled,
+.top-bar.is-scrolled,
+header.main-header.is-scrolled {
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    background: rgba(255, 251, 242, 0.78);
+    border-bottom: 0.5px solid rgba(58, 36, 16, 0.08);
+    transition: background 0.18s ease, border-color 0.18s ease;
+}
+[data-theme="dark"] .topbar.is-scrolled,
+[data-theme="dark"] .top-bar.is-scrolled,
+[data-theme="dark"] header.main-header.is-scrolled {
+    background: rgba(31, 24, 16, 0.78);
+    border-bottom-color: rgba(255, 220, 170, 0.10);
+}
+
+/* ---- Reduced motion overrides ---- */
+@media (prefers-reduced-motion: reduce) {
+    .hurma-palette,
+    .hurma-palette__panel,
+    .hurma-toast,
+    .hurma-onboarding,
+    .hurma-onboarding__panel,
+    #hurma-pull-indicator,
+    .hurma-pull-ring {
+        transition: opacity 0.15s ease !important;
+        animation: none !important;
+    }
+}
+
+/* =================================================================
+   HURMA — Polish Layer v2 (2026-04-19)
+   Context menu, offline banner, skeletons, undo, empty states,
+   page transitions, swipe actions, print mode.
+   All additive: no existing selectors overwritten.
+   ================================================================= */
+
+/* ---- 11. Context Menu (iOS Action Sheet) ---- */
+.hurma-ctxmenu {
+    position: fixed; inset: 0;
+    z-index: 11000;
+    display: flex; align-items: flex-end; justify-content: center;
+    pointer-events: auto;
+}
+.hurma-ctxmenu.hidden { display: none; }
+.hurma-ctxmenu__backdrop {
+    position: absolute; inset: 0;
+    background: rgba(20, 12, 4, 0);
+    transition: background 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.hurma-ctxmenu.is-open .hurma-ctxmenu__backdrop {
+    background: rgba(20, 12, 4, 0.42);
+}
+.hurma-ctxmenu__sheet {
+    position: relative;
+    width: min(420px, calc(100% - 16px));
+    margin: 0 8px calc(8px + env(safe-area-inset-bottom, 0px));
+    transform: translateY(110%);
+    transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+    display: flex; flex-direction: column; gap: 8px;
+}
+.hurma-ctxmenu.is-open .hurma-ctxmenu__sheet { transform: translateY(0); }
+.hurma-ctxmenu__title {
+    text-align: center;
+    font-size: 13px; font-weight: 600;
+    color: var(--text-tertiary, #9A8770);
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-radius: 14px 14px 0 0;
+    border-bottom: 0.5px solid rgba(58, 36, 16, 0.10);
+}
+.hurma-ctxmenu__group {
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-radius: 14px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+}
+.hurma-ctxmenu__title + .hurma-ctxmenu__group { border-radius: 0 0 14px 14px; }
+.hurma-ctxmenu__item {
+    display: flex; align-items: center; gap: 14px;
+    padding: 16px 20px;
+    background: transparent;
+    border: 0;
+    border-bottom: 0.5px solid rgba(58, 36, 16, 0.10);
+    font: inherit;
+    font-size: 17px;
+    color: var(--text-primary, #1A140C);
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    transition: background 120ms ease;
+}
+.hurma-ctxmenu__item:last-child { border-bottom: 0; }
+.hurma-ctxmenu__item:hover,
+.hurma-ctxmenu__item:active { background: rgba(226, 154, 43, 0.10); }
+.hurma-ctxmenu__item > i {
+    width: 22px; text-align: center;
+    color: var(--hurma-amber-deep, #B8731A);
+    font-size: 18px;
+}
+.hurma-ctxmenu__item.is-destructive { color: #C0392B; }
+.hurma-ctxmenu__item.is-destructive > i { color: #C0392B; }
+.hurma-ctxmenu__cancel {
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border: 0;
+    border-radius: 14px;
+    padding: 16px 20px;
+    font: inherit;
+    font-size: 17px; font-weight: 600;
+    color: var(--hurma-amber-deep, #B8731A);
+    cursor: pointer;
+    width: 100%;
+    transition: background 120ms ease;
+}
+.hurma-ctxmenu__cancel:hover,
+.hurma-ctxmenu__cancel:active { background: rgba(255, 255, 255, 1); }
+
+[data-theme="dark"] .hurma-ctxmenu__title,
+[data-theme="dark"] .hurma-ctxmenu__group,
+[data-theme="dark"] .hurma-ctxmenu__cancel {
+    background: rgba(40, 28, 18, 0.88);
+    color: #F3E9D6;
+}
+[data-theme="dark"] .hurma-ctxmenu__item { color: #F3E9D6; border-bottom-color: rgba(255, 220, 170, 0.12); }
+[data-theme="dark"] .hurma-ctxmenu__title { color: #B89878; border-bottom-color: rgba(255, 220, 170, 0.12); }
+[data-theme="dark"] .hurma-ctxmenu__item:hover { background: rgba(226, 154, 43, 0.18); }
+
+/* ---- 12. Offline Banner ---- */
+.hurma-offline-banner {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 8px);
+    left: 50%;
+    transform: translate(-50%, -120%);
+    z-index: 10500;
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 16px;
+    background: rgba(58, 36, 16, 0.92);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    color: #FBF6EE;
+    font-size: 14px; font-weight: 600;
+    border-radius: 999px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1), opacity 240ms ease;
+    opacity: 0;
+    pointer-events: none;
+    max-width: calc(100% - 32px);
+}
+.hurma-offline-banner.hidden { display: none; }
+.hurma-offline-banner.is-visible { transform: translate(-50%, 0); opacity: 1; }
+.hurma-offline-banner.is-offline { background: rgba(192, 57, 43, 0.92); }
+.hurma-offline-banner.is-online  { background: rgba(47, 143, 78, 0.92); }
+.hurma-offline-banner i { font-size: 15px; }
+
+/* ---- 13. Skeleton Loaders ---- */
+.hurma-skel-container { padding: 8px 0; }
+.hurma-skel-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 16px;
+    border-bottom: 0.5px solid rgba(58, 36, 16, 0.06);
+}
+.hurma-skel-row:last-child { border-bottom: 0; }
+.hurma-skel-avatar {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: linear-gradient(90deg, rgba(58,36,16,0.06) 0%, rgba(58,36,16,0.12) 50%, rgba(58,36,16,0.06) 100%);
+    background-size: 200% 100%;
+    animation: hurma-skel-shimmer 1.4s ease-in-out infinite;
+}
+.hurma-skel-lines { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.hurma-skel-line {
+    height: 12px;
+    border-radius: 6px;
+    background: linear-gradient(90deg, rgba(58,36,16,0.06) 0%, rgba(58,36,16,0.12) 50%, rgba(58,36,16,0.06) 100%);
+    background-size: 200% 100%;
+    animation: hurma-skel-shimmer 1.4s ease-in-out infinite;
+}
+.hurma-skel-line.short { height: 10px; }
+@keyframes hurma-skel-shimmer {
+    0%   { background-position:  200% 0; }
+    100% { background-position: -200% 0; }
+}
+[data-theme="dark"] .hurma-skel-avatar,
+[data-theme="dark"] .hurma-skel-line {
+    background: linear-gradient(90deg, rgba(255,220,170,0.06) 0%, rgba(255,220,170,0.12) 50%, rgba(255,220,170,0.06) 100%);
+    background-size: 200% 100%;
+}
+
+/* ---- 16. Undo Snackbar ---- */
+.hurma-undo {
+    position: fixed;
+    left: 50%;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 90px);
+    transform: translate(-50%, 120%);
+    z-index: 10400;
+    display: flex; align-items: center; gap: 16px;
+    padding: 10px 10px 10px 18px;
+    background: rgba(58, 36, 16, 0.94);
+    color: #FBF6EE;
+    font-size: 14.5px; font-weight: 500;
+    border-radius: 14px;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.22);
+    transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1), opacity 240ms ease;
+    opacity: 0;
+    pointer-events: auto;
+    max-width: calc(100% - 32px);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+}
+.hurma-undo.is-visible { transform: translate(-50%, 0); opacity: 1; }
+.hurma-undo__msg { flex: 1; }
+.hurma-undo__btn {
+    border: 0;
+    background: rgba(255,255,255,0.12);
+    color: #FCE7C2;
+    padding: 8px 16px;
+    border-radius: 999px;
+    font: inherit;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 120ms ease, transform 120ms ease;
+}
+.hurma-undo__btn:hover { background: rgba(255,255,255,0.22); }
+.hurma-undo__btn:active { transform: scale(0.96); }
+
+/* ---- 18. Empty States ---- */
+.hurma-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+    text-align: center;
+    gap: 10px;
+    color: var(--text-secondary, #5A4A38);
+}
+.hurma-empty__art {
+    width: 96px; height: 96px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #FCE7C2 0%, #F3E9D6 100%);
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 6px;
+    box-shadow: inset 0 -4px 12px rgba(184, 115, 26, 0.10),
+                0 8px 24px rgba(184, 115, 26, 0.08);
+}
+.hurma-empty__art i {
+    font-size: 40px;
+    color: var(--hurma-amber-deep, #B8731A);
+    opacity: 0.78;
+}
+.hurma-empty__title {
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--text-primary, #1A140C);
+    margin: 0;
+}
+.hurma-empty__msg {
+    font-size: 14.5px;
+    color: var(--text-tertiary, #9A8770);
+    max-width: 320px;
+    line-height: 1.5;
+    margin: 0;
+}
+.hurma-empty__action {
+    margin-top: 12px;
+    padding: 12px 22px;
+    border-radius: 999px;
+    background: var(--hurma-amber, #E29A2B);
+    color: white;
+    border: 0;
+    font: inherit;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(226, 154, 43, 0.28);
+    transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+.hurma-empty__action:hover { background: var(--hurma-amber-deep, #B8731A); box-shadow: 0 6px 16px rgba(184, 115, 26, 0.32); }
+.hurma-empty__action:active { transform: scale(0.97); }
+
+[data-theme="dark"] .hurma-empty__art {
+    background: linear-gradient(135deg, rgba(226, 154, 43, 0.22) 0%, rgba(58, 36, 16, 0.36) 100%);
+}
+[data-theme="dark"] .hurma-empty__art i { color: #F4B24A; }
+
+/* ---- 19. Page Transitions ---- */
+.hurma-page-exit {
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 140ms ease, transform 140ms ease;
+}
+.hurma-page-enter {
+    opacity: 0;
+    transform: translateY(-6px);
+    animation: hurma-page-in 320ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+@keyframes hurma-page-in {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- 20. Swipe Actions ---- */
+.client-card,
+.sale-row,
+.product-row,
+.dist-delivery-row,
+[data-swipeable] {
+    position: relative;
+    transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform;
+}
+.hurma-swipe-actions {
+    position: absolute;
+    right: 0; top: 0;
+    width: 88px;
+    height: 100%;
+    display: flex;
+    align-items: stretch;
+    justify-content: flex-end;
+    pointer-events: auto;
+    transform: translateX(100%);
+    z-index: 1;
+}
+.hurma-swipe-open .hurma-swipe-actions {
+    transform: translateX(88px);
+}
+.hurma-swipe-btn {
+    flex: 1;
+    border: 0;
+    font: inherit;
+    font-size: 18px;
+    color: white;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    background: #C0392B;
+    transition: filter 120ms ease;
+}
+.hurma-swipe-btn:hover { filter: brightness(1.08); }
+.hurma-swipe-btn--delete { background: #C0392B; }
+
+/* Hide swipe-actions when NOT revealed, to prevent click-through */
+.client-card:not(.hurma-swipe-open) .hurma-swipe-actions,
+.sale-row:not(.hurma-swipe-open) .hurma-swipe-actions,
+.product-row:not(.hurma-swipe-open) .hurma-swipe-actions,
+.dist-delivery-row:not(.hurma-swipe-open) .hurma-swipe-actions {
+    opacity: 0;
+    pointer-events: none;
+}
+.client-card.hurma-swipe-open .hurma-swipe-actions,
+.sale-row.hurma-swipe-open .hurma-swipe-actions,
+.product-row.hurma-swipe-open .hurma-swipe-actions,
+.dist-delivery-row.hurma-swipe-open .hurma-swipe-actions {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* ---- 17. Print Mode ---- */
+@media print {
+    /* Hide ALL chrome: sidebar, tab-bar, banners, splash, top-bar buttons, palette */
+    .sidebar,
+    .hurma-tab-bar,
+    .hurma-install,
+    .hurma-update,
+    #hurma-splash,
+    #hurma-pull-indicator,
+    #hurma-palette,
+    #hurma-ctxmenu,
+    .hurma-offline-banner,
+    .hurma-undo,
+    .hurma-toast,
+    #toast-container,
+    .mobile-menu-toggle,
+    .topbar-actions,
+    .sidebar-toggle {
+        display: none !important;
+    }
+
+    body,
+    .main-content,
+    .content,
+    main {
+        padding: 0 !important;
+        margin: 0 !important;
+        background: white !important;
+        color: black !important;
+    }
+
+    /* Show full width when printing (no sidebar offset). */
+    .main-content,
+    .content,
+    main {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+
+    /* Respect page breaks on invoice sections */
+    .invoice-row,
+    .sale-row,
+    .print-break-after {
+        page-break-after: auto;
+        break-after: auto;
+    }
+    .print-avoid-break {
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+
+    /* Links: show their URL for reference */
+    a[href]::after {
+        content: " (" attr(href) ")";
+        font-size: 0.85em;
+        color: #555;
+    }
+    /* Except for anchor links, email, phone */
+    a[href^="#"]::after,
+    a[href^="mailto:"]::after,
+    a[href^="tel:"]::after { content: ""; }
+}
+
+/* Dark mode tweaks for new v2 components */
+[data-theme="dark"] .hurma-offline-banner { color: #FBF6EE; }
+[data-theme="dark"] .hurma-undo { background: rgba(30, 20, 12, 0.94); }
+
+/* Reduced-motion overrides for v2 */
+@media (prefers-reduced-motion: reduce) {
+    .hurma-ctxmenu__sheet,
+    .hurma-offline-banner,
+    .hurma-undo,
+    .hurma-empty,
+    .hurma-skel-avatar,
+    .hurma-skel-line,
+    .hurma-page-enter,
+    .hurma-page-exit,
+    .client-card,
+    .sale-row,
+    .product-row,
+    .dist-delivery-row {
+        transition: opacity 0.15s ease !important;
+        animation: none !important;
+    }
+}
+
+/* ========================================================================
+ * HURMA — Polish v3.1 — Insight-powered UI Components
+ * All styles are prefixed with .hurma-* to avoid clashing with app.js styles.
+ * They use existing CSS custom properties (var(--hurma-*)) so they
+ * automatically adapt to light/dark mode.
+ * ==================================================================== */
+
+/* ---------------- Health Badge ----------------
+ * Pill showing client health score + color + text
+ * Variants by rating: healthy / watch / risk / critical / unknown
+ * Sizes: sm / md / lg
+ * ---------------------------------------------- */
+.hurma-health-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
+    white-space: nowrap;
+    cursor: help;
+    user-select: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    border: 1px solid transparent;
+    vertical-align: middle;
+}
+.hurma-health-badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(58, 36, 16, 0.08);
+}
+.hurma-health-badge--sm  { padding: 2px 8px;  font-size: 11px; gap: 4px; }
+.hurma-health-badge--lg  { padding: 5px 14px; font-size: 14px; gap: 8px; }
+
+.hurma-health-badge__dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 2px currentColor;
+    opacity: 0.9;
+}
+.hurma-health-badge--sm .hurma-health-badge__dot { width: 5px; height: 5px; }
+.hurma-health-badge--lg .hurma-health-badge__dot { width: 7px; height: 7px; }
+
+.hurma-health-badge__score {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+}
+.hurma-health-badge__label {
+    font-weight: 500;
+    opacity: 0.88;
+}
+
+/* Rating-specific colors */
+.hurma-health-badge--healthy {
+    background: #E6F4EC;
+    color: #1E6B38;
+    border-color: rgba(47, 143, 78, 0.15);
+}
+.hurma-health-badge--watch {
+    background: #FFF5E0;
+    color: #8A5A0F;
+    border-color: rgba(209, 126, 18, 0.18);
+}
+.hurma-health-badge--risk {
+    background: #FFE4CC;
+    color: #A35018;
+    border-color: rgba(209, 126, 18, 0.3);
+}
+.hurma-health-badge--critical {
+    background: #FCDEDB;
+    color: #8A1F12;
+    border-color: rgba(192, 57, 43, 0.3);
+}
+.hurma-health-badge--unknown {
+    background: #ECEFF1;
+    color: #55677A;
+    border-color: rgba(85, 103, 122, 0.2);
+}
+
+/* Dark mode */
+[data-theme="dark"] .hurma-health-badge--healthy {
+    background: rgba(47, 143, 78, 0.15);
+    color: #7CD69B;
+    border-color: rgba(124, 214, 155, 0.3);
+}
+[data-theme="dark"] .hurma-health-badge--watch {
+    background: rgba(209, 126, 18, 0.18);
+    color: #FCC670;
+    border-color: rgba(252, 198, 112, 0.3);
+}
+[data-theme="dark"] .hurma-health-badge--risk {
+    background: rgba(209, 126, 18, 0.3);
+    color: #FFB477;
+    border-color: rgba(255, 180, 119, 0.3);
+}
+[data-theme="dark"] .hurma-health-badge--critical {
+    background: rgba(192, 57, 43, 0.28);
+    color: #F58A7E;
+    border-color: rgba(245, 138, 126, 0.3);
+}
+[data-theme="dark"] .hurma-health-badge--unknown {
+    background: rgba(85, 103, 122, 0.2);
+    color: #AAB8C7;
+    border-color: rgba(170, 184, 199, 0.25);
+}
+
+/* ---------------- Forecast Badge ----------------
+ * Pill showing stock forecast: "~3 ditë" / "Mbaroi" / "Stok stabil"
+ * Levels: ok / warn / low / critical / out
+ * ------------------------------------------------ */
+.hurma-forecast-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
+    white-space: nowrap;
+    cursor: help;
+    user-select: none;
+    border: 1px solid transparent;
+    vertical-align: middle;
+}
+.hurma-forecast-badge--sm { padding: 2px 8px;  font-size: 11px; gap: 4px; }
+.hurma-forecast-badge--lg { padding: 5px 14px; font-size: 14px; gap: 8px; }
+
+.hurma-forecast-badge__dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+    opacity: 0.9;
+}
+.hurma-forecast-badge--sm .hurma-forecast-badge__dot { width: 5px; height: 5px; }
+.hurma-forecast-badge--lg .hurma-forecast-badge__dot { width: 7px; height: 7px; }
+
+.hurma-forecast-badge--ok {
+    background: #E6F4EC;
+    color: #1E6B38;
+    border-color: rgba(47, 143, 78, 0.15);
+}
+.hurma-forecast-badge--warn {
+    background: #FFF5E0;
+    color: #8A5A0F;
+    border-color: rgba(209, 126, 18, 0.18);
+}
+.hurma-forecast-badge--low {
+    background: #FFE4CC;
+    color: #A35018;
+    border-color: rgba(209, 126, 18, 0.3);
+}
+.hurma-forecast-badge--critical {
+    background: #FCDEDB;
+    color: #8A1F12;
+    border-color: rgba(192, 57, 43, 0.3);
+    animation: hurma-forecast-pulse 2s ease-in-out infinite;
+}
+.hurma-forecast-badge--out {
+    background: #8A1F12;
+    color: #FFF;
+    border-color: #8A1F12;
+    box-shadow: 0 0 0 3px rgba(138, 31, 18, 0.12);
+}
+
+@keyframes hurma-forecast-pulse {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.03); }
+}
+
+/* Dark mode for forecast */
+[data-theme="dark"] .hurma-forecast-badge--ok       { background: rgba(47, 143, 78, 0.15);  color: #7CD69B; }
+[data-theme="dark"] .hurma-forecast-badge--warn     { background: rgba(209, 126, 18, 0.18); color: #FCC670; }
+[data-theme="dark"] .hurma-forecast-badge--low      { background: rgba(209, 126, 18, 0.3);  color: #FFB477; }
+[data-theme="dark"] .hurma-forecast-badge--critical { background: rgba(192, 57, 43, 0.28);  color: #F58A7E; }
+[data-theme="dark"] .hurma-forecast-badge--out      { background: #C0392B; color: #FFF; }
+
+/* ---------------- Actions Panel ----------------
+ * Vertical list of urgent actions, ordered by urgency.
+ * Each item has a colored left border indicating urgency.
+ * ----------------------------------------------- */
+.hurma-actions-panel {
+    background: var(--bg-secondary, #FFFFFF);
+    border-radius: var(--radius-lg, 18px);
+    padding: 18px;
+    box-shadow:
+        0 1px 0 rgba(58, 36, 16, 0.04),
+        0 8px 24px rgba(58, 36, 16, 0.06);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    color: var(--text-primary, #1A140C);
+    border: 1px solid var(--hairline, rgba(58, 36, 16, 0.08));
+}
+
+.hurma-actions-panel__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--hairline, rgba(58, 36, 16, 0.08));
+}
+.hurma-actions-panel__title {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    color: var(--text-primary, #1A140C);
+}
+.hurma-actions-panel__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 22px;
+    padding: 0 8px;
+    background: var(--hurma-amber, #E29A2B);
+    color: #FFF;
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 11px;
+    font-variant-numeric: tabular-nums;
+}
+
+.hurma-actions-panel__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.hurma-actions-panel__item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: transparent;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.08s ease;
+    position: relative;
+    user-select: none;
+    outline: none;
+}
+.hurma-actions-panel__item:hover {
+    background: rgba(226, 154, 43, 0.06);
+}
+.hurma-actions-panel__item:active {
+    transform: scale(0.985);
+}
+.hurma-actions-panel__item:focus-visible {
+    outline: 2px solid var(--hurma-amber, #E29A2B);
+    outline-offset: 1px;
+}
+
+.hurma-actions-panel__urgency {
+    width: 3px;
+    align-self: stretch;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+.hurma-actions-panel__item--urgent .hurma-actions-panel__urgency { background: #C0392B; }
+.hurma-actions-panel__item--high   .hurma-actions-panel__urgency { background: #D17E12; }
+.hurma-actions-panel__item--medium .hurma-actions-panel__urgency { background: #E29A2B; }
+.hurma-actions-panel__item--low    .hurma-actions-panel__urgency { background: #9A8770; }
+
+.hurma-actions-panel__icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+    background: rgba(226, 154, 43, 0.12);
+    color: var(--hurma-amber-deep, #B8731A);
+}
+.hurma-actions-panel__item--urgent .hurma-actions-panel__icon {
+    background: rgba(192, 57, 43, 0.12);
+    color: #8A1F12;
+}
+.hurma-actions-panel__item--high .hurma-actions-panel__icon {
+    background: rgba(209, 126, 18, 0.15);
+    color: #8A5A0F;
+}
+
+.hurma-actions-panel__main {
+    flex: 1;
+    min-width: 0;
+}
+.hurma-actions-panel__item-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary, #1A140C);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: -0.01em;
+}
+.hurma-actions-panel__item-detail {
+    font-size: 12px;
+    color: var(--text-secondary, #5A4A38);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.hurma-actions-panel__chevron {
+    color: var(--text-tertiary, #9A8770);
+    font-size: 12px;
+    flex-shrink: 0;
+    opacity: 0.7;
+    transition: transform 0.15s ease;
+}
+.hurma-actions-panel__item:hover .hurma-actions-panel__chevron {
+    transform: translateX(2px);
+    opacity: 1;
+}
+
+.hurma-actions-panel__empty {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 12px;
+    border-radius: 12px;
+    background: rgba(47, 143, 78, 0.06);
+    color: #1E6B38;
+    font-size: 13px;
+    font-weight: 500;
+}
+.hurma-actions-panel__empty i {
+    font-size: 16px;
+}
+
+/* Dark mode for actions panel */
+[data-theme="dark"] .hurma-actions-panel {
+    background: var(--bg-secondary, #1F1810);
+    border-color: rgba(251, 246, 238, 0.08);
+}
+[data-theme="dark"] .hurma-actions-panel__item:hover {
+    background: rgba(226, 154, 43, 0.1);
+}
+[data-theme="dark"] .hurma-actions-panel__empty {
+    background: rgba(47, 143, 78, 0.12);
+    color: #7CD69B;
+}
+
+/* Reduced motion — disable the pulse */
+@media (prefers-reduced-motion: reduce) {
+    .hurma-forecast-badge--critical {
+        animation: none !important;
+    }
+    .hurma-actions-panel__item,
+    .hurma-health-badge {
+        transition: none !important;
+    }
+}
+
+/* ============================================================
+   Polish v3.2 — Dashboard Actions Panel Host
+   Lightweight wrapper around the panel when embedded in the
+   dashboard. Adds breathing room and a subtle "lift" so the
+   panel feels like a featured block, not a random insertion.
+   ============================================================ */
+.hurma-dashboard-actions-host {
+    margin: 14px 0 18px;
+    animation: hurmaDashActionsFadeIn 360ms ease-out;
+}
+
+/* Slight spacing tune when the panel is the first child (common case) */
+#page-dashboard .hurma-dashboard-actions-host:first-child {
+    margin-top: 0;
+}
+
+/* Slightly stronger shadow when embedded in the dashboard to help the
+   panel stand out among existing stat-card grids */
+.hurma-dashboard-actions-host > .hurma-actions-panel {
+    box-shadow: 0 6px 20px rgba(184, 115, 26, 0.12), 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="dark"] .hurma-dashboard-actions-host > .hurma-actions-panel {
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.38), 0 1px 3px rgba(0, 0, 0, 0.28);
+}
+
+@keyframes hurmaDashActionsFadeIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hurma-dashboard-actions-host {
+        animation: none;
+    }
+}
+
+/* Mobile spacing: keep it tight on small screens */
+@media (max-width: 640px) {
+    .hurma-dashboard-actions-host {
+        margin: 10px 0 14px;
+    }
+}
+

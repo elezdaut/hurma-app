@@ -1,14 +1,16 @@
 {
-  "name": "Hurma App",
+  "name": "Hurma — Shitje, Klientë & Stok",
   "short_name": "Hurma",
-  "description": "Menaxhim biznesi për shitjen e hurmave — shitje, stok, klientë dhe raporte.",
+  "description": "Menaxhim biznesi për shitjen e hurmave — shitje, stok, klientë, borxhe dhe raporte. Dizajn iOS-native, i përshtatur për Apple HIG.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait-primary",
-  "background_color": "#ffffff",
-  "theme_color": "#2c7a4b",
+  "background_color": "#F6EFE2",
+  "theme_color": "#E29A2B",
   "lang": "sq",
+  "dir": "ltr",
   "categories": ["business", "finance", "productivity"],
   "icons": [
     {
@@ -35,7 +37,7 @@
     },
     {
       "name": "Dashboard",
-      "short_name": "Dashboard",
+      "short_name": "Sot",
       "description": "Shiko dashboard-in kryesor",
       "url": "/?page=dashboard",
       "icons": [{ "src": "icons/icon-192.svg", "sizes": "192x192" }]

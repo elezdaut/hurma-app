@@ -1,2 +1,2 @@
 #!/bin/bash
-cd /Users/elezdauti/Desktop/hurma-app && python3 -m http.server 8081
+cd /Users/elezdauti/Desktop/hurma-app && exec python3 -m http.server "$1"

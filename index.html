@@ -6,13 +6,15 @@
     <title>Hurma App</title>
 
     <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#2c7a4b" id="meta-theme-color">
-    <meta name="description" content="Menaxhim biznesi për shitjen e hurmave — shitje, stok, klientë dhe raporte.">
+    <meta name="theme-color" content="#E29A2B" id="meta-theme-color" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#3A2410" media="(prefers-color-scheme: dark)">
+    <meta name="description" content="Menaxhim biznesi për shitjen e hurmave — shitje, stok, klientë, borxhe dhe raporte. Dizajn iOS-native.">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Hurma">
-    <meta name="msapplication-TileColor" content="#2c7a4b">
+    <meta name="msapplication-TileColor" content="#E29A2B">
+    <meta name="format-detection" content="telephone=no">
 
     <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
@@ -20,8 +22,11 @@
     <!-- App Icons -->
     <link rel="icon" type="image/svg+xml" href="icons/icon-192.svg">
     <link rel="apple-touch-icon" href="icons/icon-192.svg">
+    <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.svg">
+    <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.svg">
+    <link rel="mask-icon" href="icons/icon-192.svg" color="#E29A2B">
 
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=8">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -31,10 +36,39 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
+    <!-- iOS-style Launch Splash (self-dismisses after first paint) -->
+    <div id="hurma-splash" role="status" aria-label="Duke ngarkuar Hurma">
+        <svg class="hurma-splash-mark" width="108" height="108" viewBox="0 0 32 32" aria-hidden="true">
+            <defs>
+                <linearGradient id="hm-splash" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#F4B24A"/>
+                    <stop offset="1" stop-color="#B8731A"/>
+                </linearGradient>
+            </defs>
+            <path d="M16 2 C 22 6, 28 11, 28 16 C 28 21, 22 26, 16 30 C 10 26, 4 21, 4 16 C 4 11, 10 6, 16 2 Z" fill="url(#hm-splash)"/>
+            <path d="M7 16 C 11 14.5, 21 14.5, 25 16 C 21 17.5, 11 17.5, 7 16 Z" fill="#3A2410" opacity="0.55"/>
+        </svg>
+        <div class="hurma-splash-name">Hurma</div>
+        <div class="hurma-splash-tagline">Menaxhim i hurmave · App Store ready</div>
+        <div class="hurma-splash-ring" aria-hidden="true"></div>
+    </div>
+
     <!-- Sidebar -->
     <nav id="sidebar" class="sidebar">
         <div class="sidebar-header">
-            <h2>🌴 Hurma App</h2>
+            <h2>
+                <svg class="brand-mark" width="28" height="28" viewBox="0 0 32 32" aria-hidden="true">
+                    <defs>
+                        <linearGradient id="hm-sidebar" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0" stop-color="#F4B24A"/>
+                            <stop offset="1" stop-color="#B8731A"/>
+                        </linearGradient>
+                    </defs>
+                    <path d="M16 2 C 22 6, 28 11, 28 16 C 28 21, 22 26, 16 30 C 10 26, 4 21, 4 16 C 4 11, 10 6, 16 2 Z" fill="url(#hm-sidebar)"/>
+                    <path d="M7 16 C 11 14.5, 21 14.5, 25 16 C 21 17.5, 11 17.5, 7 16 Z" fill="#3A2410" opacity="0.55"/>
+                </svg>
+                <span>Hurma</span>
+            </h2>
             <button class="sidebar-toggle" onclick="toggleSidebar()"><i class="fas fa-times"></i></button>
         </div>
         <ul class="nav-menu">
@@ -44,6 +78,7 @@
             <li class="nav-item" data-page="clients"><i class="fas fa-users"></i> <span data-i18n="clients">Klientët</span><span class="nav-badge hidden" id="badge-clients">0</span></li>
             <li class="nav-item" data-page="orders"><i class="fas fa-clipboard-list"></i> <span data-i18n="orders">Porositë</span><span class="nav-badge hidden" id="badge-orders">0</span></li>
             <li class="nav-item" data-page="faton"><i class="fas fa-handshake"></i> <span data-i18n="faton_account">Llogaria Fatoni</span><span class="nav-badge hidden" id="badge-faton">0</span></li>
+            <li class="nav-item" data-page="distribution"><i class="fas fa-truck"></i> <span>Shpërndarja</span><span class="nav-badge hidden" id="badge-distribution">0</span></li>
             <li class="nav-item" data-page="reports"><i class="fas fa-chart-bar"></i> <span data-i18n="reports">Raporte</span></li>
             <li class="nav-item" data-page="balance"><i class="fas fa-balance-scale"></i> <span data-i18n="balance">Bilanci</span></li>
             <li class="nav-item" data-page="returns"><i class="fas fa-undo"></i> <span data-i18n="returns">Kthimet</span><span class="nav-badge hidden" id="badge-returns">0</span></li>
@@ -53,6 +88,8 @@
             <li class="nav-item" data-page="calculator"><i class="fas fa-calculator"></i> <span data-i18n="calculator">Kalkulatori</span></li>
             <li class="nav-item" data-page="cashDrawer"><i class="fas fa-cash-register"></i> <span data-i18n="cash_drawer">Arka Ditore</span></li>
             <li class="nav-item" data-page="trends"><i class="fas fa-chart-line"></i> <span data-i18n="trends">Trende</span></li>
+            <li class="nav-item" data-page="analytics"><i class="fas fa-chart-area"></i> <span>Analitika</span><span class="nav-badge hidden" id="badge-analytics">0</span></li>
+            <li class="nav-item" data-page="invoices"><i class="fas fa-file-invoice-dollar"></i> <span>Faturat</span><span class="nav-badge hidden" id="badge-invoices">0</span></li>
             <li class="nav-item" data-page="activity"><i class="fas fa-history"></i> <span data-i18n="activity_log">Log Aktivitetesh</span></li>
             <li class="nav-item" data-page="settings"><i class="fas fa-cog"></i> <span data-i18n="settings">Cilësimet</span></li>
         </ul>
@@ -264,6 +301,7 @@
                 </div>
             </div>
             <div id="last-weekly-report" style="margin-bottom:20px;"></div>
+            <div id="dist-dashboard-widget" style="margin-bottom:20px;"></div>
             <div id="quick-sale-presets" style="margin-bottom:20px;"></div>
             <div class="charts-grid">
                 <div class="chart-container">
@@ -289,6 +327,12 @@
                 <button class="btn btn-export btn-word" onclick="exportSales('word')"><i class="fas fa-file-word"></i> Word</button>
             </div>
             <div id="sales-month-tabs" style="margin-bottom:15px;display:flex;flex-wrap:wrap;gap:8px;"></div>
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:12px 16px;background:linear-gradient(135deg,#ff6b35,#e55a2b);border-radius:12px;box-shadow:0 2px 8px rgba(229,90,43,0.3);">
+                <i class="fas fa-shopping-cart" style="color:white;font-size:1.4em;"></i>
+                <span style="color:white;font-size:1.15em;font-weight:700;">Shitjet</span>
+                <span id="sales-count-badge" style="background:white;color:#e55a2b;border-radius:20px;padding:4px 14px;font-size:1.1em;font-weight:800;min-width:30px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,0.15);">0</span>
+                <span style="color:rgba(255,255,255,0.85);font-size:0.85em;margin-left:auto;">Totali i shitjeve</span>
+            </div>
             <div class="page-actions">
                 <button class="btn btn-primary" onclick="openSaleModal()"><i class="fas fa-plus"></i> <span data-i18n="new_sale">Shitje e re</span></button>
                 <div class="search-box">
@@ -307,7 +351,9 @@
                     <select id="sales-payment-filter" onchange="filterSales()">
                         <option value="" data-i18n="all_payment_types">Të gjitha llojet</option>
                         <option value="cash" data-i18n="cash">Cash</option>
+                        <option value="invoice_30">Faturë 30 ditë</option>
                         <option value="invoice_60" data-i18n="invoice_60">Faturë 60 ditë</option>
+                        <option value="invoice_90">Faturë 90 ditë</option>
                     </select>
                 </div>
             </div>
@@ -415,6 +461,12 @@
                     <button class="btn btn-primary" onclick="showPaymentCalendar()"><i class="fas fa-calendar-alt"></i> Kalendar Pagesash</button>
                     <button class="btn btn-info" onclick="showClientDebtChart()"><i class="fas fa-chart-area"></i> Grafik Borxhesh</button>
                 </div>
+                <div class="faton-btn-row">
+                    <button class="btn btn-secondary" onclick="showExecutiveDashboard()"><i class="fas fa-briefcase"></i> Dashboard Ekzekutiv</button>
+                    <button class="btn btn-primary" onclick="showTaskBoard()"><i class="fas fa-list-check"></i> Task Board</button>
+                    <button class="btn btn-success" onclick="showVisitsBoard()"><i class="fas fa-route"></i> Vizita</button>
+                    <button class="btn btn-warning" onclick="showReminderCalendar()"><i class="fas fa-calendar-check"></i> Reminder Calendar</button>
+                </div>
             </div>
             <div class="table-container">
                 <table id="clients-table">
@@ -427,6 +479,8 @@
                             <th data-i18n="open_invoices">Fatura hapura</th>
                             <th data-i18n="overdue_invoices">Fatura vonuara</th>
                             <th data-i18n="debt">Borxhi</th>
+                            <th>Statusi</th>
+                            <th>Score</th>
                             <th data-i18n="actions">Veprime</th>
                         </tr>
                     </thead>
@@ -634,6 +688,7 @@
             </div>
             <div class="faton-button-rows" style="margin-bottom:15px;">
                 <div class="faton-btn-row">
+                    <button class="btn btn-secondary" onclick="openMarketHistoryReportSelector()"><i class="fas fa-file-lines"></i> Historiku i Marketit</button>
                     <button class="btn btn-primary" onclick="openReportsHub()"><i class="fas fa-th-large"></i> Qendra e Raporteve</button>
                     <button class="btn btn-success" onclick="generateDailyReport()"><i class="fas fa-calendar-day"></i> Raport Ditor</button>
                     <button class="btn btn-danger" onclick="generateMonthlyPDF()"><i class="fas fa-file-pdf"></i> Raport Mujor PDF</button>
@@ -820,6 +875,15 @@
                     <button class="btn btn-success" onclick="openVolumeDiscountSettings()"><i class="fas fa-layer-group"></i> Zbritje Sasie</button>
                     <button class="btn btn-warning" onclick="showWarrantyTracker()"><i class="fas fa-shield-alt"></i> Garanci</button>
                 </div>
+                <div class="faton-btn-row">
+                    <button class="btn btn-primary" onclick="openInvoiceBrandingSettings()"><i class="fas fa-file-signature"></i> Invoice Branding</button>
+                </div>
+                <!-- Payment Management -->
+                <h3 style="margin:20px 0 10px;"><i class="fas fa-credit-card"></i> Menaxhimi i Pagesave</h3>
+                <div class="faton-btn-row">
+                    <button class="btn btn-success" onclick="showPaymentReport()"><i class="fas fa-chart-pie"></i> Raporti Pagesave</button>
+                    <button class="btn btn-warning" onclick="checkPaymentReminders()"><i class="fas fa-bell"></i> Kontrollo Kujtesat</button>
+                </div>
                 <!-- Data Storage & Backup -->
                 <h4 style="margin-top:15px;margin-bottom:8px;"><i class="fas fa-database"></i> Ruajtja e te Dhenave</h4>
                 <div class="faton-btn-row">
@@ -898,7 +962,7 @@
                     <div class="setting-row">
                         <button class="btn btn-secondary" onclick="exportBackup()"><i class="fas fa-download"></i> <span data-i18n="export_backup">Eksporto backup</span></button>
                         <button class="btn btn-secondary" onclick="document.getElementById('import-backup').click()"><i class="fas fa-upload"></i> <span data-i18n="import_backup">Importo backup</span></button>
-                        <input type="file" id="import-backup" accept=".json" style="display:none" onchange="importBackup(event)">
+                        <input type="file" id="import-backup" accept=".json,.txt,.bak,application/json" style="display:none" onchange="importBackup(event)">
                     </div>
                 </div>
                 <div class="setting-group">
@@ -945,6 +1009,58 @@
             <!-- Content will be filled by refreshCashDrawer() -->
         </section>
         <!-- Trends Page -->
+        <!-- Analytics Page -->
+        <section id="page-analytics" class="page">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding:14px 18px;background:linear-gradient(135deg,#667eea,#764ba2);border-radius:14px;box-shadow:0 3px 12px rgba(102,126,234,0.3);">
+                <i class="fas fa-chart-area" style="color:white;font-size:1.5em;"></i>
+                <span style="color:white;font-size:1.2em;font-weight:700;">Dashboard Analitik</span>
+                <span style="color:rgba(255,255,255,0.8);font-size:0.85em;margin-left:auto;" id="analytics-period-label">30 ditët e fundit</span>
+            </div>
+
+            <!-- KPI Cards -->
+            <div id="analytics-kpi-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px;"></div>
+
+            <!-- Period selector -->
+            <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+                <button class="btn btn-sm btn-secondary analytics-period-btn" onclick="setAnalyticsPeriod(7)">7 ditë</button>
+                <button class="btn btn-sm btn-primary analytics-period-btn active" onclick="setAnalyticsPeriod(30)">30 ditë</button>
+                <button class="btn btn-sm btn-secondary analytics-period-btn" onclick="setAnalyticsPeriod(90)">90 ditë</button>
+                <button class="btn btn-sm btn-secondary analytics-period-btn" onclick="setAnalyticsPeriod(365)">1 vit</button>
+            </div>
+
+            <!-- Sales & Profit Trend Line Chart -->
+            <div style="background:white;border-radius:14px;padding:16px;margin-bottom:18px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+                <h3 style="margin:0 0 12px 0;font-size:1.05em;color:#333;"><i class="fas fa-chart-line" style="color:#667eea;"></i> Trendi i Shitjeve & Fitimit</h3>
+                <canvas id="analytics-trend-chart" height="200"></canvas>
+            </div>
+
+            <!-- Two columns: Pie + Bar -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;">
+                <!-- Product Breakdown Donut -->
+                <div style="background:white;border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+                    <h3 style="margin:0 0 12px 0;font-size:1.05em;color:#333;"><i class="fas fa-chart-pie" style="color:#f093fb;"></i> Shitjet sipas Produktit</h3>
+                    <canvas id="analytics-product-chart" height="220"></canvas>
+                </div>
+                <!-- Week over Week Bar -->
+                <div style="background:white;border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+                    <h3 style="margin:0 0 12px 0;font-size:1.05em;color:#333;"><i class="fas fa-chart-bar" style="color:#4facfe;"></i> Javë me Javë</h3>
+                    <canvas id="analytics-weekly-chart" height="220"></canvas>
+                </div>
+            </div>
+
+            <!-- Top 5 Clients -->
+            <div style="background:white;border-radius:14px;padding:16px;margin-bottom:18px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+                <h3 style="margin:0 0 12px 0;font-size:1.05em;color:#333;"><i class="fas fa-trophy" style="color:#f5af19;"></i> Top 5 Klientët</h3>
+                <div id="analytics-top-clients"></div>
+            </div>
+
+            <!-- Forecast -->
+            <div style="background:linear-gradient(135deg,#e0c3fc,#8ec5fc);border-radius:14px;padding:18px;margin-bottom:18px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+                <h3 style="margin:0 0 12px 0;font-size:1.05em;color:#333;"><i class="fas fa-magic" style="color:#764ba2;"></i> Parashikimi i Javës së Ardhshme</h3>
+                <div id="analytics-forecast"></div>
+            </div>
+        </section>
+
         <section id="page-trends" class="page">
             <div class="export-buttons">
                 <button class="btn btn-export btn-excel" onclick="exportTrends('excel')"><i class="fas fa-file-excel"></i> Excel</button>
@@ -952,6 +1068,47 @@
                 <button class="btn btn-export btn-word" onclick="exportTrends('word')"><i class="fas fa-file-word"></i> Word</button>
             </div>
             <!-- Content will be filled by refreshTrends() -->
+        </section>
+
+        <!-- Invoices Page -->
+        <section id="page-invoices" class="page">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding:14px 18px;background:linear-gradient(135deg,#2c3e50,#3498db);border-radius:14px;box-shadow:0 3px 12px rgba(44,62,80,0.3);">
+                <i class="fas fa-file-invoice-dollar" style="color:white;font-size:1.5em;"></i>
+                <span style="color:white;font-size:1.2em;font-weight:700;">Regjistri i Faturave</span>
+                <span id="invoices-count-label" style="background:white;color:#2c3e50;padding:3px 12px;border-radius:15px;font-size:0.9em;font-weight:700;">0</span>
+                <button class="btn btn-sm" onclick="createNewInvoice()" style="margin-left:auto;background:white;color:#2c3e50;font-weight:700;border:none;padding:8px 14px;border-radius:10px;">
+                    <i class="fas fa-plus"></i> Faturë e Re
+                </button>
+            </div>
+
+            <!-- Stats Cards -->
+            <div id="invoice-stats-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px;"></div>
+
+            <!-- Filters -->
+            <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center;">
+                <select id="inv-filter-status" onchange="refreshInvoicesPage()" style="padding:8px 12px;border-radius:8px;border:1px solid #ddd;font-size:0.9em;">
+                    <option value="">Të gjitha statuset</option>
+                    <option value="paid">✅ Paguar</option>
+                    <option value="unpaid">❌ Papaguar</option>
+                    <option value="partial">⏳ Pjesërisht</option>
+                    <option value="overdue">🔴 Vonuar</option>
+                    <option value="corrective">🔄 Korrektive</option>
+                </select>
+                <select id="inv-filter-client" onchange="refreshInvoicesPage()" style="padding:8px 12px;border-radius:8px;border:1px solid #ddd;font-size:0.9em;">
+                    <option value="">Të gjithë klientët</option>
+                </select>
+                <input type="date" id="inv-filter-from" onchange="refreshInvoicesPage()" style="padding:8px 12px;border-radius:8px;border:1px solid #ddd;font-size:0.9em;">
+                <input type="date" id="inv-filter-to" onchange="refreshInvoicesPage()" style="padding:8px 12px;border-radius:8px;border:1px solid #ddd;font-size:0.9em;">
+                <input type="text" id="inv-filter-search" oninput="refreshInvoicesPage()" placeholder="Kërko faturë..." style="padding:8px 12px;border-radius:8px;border:1px solid #ddd;font-size:0.9em;flex:1;min-width:120px;">
+            </div>
+
+            <!-- Invoices List -->
+            <div id="invoices-list-container"></div>
+        </section>
+
+        <!-- Distribution Page -->
+        <section id="page-distribution" class="page">
+            <div id="distribution-content"></div>
         </section>
     </main>
 
@@ -966,13 +1123,14 @@
     </div>
 
     <!-- Invoice Modal -->
-    <div id="invoice-modal" class="modal hidden" style="max-width:600px;">
+    <div id="invoice-modal" class="modal hidden" style="max-width:980px;">
         <div class="modal-header">
             <h3 data-i18n="invoice">Fatura</h3>
             <button class="modal-close" onclick="closeInvoiceModal()"><i class="fas fa-times"></i></button>
         </div>
         <div id="invoice-content" class="modal-body"></div>
         <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="downloadInvoicePdf()"><i class="fas fa-file-pdf"></i> PDF</button>
             <button class="btn btn-primary" onclick="printInvoice()"><i class="fas fa-print"></i> <span data-i18n="print">Printo</span></button>
         </div>
     </div>
@@ -1002,28 +1160,176 @@
     </div>
 
     <!-- PWA: Butoni "Instalo App" (shfaqet vetëm kur është e mundur) -->
-    <div id="pwa-install-banner" style="display:none;position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:var(--bg-primary, #fff);border:2px solid #2c7a4b;border-radius:16px;padding:14px 20px;box-shadow:0 4px 20px rgba(0,0,0,0.15);z-index:9998;min-width:280px;text-align:center;">
-        <div style="font-size:1.5em;margin-bottom:6px;">🌴</div>
-        <strong style="display:block;margin-bottom:4px;">Instalo Hurma App</strong>
-        <small style="color:#666;display:block;margin-bottom:12px;">Shto në ekranin kryesor si app i vërtetë</small>
+    <div id="pwa-install-banner" class="hurma-install" style="display:none;position:fixed;bottom:calc(90px + env(safe-area-inset-bottom, 0px));left:50%;transform:translateX(-50%);z-index:9998;text-align:center;">
+        <svg class="hurma-install-mark" width="44" height="44" viewBox="0 0 32 32" aria-hidden="true">
+            <defs>
+                <linearGradient id="hm-install" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#F4B24A"/><stop offset="1" stop-color="#B8731A"/>
+                </linearGradient>
+            </defs>
+            <path d="M16 2 C 22 6, 28 11, 28 16 C 28 21, 22 26, 16 30 C 10 26, 4 21, 4 16 C 4 11, 10 6, 16 2 Z" fill="url(#hm-install)"/>
+            <path d="M7 16 C 11 14.5, 21 14.5, 25 16 C 21 17.5, 11 17.5, 7 16 Z" fill="#3A2410" opacity="0.55"/>
+        </svg>
+        <strong style="display:block;margin-bottom:4px;">Instalo Hurma në ekranin kryesor</strong>
+        <small style="display:block;margin-bottom:14px;">Hapet menjëherë, punon edhe offline</small>
         <div style="display:flex;gap:8px;justify-content:center;">
-            <button id="pwa-install-btn" onclick="pwaTriggerInstall()" style="background:#2c7a4b;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:0.95em;cursor:pointer;font-weight:bold;">
-                <i class="fas fa-download"></i> Instalo
+            <button id="pwa-install-btn" onclick="pwaTriggerInstall()" style="border:none;font-size:0.95em;cursor:pointer;">
+                <i class="fas fa-arrow-down"></i> Instalo
             </button>
-            <button onclick="pwaDismissInstall()" style="background:transparent;color:#666;border:1px solid #ccc;border-radius:8px;padding:8px 14px;font-size:0.95em;cursor:pointer;">
+            <button onclick="pwaDismissInstall()" style="background:transparent;color:var(--text-secondary, #5A4A38);border:1px solid var(--border, rgba(58,36,16,0.12));border-radius:12px;padding:10px 16px;font-size:0.95em;cursor:pointer;font-weight:600;">
                 Jo tani
             </button>
         </div>
     </div>
 
     <!-- PWA: Banner update disponibël -->
-    <div id="pwa-update-banner" style="display:none;position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#1565c0;color:#fff;border-radius:12px;padding:12px 20px;box-shadow:0 4px 16px rgba(0,0,0,0.2);z-index:9998;min-width:260px;text-align:center;">
+    <div id="pwa-update-banner" class="hurma-update" style="display:none;position:fixed;top:calc(16px + env(safe-area-inset-top, 0px));left:50%;transform:translateX(-50%);color:#fff;z-index:9998;min-width:260px;text-align:center;">
         <i class="fas fa-sync-alt"></i> <strong>Update i ri disponibël!</strong>
-        <button onclick="pwaApplyUpdate()" style="background:#fff;color:#1565c0;border:none;border-radius:6px;padding:5px 12px;margin-left:10px;cursor:pointer;font-weight:bold;">Ringarko</button>
-        <button onclick="document.getElementById('pwa-update-banner').style.display='none'" style="background:transparent;border:none;color:#fff;cursor:pointer;margin-left:6px;opacity:0.7;">✕</button>
+        <button onclick="pwaApplyUpdate()" style="background:#fff;border:none;margin-left:10px;cursor:pointer;">Ringarko</button>
+        <button onclick="document.getElementById('pwa-update-banner').style.display='none'" style="background:transparent;border:none;color:#fff;cursor:pointer;margin-left:6px;opacity:0.8;font-size:15px;">✕</button>
     </div>
 
+    <!-- iOS-style floating tab bar (mobile only, ≤768px) -->
+    <nav id="hurma-tab-bar" class="hurma-tab-bar" aria-label="Navigim i shpejtë">
+        <button type="button" class="hurma-tab-bar__btn" data-hurma-tab="dashboard" aria-label="Sot">
+            <i class="fas fa-house"></i><span>Sot</span>
+        </button>
+        <button type="button" class="hurma-tab-bar__btn" data-hurma-tab="sales" aria-label="Shitjet">
+            <i class="fas fa-cash-register"></i><span>Shitje</span>
+        </button>
+        <button type="button" class="hurma-tab-bar__fab" data-hurma-tab="sales" data-hurma-action="new-sale" aria-label="Shto shitje të re">
+            <i class="fas fa-plus"></i>
+        </button>
+        <button type="button" class="hurma-tab-bar__btn" data-hurma-tab="clients" aria-label="Klientët">
+            <i class="fas fa-users"></i><span>Klientë</span>
+        </button>
+        <button type="button" class="hurma-tab-bar__btn" data-hurma-tab="__more" aria-label="Më shumë">
+            <i class="fas fa-ellipsis"></i><span>Më shumë</span>
+        </button>
+    </nav>
+
     <script src="i18n.js"></script>
-    <script src="app.js?v=6"></script>
+    <script src="app.js?v=45"></script>
+    <script src="hurma-polish.js?v=5" defer></script>
+
+    <!-- ==========================================================================
+         Hurma — App Store enhancement layer (v11)
+         Splash auto-dismiss + bottom tab sync + theme-color sync.
+         All wrapped defensively so that ANY error cannot block the main app.
+         ========================================================================== -->
+    <script>
+    (function () {
+        'use strict';
+
+        // ---- 1) Auto-hide the splash once the app is ready ----
+        function hideSplash() {
+            var el = document.getElementById('hurma-splash');
+            if (!el) return;
+            el.classList.add('hurma-splash-hide');
+            // Remove from DOM after the transition so it doesn't trap taps.
+            setTimeout(function () {
+                if (el && el.parentNode) el.parentNode.removeChild(el);
+            }, 650);
+        }
+        // Minimum 450ms so the brand mark is actually visible; hide after
+        // the page has rendered (load) — but never wait longer than 3.5s,
+        // even if something below fails.
+        var MIN_SPLASH_MS = 450;
+        var MAX_SPLASH_MS = 3500;
+        var t0 = Date.now();
+        function scheduleHide() {
+            var elapsed = Date.now() - t0;
+            var wait = Math.max(0, MIN_SPLASH_MS - elapsed);
+            setTimeout(hideSplash, wait);
+        }
+        if (document.readyState === 'complete') {
+            scheduleHide();
+        } else {
+            window.addEventListener('load', scheduleHide, { once: true });
+            setTimeout(hideSplash, MAX_SPLASH_MS);    // hard fail-safe
+        }
+
+        // ---- 2) Bottom tab bar → reuse existing navigateTo() ----
+        function onTabClick(btn) {
+            var target = btn.getAttribute('data-hurma-tab');
+            var action = btn.getAttribute('data-hurma-action');
+
+            // "More" opens the existing sidebar
+            if (target === '__more') {
+                if (typeof toggleSidebar === 'function') toggleSidebar();
+                return;
+            }
+
+            // Navigate via the app's real router
+            if (typeof navigateTo === 'function' && target) {
+                try { navigateTo(target); } catch (e) { /* never break UI */ }
+            }
+
+            // Optional action — e.g. open "New Sale" modal.
+            // We only call if the function actually exists in this build.
+            if (action === 'new-sale') {
+                var fn = window.openSaleModal ||
+                         window.openNewSaleModal ||
+                         window.addSaleModal ||
+                         window.openSale ||
+                         null;
+                if (typeof fn === 'function') {
+                    try { fn(); } catch (e) {}
+                }
+            }
+            syncTabActive();
+        }
+
+        function syncTabActive() {
+            var activeNav = document.querySelector('.nav-item.active');
+            var activePage = activeNav ? activeNav.getAttribute('data-page') : null;
+            document.querySelectorAll('.hurma-tab-bar__btn').forEach(function (b) {
+                b.classList.toggle('is-active', b.getAttribute('data-hurma-tab') === activePage);
+            });
+        }
+
+        function wireTabBar() {
+            var bar = document.getElementById('hurma-tab-bar');
+            if (!bar) return;
+            bar.querySelectorAll('[data-hurma-tab]').forEach(function (btn) {
+                btn.addEventListener('click', function () { onTabClick(btn); });
+            });
+            // Mark that the tab bar is live so CSS can add bottom padding on mobile.
+            document.body.classList.add('hurma-has-tab-bar');
+            // Observe nav changes so the tab bar highlights the right tab.
+            var navUl = document.querySelector('.nav-menu');
+            if (navUl && 'MutationObserver' in window) {
+                var mo = new MutationObserver(syncTabActive);
+                mo.observe(navUl, { subtree: true, attributes: true, attributeFilter: ['class'] });
+            }
+            syncTabActive();
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', wireTabBar, { once: true });
+        } else {
+            wireTabBar();
+        }
+
+        // ---- 3) Sync the PWA theme-color to the dark/light theme ----
+        function syncThemeColor() {
+            try {
+                var meta = document.getElementById('meta-theme-color');
+                if (!meta) return;
+                var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                meta.setAttribute('content', isDark ? '#3A2410' : '#E29A2B');
+            } catch (e) {}
+        }
+        syncThemeColor();
+        // Run once more after the app boots, in case the user had saved a theme.
+        window.addEventListener('load', syncThemeColor, { once: true });
+        // Re-sync when <html data-theme> changes (existing toggleTheme()).
+        if ('MutationObserver' in window) {
+            new MutationObserver(syncThemeColor).observe(
+                document.documentElement,
+                { attributes: true, attributeFilter: ['data-theme'] }
+            );
+        }
+    })();
+    </script>
 </body>
 </html>

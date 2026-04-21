@@ -1,20 +1,42 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
-  <!-- Background circle -->
-  <circle cx="96" cy="96" r="96" fill="#2c7a4b"/>
-  <!-- Palm tree trunk -->
-  <rect x="88" y="110" width="16" height="55" rx="8" fill="#8B6914"/>
-  <!-- Palm leaves -->
-  <ellipse cx="96" cy="80" rx="12" ry="38" fill="#4caf7d" transform="rotate(-40 96 80)"/>
-  <ellipse cx="96" cy="80" rx="12" ry="38" fill="#3d9966" transform="rotate(-15 96 80)"/>
-  <ellipse cx="96" cy="80" rx="12" ry="38" fill="#4caf7d" transform="rotate(10 96 80)"/>
-  <ellipse cx="96" cy="80" rx="12" ry="38" fill="#3d9966" transform="rotate(35 96 80)"/>
-  <ellipse cx="96" cy="80" rx="12" ry="38" fill="#4caf7d" transform="rotate(60 96 80)"/>
-  <!-- Hurma fruits cluster -->
-  <circle cx="96" cy="112" r="7" fill="#c0392b"/>
-  <circle cx="84" cy="108" r="6" fill="#a93226"/>
-  <circle cx="108" cy="108" r="6" fill="#c0392b"/>
-  <circle cx="90" cy="120" r="6" fill="#a93226"/>
-  <circle cx="102" cy="120" r="6" fill="#c0392b"/>
-  <!-- Letter H (subtle) -->
-  <text x="96" y="178" font-family="Arial,sans-serif" font-size="18" font-weight="bold" fill="rgba(255,255,255,0.9)" text-anchor="middle">HURMA</text>
+  <defs>
+    <!-- Amber gradient on the squircle -->
+    <linearGradient id="sq" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F4B24A"/>
+      <stop offset="1" stop-color="#B8731A"/>
+    </linearGradient>
+    <!-- Date-pit gradient (same family, slightly darker for depth) -->
+    <linearGradient id="pit" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FCE7C2"/>
+      <stop offset="1" stop-color="#E29A2B"/>
+    </linearGradient>
+    <!-- Soft inner-glow for the squircle -->
+    <radialGradient id="gloss" cx="0.3" cy="0.2" r="0.9">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.35"/>
+      <stop offset="0.6" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- iOS squircle background (Apple Human Interface super-ellipse) -->
+  <rect x="0" y="0" width="192" height="192" rx="44" ry="44" fill="url(#sq)"/>
+  <rect x="0" y="0" width="192" height="192" rx="44" ry="44" fill="url(#gloss)"/>
+
+  <!-- Date-pit mark, centered -->
+  <g transform="translate(96 96)">
+    <!-- Outer pit shape (4-point leaf / date silhouette) -->
+    <path d="M0 -52
+             C 30 -30, 56 -12, 56 0
+             C 56 12, 30 30, 0 52
+             C -30 30, -56 12, -56 0
+             C -56 -12, -30 -30, 0 -52 Z"
+          fill="url(#pit)"
+          stroke="#3A2410" stroke-opacity="0.15" stroke-width="1"/>
+    <!-- Horizontal seam -->
+    <path d="M -42 0
+             C -28 -4, 28 -4, 42 0
+             C 28 4, -28 4, -42 0 Z"
+          fill="#3A2410" opacity="0.55"/>
+    <!-- Tiny highlight, top-left of pit -->
+    <ellipse cx="-14" cy="-22" rx="9" ry="4" fill="#FFFFFF" opacity="0.35"/>
+  </g>
 </svg>

@@ -17,3 +17,6 @@
 
 # OS generated
 Thumbs.db
+
+# Local dev servers (machine-specific absolute paths)
+server.rb

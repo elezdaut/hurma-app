@@ -1,6 +1,6 @@
 // ===================== HURMA APP — SERVICE WORKER =====================
 // Versioni i cache-it. Ndrysho këtë vlerë kur publikon update të ri.
-const CACHE_VERSION = 'hurma-v1';
+const CACHE_VERSION = 'hurma-v33';
 
 // Skedarët lokalë që kachojmë për punë offline
 const CORE_ASSETS = [
@@ -8,6 +8,7 @@ const CORE_ASSETS = [
     '/index.html',
     '/app.js',
     '/i18n.js',
+    '/hurma-polish.js',
     '/style.css',
     '/icons/icon-192.svg',
     '/icons/icon-512.svg',
@@ -57,18 +58,45 @@ self.addEventListener('fetch', event => {
         return;
     }
 
-    // Skedarët lokalë: cache-first
+    // Skedarët lokalë: network-first për HTML dhe app.js (që të marrin gjithmonë versionin e fundit),
+    // cache-first për asetet statike (ikona, manifest).
+    const pathname = url.pathname;
+    const isCriticalFile = pathname === '/' ||
+                           pathname.endsWith('.html') ||
+                           pathname.endsWith('.js') ||
+                           pathname.endsWith('.css');
+
+    if (isCriticalFile) {
+        // Network-first: provo rrjetin, vetëm në rast dështimi kthe nga cache
+        event.respondWith(
+            fetch(event.request)
+                .then(response => {
+                    if (response && response.ok) {
+                        const clone = response.clone();
+                        caches.open(CACHE_VERSION).then(cache => cache.put(event.request, clone));
+                    }
+                    return response;
+                })
+                .catch(() => caches.match(event.request, { ignoreSearch: true })
+                    .then(cached => cached || caches.match('/index.html', { ignoreSearch: true })))
+        );
+        return;
+    }
+
+    // Asete statike: cache-first me ignoreSearch (që ?v=X të mos krijojë cache të panevojshme)
     event.respondWith(
-        caches.match(event.request)
+        caches.match(event.request, { ignoreSearch: true })
             .then(cached => {
                 if (cached) return cached;
                 return fetch(event.request).then(response => {
-                    const clone = response.clone();
-                    caches.open(CACHE_VERSION).then(cache => cache.put(event.request, clone));
+                    if (response && response.ok) {
+                        const clone = response.clone();
+                        caches.open(CACHE_VERSION).then(cache => cache.put(event.request, clone));
+                    }
                     return response;
                 });
             })
-            .catch(() => caches.match('/index.html'))
+            .catch(() => caches.match('/index.html', { ignoreSearch: true }))
     );
 });
 
