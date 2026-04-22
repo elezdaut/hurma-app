@@ -1907,13 +1907,20 @@ function openStockModal() {
 }
 
 function addStock() {
-    const productId = document.getElementById('stock-product').value;
-    const quantity = parseInt(document.getElementById('stock-quantity').value) || 0;
-    const expiry = document.getElementById('stock-expiry').value;
-    const date = document.getElementById('stock-date').value;
+    // Bug #68: DOM null-checks + product null-check + state guards
+    const pEl = document.getElementById('stock-product');
+    const qEl = document.getElementById('stock-quantity');
+    const eEl = document.getElementById('stock-expiry');
+    const dEl = document.getElementById('stock-date');
+    if (!pEl || !qEl) return;
+    const productId = pEl.value;
+    const quantity = parseInt(qEl.value) || 0;
+    const expiry = eEl ? eEl.value : '';
+    const date = dEl ? dEl.value : new Date().toISOString().split('T')[0];
 
     if (quantity <= 0) return;
 
+    if (!state.stock) state.stock = {};
     state.stock[productId] = (state.stock[productId] || 0) + quantity;
 
     // Add to Faton purchases (tracks all stock bought from Faton)
@@ -1923,12 +1930,13 @@ function addStock() {
         id: Date.now(),
         productId,
         quantity,
-        total: product.buyPrice * quantity,
+        total: ((product && product.buyPrice) || 0) * quantity,
         date
     });
 
     // Add batch for expiry tracking
     if (expiry) {
+        if (!state.stockBatches) state.stockBatches = [];
         state.stockBatches.push({
             id: Date.now(),
             productId,
@@ -1942,8 +1950,9 @@ function addStock() {
     closeModal();
     refreshAll();
     checkNotifications();
-    showToast(t('add_stock') + ': ' + product.name + ' x' + quantity, 'success');
-    logActivity('Stock Added', `${quantity}x ${product.name}`);
+    const pname = (product && product.name) || productId || '-';
+    if (typeof showToast === 'function') showToast(t('add_stock') + ': ' + pname + ' x' + quantity, 'success');
+    if (typeof logActivity === 'function') logActivity('Stock Added', `${quantity}x ${pname}`);
 }
 
 // ===================== FSHI NGARKESË / BLERJE FATON =====================
@@ -2156,43 +2165,55 @@ function openClientModal(editId) {
 }
 
 function addClient() {
-    const name = document.getElementById('client-name').value.trim();
+    // Bug #69: DOM null-checks + state.clients guard + logActivity guard
+    const nameEl = document.getElementById('client-name');
+    if (!nameEl) return;
+    const name = (nameEl.value || '').trim();
     if (!name) return;
 
     const creditLimitEl = document.getElementById('client-credit-limit');
     const creditLimit = creditLimitEl ? parseFloat(creditLimitEl.value) || 0 : 0;
     const categoryEl = document.getElementById('client-category');
     const category = categoryEl ? categoryEl.value : 'Regular';
+    const phoneEl = document.getElementById('client-phone');
+    const emailEl = document.getElementById('client-email');
+    const addrEl = document.getElementById('client-address');
 
+    if (!state.clients) state.clients = [];
     state.clients.push({
         id: Date.now().toString(),
         name,
-        phone: document.getElementById('client-phone').value,
-        email: document.getElementById('client-email').value,
-        address: document.getElementById('client-address').value,
+        phone: phoneEl ? phoneEl.value : '',
+        email: emailEl ? emailEl.value : '',
+        address: addrEl ? addrEl.value : '',
         creditLimit,
         category,
         debt: 0
     });
-    logActivity('client', 'Klient i ri: ' + name, 'clients');
+    if (typeof logActivity === 'function') logActivity('client', 'Klient i ri: ' + name, 'clients');
     saveState();
     closeModal();
     refreshClients();
 }
 
 function updateClient(id) {
-    const client = state.clients.find(c => c.id === id);
+    // Bug #70: DOM null-checks + state.clients guard
+    const client = (state.clients || []).find(c => c.id === id);
     if (!client) return;
 
     const creditLimitEl = document.getElementById('client-credit-limit');
     const creditLimit = creditLimitEl ? parseFloat(creditLimitEl.value) || 0 : 0;
     const categoryEl = document.getElementById('client-category');
     const category = categoryEl ? categoryEl.value : 'Regular';
+    const nameEl = document.getElementById('client-name');
+    const phoneEl = document.getElementById('client-phone');
+    const emailEl = document.getElementById('client-email');
+    const addrEl = document.getElementById('client-address');
 
-    client.name = document.getElementById('client-name').value.trim();
-    client.phone = document.getElementById('client-phone').value;
-    client.email = document.getElementById('client-email').value;
-    client.address = document.getElementById('client-address').value;
+    if (nameEl) client.name = (nameEl.value || '').trim();
+    if (phoneEl) client.phone = phoneEl.value;
+    if (emailEl) client.email = emailEl.value;
+    if (addrEl) client.address = addrEl.value;
     client.creditLimit = creditLimit;
     client.category = category;
     saveState();
@@ -2398,16 +2419,19 @@ function payClientDebt(id) {
 }
 
 function processDebtPayment(id) {
-    const amount = parseInt(document.getElementById('debt-amount').value) || 0;
-    const client = state.clients.find(c => c.id === id);
+    // Bug #71: DOM null-check + state.clients guard + logActivity guard
+    const amtEl = document.getElementById('debt-amount');
+    if (!amtEl) return;
+    const amount = parseInt(amtEl.value) || 0;
+    const client = (state.clients || []).find(c => c.id === id);
     if (client) {
-        client.debt = Math.max(0, client.debt - amount);
+        client.debt = Math.max(0, (client.debt || 0) - amount);
 
         // Feature 7: Add to client payment history
         addClientPaymentLog(id, amount, 'Cash', 'Debt payment');
 
         // Feature 19: Activity log
-        logActivity('Client Payment', `${client.name} paid ${amount} den`);
+        if (typeof logActivity === 'function') logActivity('Client Payment', `${client.name || '-'} paid ${amount} den`);
 
         saveState();
         closeModal();
@@ -2573,12 +2597,20 @@ function openOrderModal(editId) {
 }
 
 function addOrder() {
-    const clientId = document.getElementById('order-client').value;
-    const productId = document.getElementById('order-product').value;
-    const quantity = parseInt(document.getElementById('order-quantity').value) || 0;
-    const date = document.getElementById('order-date').value;
-    const note = document.getElementById('order-note').value;
+    // Bug #72: DOM null-checks + state.orders guard + logActivity guard
+    const cEl = document.getElementById('order-client');
+    const pEl = document.getElementById('order-product');
+    const qEl = document.getElementById('order-quantity');
+    const dEl = document.getElementById('order-date');
+    const nEl = document.getElementById('order-note');
+    if (!pEl || !qEl) return;
+    const clientId = cEl ? cEl.value : '';
+    const productId = pEl.value;
+    const quantity = parseInt(qEl.value) || 0;
+    const date = dEl ? dEl.value : new Date().toISOString().split('T')[0];
+    const note = nEl ? nEl.value : '';
 
+    if (!state.orders) state.orders = [];
     state.orders.push({
         id: Date.now(),
         clientId,
@@ -2589,20 +2621,27 @@ function addOrder() {
         status: 'pending'
     });
     const product = getProduct(productId);
-    logActivity('order', 'Porosi: ' + (product ? product.name : productId) + ' x' + quantity, 'orders');
+    if (typeof logActivity === 'function') logActivity('order', 'Porosi: ' + (product ? product.name : productId) + ' x' + quantity, 'orders');
     saveState();
     closeModal();
     refreshOrders();
 }
 
 function updateOrder(index) {
+    // Bug #73: DOM null-checks + state.orders bounds
+    if (!state.orders || !state.orders[index]) return;
+    const cEl = document.getElementById('order-client');
+    const pEl = document.getElementById('order-product');
+    const qEl = document.getElementById('order-quantity');
+    const dEl = document.getElementById('order-date');
+    const nEl = document.getElementById('order-note');
     state.orders[index] = {
         ...state.orders[index],
-        clientId: document.getElementById('order-client').value,
-        productId: document.getElementById('order-product').value,
-        quantity: parseInt(document.getElementById('order-quantity').value) || 0,
-        date: document.getElementById('order-date').value,
-        note: document.getElementById('order-note').value,
+        clientId: cEl ? cEl.value : state.orders[index].clientId,
+        productId: pEl ? pEl.value : state.orders[index].productId,
+        quantity: qEl ? (parseInt(qEl.value) || 0) : state.orders[index].quantity,
+        date: dEl ? dEl.value : state.orders[index].date,
+        note: nEl ? nEl.value : state.orders[index].note,
     };
     saveState();
     closeModal();
@@ -2610,26 +2649,33 @@ function updateOrder(index) {
 }
 
 function changeOrderStatus(index, status) {
+    // Bug #74: state.orders/sales/stock guards + product null-check
+    if (!state.orders || !state.orders[index]) return;
     state.orders[index].status = status;
     if (status === 'completed') {
         // Convert order to sale
         const order = state.orders[index];
         const product = getProduct(order.productId);
+        const sellPrice = (product && product.sellPrice) || 0;
+        const buyPrice = (product && product.buyPrice) || 0;
+        const qty = order.quantity || 0;
+        if (!state.sales) state.sales = [];
         state.sales.push({
             id: Date.now(),
             productId: order.productId,
-            quantity: order.quantity,
+            quantity: qty,
             discount: 0,
-            sellTotal: product.sellPrice * order.quantity,
-            buyTotal: product.buyPrice * order.quantity,
-            profit: (product.sellPrice - product.buyPrice) * order.quantity,
+            sellTotal: sellPrice * qty,
+            buyTotal: buyPrice * qty,
+            profit: (sellPrice - buyPrice) * qty,
             clientId: order.clientId,
             location: '',
             date: new Date().toISOString().split('T')[0],
             note: 'Nga porosi',
             isDebt: false
         });
-        state.stock[order.productId] = Math.max(0, (state.stock[order.productId] || 0) - order.quantity);
+        if (!state.stock) state.stock = {};
+        state.stock[order.productId] = Math.max(0, (state.stock[order.productId] || 0) - qty);
     }
     saveState();
     refreshOrders();
@@ -2645,12 +2691,14 @@ function deleteOrder(index) {
 }
 
 function refreshOrders() {
+    // Bug #81: tbody null-check + state.orders/clients guards
     const tbody = document.getElementById('orders-body');
+    if (!tbody) return;
     tbody.innerHTML = '';
 
-    state.orders.forEach((o, i) => {
+    (state.orders || []).forEach((o, i) => {
         const product = getProduct(o.productId);
-        const client = state.clients.find(c => c.id === o.clientId);
+        const client = (state.clients || []).find(c => c.id === o.clientId);
         const statusColors = { pending: 'var(--warning)', completed: 'var(--success)', cancelled: 'var(--danger)' };
 
         tbody.innerHTML += `
@@ -4818,21 +4866,30 @@ function openReturnModal() {
 }
 
 function addReturn() {
-    const clientId = document.getElementById('return-client').value;
-    const productId = document.getElementById('return-product').value;
-    const quantity = parseInt(document.getElementById('return-quantity').value) || 0;
-    const reason = document.getElementById('return-reason').value;
-    const date = document.getElementById('return-date').value;
+    // Bug #75: DOM null-checks + state.returns/stock guards + logActivity guard
+    const cEl = document.getElementById('return-client');
+    const pEl = document.getElementById('return-product');
+    const qEl = document.getElementById('return-quantity');
+    const rEl = document.getElementById('return-reason');
+    const dEl = document.getElementById('return-date');
+    if (!pEl || !qEl) return;
+    const clientId = cEl ? cEl.value : '';
+    const productId = pEl.value;
+    const quantity = parseInt(qEl.value) || 0;
+    const reason = rEl ? rEl.value : '';
+    const date = dEl ? dEl.value : new Date().toISOString().split('T')[0];
 
     if (quantity <= 0) return;
 
+    if (!state.returns) state.returns = [];
     state.returns.push({ id: Date.now(), clientId, productId, quantity, reason, date });
 
     // Restore stock
+    if (!state.stock) state.stock = {};
     state.stock[productId] = (state.stock[productId] || 0) + quantity;
 
     const product = getProduct(productId);
-    logActivity('return', 'Kthim: ' + (product ? product.name : productId) + ' x' + quantity, 'returns');
+    if (typeof logActivity === 'function') logActivity('return', 'Kthim: ' + (product ? product.name : productId) + ' x' + quantity, 'returns');
     saveState();
     closeModal();
     refreshReturns();
@@ -4840,9 +4897,12 @@ function addReturn() {
 }
 
 function deleteReturn(index) {
+    // Bug #76: state.returns bounds + state.stock guard
     modalConfirm('Fshi këtë kthim?', function() {
+    if (!state.returns || !state.returns[index]) return;
     var ret = state.returns[index];
-    state.stock[ret.productId] = Math.max(0, (state.stock[ret.productId] || 0) - ret.quantity);
+    if (!state.stock) state.stock = {};
+    state.stock[ret.productId] = Math.max(0, (state.stock[ret.productId] || 0) - (ret.quantity || 0));
     state.returns.splice(index, 1);
     saveState();
     refreshReturns();
@@ -4910,15 +4970,23 @@ function openContactModal(editId) {
 }
 
 function addContact() {
-    const name = document.getElementById('contact-name').value.trim();
+    // Bug #77: DOM null-checks + state.contacts guard
+    const nameEl = document.getElementById('contact-name');
+    if (!nameEl) return;
+    const name = (nameEl.value || '').trim();
     if (!name) return;
+    const phoneEl = document.getElementById('contact-phone');
+    const emailEl = document.getElementById('contact-email');
+    const roleEl = document.getElementById('contact-role');
+    const noteEl = document.getElementById('contact-note');
+    if (!state.contacts) state.contacts = [];
     state.contacts.push({
         id: Date.now().toString(),
         name,
-        phone: document.getElementById('contact-phone').value,
-        email: document.getElementById('contact-email').value,
-        role: document.getElementById('contact-role').value,
-        note: document.getElementById('contact-note').value
+        phone: phoneEl ? phoneEl.value : '',
+        email: emailEl ? emailEl.value : '',
+        role: roleEl ? roleEl.value : '',
+        note: noteEl ? noteEl.value : ''
     });
     saveState();
     closeModal();
@@ -4947,10 +5015,13 @@ function deleteContact(id) {
 }
 
 function refreshContacts() {
+    // Bug #78: DOM null-check + state.contacts guard + name null-check
     const grid = document.getElementById('contacts-grid');
+    if (!grid) return;
     grid.innerHTML = '';
-    state.contacts.forEach(c => {
-        const initials = c.name.split(' ').map(w => w[0]).join('').toUpperCase().substring(0, 2);
+    (state.contacts || []).forEach(c => {
+        const cname = c.name || '';
+        const initials = cname.split(' ').map(w => (w && w[0]) || '').join('').toUpperCase().substring(0, 2);
         grid.innerHTML += `
             <div class="contact-card">
                 <div class="contact-avatar">${initials}</div>
@@ -4993,9 +5064,14 @@ function openNoteModal(editId) {
 }
 
 function addNote() {
-    const title = document.getElementById('note-title').value.trim();
-    const content = document.getElementById('note-content').value.trim();
+    // Bug #79: DOM null-checks + state.notes guard
+    const tEl = document.getElementById('note-title');
+    const cEl = document.getElementById('note-content');
+    if (!tEl) return;
+    const title = (tEl.value || '').trim();
+    const content = cEl ? (cEl.value || '').trim() : '';
     if (!title) return;
+    if (!state.notes) state.notes = [];
     state.notes.push({
         id: Date.now().toString(),
         title,
@@ -5026,9 +5102,11 @@ function deleteNote(id) {
 }
 
 function refreshNotes() {
+    // Bug #80: DOM null-check + state.notes guard
     const grid = document.getElementById('notes-grid');
+    if (!grid) return;
     grid.innerHTML = '';
-    [...state.notes].reverse().forEach(n => {
+    [...(state.notes || [])].reverse().forEach(n => {
         grid.innerHTML += `
             <div class="note-card">
                 <h4>${n.title}</h4>
