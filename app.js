@@ -11213,13 +11213,15 @@ function redoLastAction() {
 
 // ADV-3: Sales Prediction
 function showSalesPrediction() {
+    // Bug #54: state.sales guards, NaN fallbacks, date validation
     const now = new Date();
     const last30 = [];
+    const allSales = (state.sales || []);
     for (let i = 29; i >= 0; i--) {
         const d = new Date(now); d.setDate(d.getDate() - i);
         const dateStr = d.toISOString().split('T')[0];
-        const daySales = state.sales.filter(s => s.date === dateStr);
-        last30.push({ date: dateStr, count: daySales.length, revenue: daySales.reduce((s, x) => s + x.sellTotal, 0), profit: daySales.reduce((s, x) => s + x.profit, 0) });
+        const daySales = allSales.filter(s => s.date === dateStr);
+        last30.push({ date: dateStr, count: daySales.length, revenue: daySales.reduce((s, x) => s + (x.sellTotal || 0), 0), profit: daySales.reduce((s, x) => s + (x.profit || 0), 0) });
     }
     const avgRevenue = Math.round(last30.reduce((s, d) => s + d.revenue, 0) / 30);
     const avgProfit = Math.round(last30.reduce((s, d) => s + d.profit, 0) / 30);
@@ -11232,7 +11234,12 @@ function showSalesPrediction() {
     const weeklyProfitPred = Math.round(avgProfit * 7);
     const dayNames = ['Diel', 'Hën', 'Mar', 'Mër', 'Enj', 'Pre', 'Sht'];
     const dayTotals = [0,0,0,0,0,0,0];
-    state.sales.forEach(s => { const d = new Date(s.date).getDay(); dayTotals[d] += s.sellTotal; });
+    allSales.forEach(s => {
+        if (!s.date) return;
+        const dt = new Date(s.date);
+        if (isNaN(dt.getTime())) return;
+        dayTotals[dt.getDay()] += (s.sellTotal || 0);
+    });
     let bestDay = 0;
     for (let i = 1; i < 7; i++) { if (dayTotals[i] > dayTotals[bestDay]) bestDay = i; }
     let html = `<div class="daily-report"><h3><i class="fas fa-chart-line"></i> Parashikim Shitjesh</h3>
@@ -11256,9 +11263,15 @@ function showSalesPrediction() {
 
 // ADV-4: Most Profitable Product ranking
 function showProfitableProducts() {
-    const productStats = PRODUCTS.map(p => {
-        const sales = state.sales.filter(s => s.productId === p.id);
-        return { ...p, totalProfit: sales.reduce((s, x) => s + x.profit, 0), totalSold: sales.reduce((s, x) => s + x.quantity, 0), totalRevenue: sales.reduce((s, x) => s + x.sellTotal, 0), margin: sales.reduce((s, x) => s + x.sellTotal, 0) > 0 ? Math.round((sales.reduce((s, x) => s + x.profit, 0) / sales.reduce((s, x) => s + x.sellTotal, 0)) * 100) : 0, salesCount: sales.length };
+    // Bug #55: PRODUCTS/state.sales guards + NaN fallbacks
+    const PRODS = (typeof PRODUCTS !== 'undefined' && PRODUCTS ? PRODUCTS : []);
+    const ALL_SALES = (state.sales || []);
+    const productStats = PRODS.map(p => {
+        const sales = ALL_SALES.filter(s => s.productId === p.id);
+        const totalProfit = sales.reduce((s, x) => s + (x.profit || 0), 0);
+        const totalRevenue = sales.reduce((s, x) => s + (x.sellTotal || 0), 0);
+        const totalSold = sales.reduce((s, x) => s + (x.quantity || 0), 0);
+        return { ...p, totalProfit, totalSold, totalRevenue, margin: totalRevenue > 0 ? Math.round((totalProfit / totalRevenue) * 100) : 0, salesCount: sales.length };
     }).sort((a, b) => b.totalProfit - a.totalProfit);
     let html = '<h3><i class="fas fa-trophy"></i> Produktet më fitimprurëse</h3><div class="table-container"><table class="data-table"><thead><tr><th>#</th><th>Produkti</th><th>Shitur</th><th>Qarkullim</th><th>Fitimi</th><th>Marzhi</th></tr></thead><tbody>';
     productStats.forEach((p, i) => {
@@ -11271,8 +11284,9 @@ function showProfitableProducts() {
 
 // ADV-5: Best Sales Hour
 function showBestSalesHour() {
+    // Bug #56: state.sales guard + NaN fallback
     const hourData = new Array(24).fill(0);
-    state.sales.forEach(s => { if (s.time) { const h = parseInt(s.time.split(':')[0]); if (!isNaN(h)) hourData[h] += s.sellTotal; } });
+    (state.sales || []).forEach(s => { if (s.time) { const h = parseInt(s.time.split(':')[0]); if (!isNaN(h) && h >= 0 && h < 24) hourData[h] += (s.sellTotal || 0); } });
     let bestHour = 0;
     for (let i = 1; i < 24; i++) { if (hourData[i] > hourData[bestHour]) bestHour = i; }
     const maxH = Math.max(...hourData, 1);
@@ -11289,7 +11303,15 @@ function showBestSalesHour() {
 function showSalesSeason() {
     const monthNames = ['Jan', 'Shk', 'Mar', 'Pri', 'Maj', 'Qer', 'Kor', 'Gus', 'Sht', 'Tet', 'Nën', 'Dhj'];
     const monthData = new Array(12).fill(0); const monthProfit = new Array(12).fill(0); const monthCount = new Array(12).fill(0);
-    state.sales.forEach(s => { if (s.date) { const m = parseInt(s.date.split('-')[1]) - 1; monthData[m] += s.sellTotal; monthProfit[m] += s.profit; monthCount[m]++; } });
+    // Bug #57: state.sales guard + NaN fallbacks + month validation
+    (state.sales || []).forEach(s => {
+        if (!s.date) return;
+        const m = parseInt(s.date.split('-')[1]) - 1;
+        if (isNaN(m) || m < 0 || m > 11) return;
+        monthData[m] += (s.sellTotal || 0);
+        monthProfit[m] += (s.profit || 0);
+        monthCount[m]++;
+    });
     let bestMonth = 0;
     for (let i = 1; i < 12; i++) { if (monthData[i] > monthData[bestMonth]) bestMonth = i; }
     const maxM = Math.max(...monthData, 1);
@@ -11307,8 +11329,16 @@ function showSalesSeason() {
 
 // ADV-7: Client Map
 function showClientMap() {
+    // Bug #58: state.clients/sales guards + NaN fallback
     const zones = {};
-    state.clients.forEach(c => { const zone = c.city || c.zone || c.address || 'Pa vendndodhje'; if (!zones[zone]) zones[zone] = { count: 0, debt: 0, revenue: 0 }; zones[zone].count++; zones[zone].debt += (c.debt || 0); zones[zone].revenue += state.sales.filter(s => s.clientId === c.id).reduce((s, x) => s + x.sellTotal, 0); });
+    const ALL_SALES = (state.sales || []);
+    (state.clients || []).forEach(c => {
+        const zone = c.city || c.zone || c.address || 'Pa vendndodhje';
+        if (!zones[zone]) zones[zone] = { count: 0, debt: 0, revenue: 0 };
+        zones[zone].count++;
+        zones[zone].debt += (c.debt || 0);
+        zones[zone].revenue += ALL_SALES.filter(s => s.clientId === c.id).reduce((s, x) => s + (x.sellTotal || 0), 0);
+    });
     const sortedZones = Object.entries(zones).sort((a, b) => b[1].revenue - a[1].revenue);
     let html = '<h3><i class="fas fa-map-marker-alt"></i> Harta e Klientëve</h3><div class="table-container"><table class="data-table"><thead><tr><th>Zona</th><th>Klientë</th><th>Qarkullim</th><th>Borxh</th></tr></thead><tbody>';
     sortedZones.forEach(([zone, data]) => { html += `<tr><td><i class="fas fa-map-pin" style="color:var(--primary)"></i> ${zone}</td><td>${data.count}</td><td>${data.revenue} ден</td><td style="color:${data.debt > 0 ? 'var(--danger)' : ''}">${data.debt} ден</td></tr>`; });
@@ -11339,7 +11369,9 @@ function showWhatsAppTemplates(phone, clientName) {
 function openStockCountModal() {
     let html = '<h3><i class="fas fa-clipboard-check"></i> Inventar Fizik</h3><p style="color:var(--text-secondary)">Fut sasinë reale të stokut</p>';
     html += '<div class="table-container"><table class="data-table"><thead><tr><th>Produkti</th><th>Sistemi</th><th>Real</th><th>Diferenca</th></tr></thead><tbody>';
-    PRODUCTS.forEach(p => { const sysQty = state.stock[p.id] || 0; html += `<tr><td>${p.name}</td><td>${sysQty}</td><td><input type="number" id="count-${p.id}" value="${sysQty}" min="0" style="width:70px;padding:4px;border:1px solid var(--border);border-radius:4px;" oninput="updateCountDiff('${p.id}', ${sysQty}, this.value)"></td><td id="diff-${p.id}" style="font-weight:700">0</td></tr>`; });
+    // Bug #62: PRODUCTS/state.stock guards
+    if (!state.stock) state.stock = {};
+    (typeof PRODUCTS !== 'undefined' && PRODUCTS ? PRODUCTS : []).forEach(p => { const sysQty = state.stock[p.id] || 0; html += `<tr><td>${p.name || '-'}</td><td>${sysQty}</td><td><input type="number" id="count-${p.id}" value="${sysQty}" min="0" style="width:70px;padding:4px;border:1px solid var(--border);border-radius:4px;" oninput="updateCountDiff('${p.id}', ${sysQty}, this.value)"></td><td id="diff-${p.id}" style="font-weight:700">0</td></tr>`; });
     html += '</tbody></table></div>';
     html += '<div style="margin-top:15px;display:flex;gap:10px;"><button class="btn btn-primary" onclick="applyStockCount()"><i class="fas fa-check"></i> Apliko</button><button class="btn btn-secondary" onclick="closeModal()">Anulo</button></div>';
     openModal(html);
@@ -11352,10 +11384,18 @@ function updateCountDiff(productId, sysQty, realQty) {
 }
 
 function applyStockCount() {
+    // Bug #61: PRODUCTS/state.stock guards + showToast guard
     let changes = 0;
-    PRODUCTS.forEach(p => { const input = document.getElementById('count-' + p.id); if (input) { const newQty = parseInt(input.value) || 0; if (newQty !== (state.stock[p.id] || 0)) { state.stock[p.id] = newQty; changes++; } } });
+    if (!state.stock) state.stock = {};
+    (typeof PRODUCTS !== 'undefined' && PRODUCTS ? PRODUCTS : []).forEach(p => {
+        const input = document.getElementById('count-' + p.id);
+        if (input) {
+            const newQty = parseInt(input.value) || 0;
+            if (newQty !== (state.stock[p.id] || 0)) { state.stock[p.id] = newQty; changes++; }
+        }
+    });
     saveState(); refreshAll(); closeModal();
-    showToast(`Inventari u përditësua! ${changes} ndryshime`);
+    if (typeof showToast === 'function') showToast(`Inventari u përditësua! ${changes} ndryshime`, 'success');
 }
 
 // ADV-10: Multiple Suppliers
@@ -11372,7 +11412,8 @@ function addNewSupplier() {
     const phone = prompt('Telefoni (opsional):') || '';
     if (!state.suppliers) state.suppliers = [{ id: 'faton', name: 'Faton', phone: '', balance: 0 }];
     state.suppliers.push({ id: 'sup_' + Date.now(), name, phone, balance: 0 });
-    saveState(); openSuppliersModal(); showToast('Furnitori u shtua!');
+    // Bug #67: showToast guard
+    saveState(); openSuppliersModal(); if (typeof showToast === 'function') showToast('Furnitori u shtua!');
 }
 
 function editSupplier(id) {
@@ -11394,10 +11435,15 @@ function openBarcodeScanner() {
 }
 
 function searchBarcode() {
-    const code = document.getElementById('barcode-input').value.trim(); if (!code) return;
-    const product = PRODUCTS.find(p => p.id === code || p.name.toLowerCase().includes(code.toLowerCase()));
+    // Bug #65: DOM null-check + PRODUCTS/state.stock guards
+    const codeInput = document.getElementById('barcode-input');
+    if (!codeInput) return;
+    const code = (codeInput.value || '').trim(); if (!code) return;
+    const list = (typeof PRODUCTS !== 'undefined' && PRODUCTS ? PRODUCTS : []);
+    const product = list.find(p => p && (p.id === code || (p.name || '').toLowerCase().includes(code.toLowerCase())));
     const resultDiv = document.getElementById('barcode-result');
-    if (product) { const stock = state.stock[product.id] || 0; resultDiv.innerHTML = `<div class="panel-360-card" style="text-align:left;padding:15px;"><strong>${product.name}</strong><br>Stoku: ${stock} | Blerje: ${product.buyPrice} ден | Shitje: ${product.sellPrice} ден</div>`; }
+    if (!resultDiv) return;
+    if (product) { const stock = ((state.stock || {})[product.id]) || 0; resultDiv.innerHTML = `<div class="panel-360-card" style="text-align:left;padding:15px;"><strong>${product.name || '-'}</strong><br>Stoku: ${stock} | Blerje: ${product.buyPrice || 0} ден | Shitje: ${product.sellPrice || 0} ден</div>`; }
     else resultDiv.innerHTML = '<p style="color:var(--danger)">Nuk u gjet!</p>';
 }
 
@@ -11425,11 +11471,18 @@ function openPromotionsModal() {
 }
 
 function addPromotion() {
-    const name = document.getElementById('promo-name').value; const discount = parseInt(document.getElementById('promo-discount').value);
-    if (!name || !discount) { showToast('Plotëso emrin dhe zbritjen!'); return; }
+    // Bug #66: DOM null-checks + showToast guards
+    const nameEl = document.getElementById('promo-name');
+    const discEl = document.getElementById('promo-discount');
+    const prodEl = document.getElementById('promo-product');
+    const startEl = document.getElementById('promo-start');
+    const endEl = document.getElementById('promo-end');
+    if (!nameEl || !discEl) return;
+    const name = nameEl.value; const discount = parseInt(discEl.value);
+    if (!name || !discount) { if (typeof showToast === 'function') showToast('Plotëso emrin dhe zbritjen!'); return; }
     if (!state.promotions) state.promotions = [];
-    state.promotions.push({ id: 'promo_' + Date.now(), name, discount, productId: document.getElementById('promo-product').value || null, startDate: document.getElementById('promo-start').value || null, endDate: document.getElementById('promo-end').value || null });
-    saveState(); showToast('Oferta u shtua!'); openPromotionsModal();
+    state.promotions.push({ id: 'promo_' + Date.now(), name, discount, productId: (prodEl && prodEl.value) || null, startDate: (startEl && startEl.value) || null, endDate: (endEl && endEl.value) || null });
+    saveState(); if (typeof showToast === 'function') showToast('Oferta u shtua!'); openPromotionsModal();
 }
 
 function deletePromotion(id) { if (!state.promotions) return; state.promotions = state.promotions.filter(p => p.id !== id); saveState(); openPromotionsModal(); }
@@ -11443,22 +11496,28 @@ function getActiveDiscount(productId) {
 
 // ADV-13: Auto-Order when stock is low
 function checkAutoOrders() {
+    // Bug #64: PRODUCTS/state.stock guards + showToast guards
     if (!state.autoOrderThreshold) state.autoOrderThreshold = 3;
-    const lowProducts = PRODUCTS.filter(p => (state.stock[p.id] || 0) < state.autoOrderThreshold);
-    if (lowProducts.length === 0) { showToast('Stoku OK, nuk nevojiten porosi'); return; }
+    if (!state.stock) state.stock = {};
+    const list = (typeof PRODUCTS !== 'undefined' && PRODUCTS ? PRODUCTS : []);
+    const lowProducts = list.filter(p => (state.stock[p.id] || 0) < state.autoOrderThreshold);
+    if (lowProducts.length === 0) { if (typeof showToast === 'function') showToast('Stoku OK, nuk nevojiten porosi'); return; }
     let html = `<h3><i class="fas fa-magic"></i> Porosi Automatike</h3><p>Produkte me stok nën ${state.autoOrderThreshold}:</p>`;
     html += '<div class="table-container"><table class="data-table"><thead><tr><th>Produkti</th><th>Stoku</th><th>Porosi</th><th>Veprim</th></tr></thead><tbody>';
-    lowProducts.forEach(p => { const stock = state.stock[p.id] || 0; html += `<tr><td>${p.name}</td><td style="color:var(--danger)">${stock}</td><td><input type="number" id="auto-order-${p.id}" value="${10 - stock}" min="1" style="width:60px;padding:4px;border:1px solid var(--border);border-radius:4px;"></td><td><button class="btn btn-sm btn-success" onclick="createAutoOrder('${p.id}')"><i class="fas fa-check"></i></button></td></tr>`; });
+    lowProducts.forEach(p => { const stock = state.stock[p.id] || 0; html += `<tr><td>${p.name || '-'}</td><td style="color:var(--danger)">${stock}</td><td><input type="number" id="auto-order-${p.id}" value="${10 - stock}" min="1" style="width:60px;padding:4px;border:1px solid var(--border);border-radius:4px;"></td><td><button class="btn btn-sm btn-success" onclick="createAutoOrder('${p.id}')"><i class="fas fa-check"></i></button></td></tr>`; });
     html += '</tbody></table></div><button class="btn btn-primary" style="margin-top:10px;" onclick="createAllAutoOrders()"><i class="fas fa-cart-plus"></i> Porosit të gjitha</button>';
     openModal(html);
 }
 
 function createAutoOrder(productId) {
+    // Bug #63: product null-check + state.orders guard + showToast guard
     const input = document.getElementById('auto-order-' + productId);
     const qty = parseInt(input ? input.value : 5) || 5;
     const product = getProduct(productId);
+    if (!product) return;
+    if (!state.orders) state.orders = [];
     state.orders.push({ id: 'ord_' + Date.now(), date: new Date().toISOString().split('T')[0], productId, quantity: qty, status: 'pending', note: 'Auto-porosi' });
-    saveState(); showToast(`Porosi: ${product.name} x${qty}`);
+    saveState(); if (typeof showToast === 'function') showToast(`Porosi: ${product.name || '-'} x${qty}`);
 }
 
 function createAllAutoOrders() {
@@ -11468,9 +11527,13 @@ function createAllAutoOrders() {
 
 // ADV-14: Profit by Client
 function showProfitByClient() {
-    const clientStats = state.clients.map(c => {
-        const sales = state.sales.filter(s => s.clientId === c.id);
-        return { ...c, totalProfit: sales.reduce((s, x) => s + x.profit, 0), totalRevenue: sales.reduce((s, x) => s + x.sellTotal, 0), salesCount: sales.length, avgOrder: sales.length > 0 ? Math.round(sales.reduce((s, x) => s + x.sellTotal, 0) / sales.length) : 0 };
+    // Bug #59: state.clients/sales guards + NaN fallbacks
+    const ALL_SALES = (state.sales || []);
+    const clientStats = (state.clients || []).map(c => {
+        const sales = ALL_SALES.filter(s => s.clientId === c.id);
+        const totalProfit = sales.reduce((s, x) => s + (x.profit || 0), 0);
+        const totalRevenue = sales.reduce((s, x) => s + (x.sellTotal || 0), 0);
+        return { ...c, totalProfit, totalRevenue, salesCount: sales.length, avgOrder: sales.length > 0 ? Math.round(totalRevenue / sales.length) : 0 };
     }).filter(c => c.salesCount > 0).sort((a, b) => b.totalProfit - a.totalProfit);
     let html = '<h3><i class="fas fa-users"></i> Fitimi sipas Klientit</h3><div class="table-container"><table class="data-table"><thead><tr><th>#</th><th>Klienti</th><th>Shitje</th><th>Qarkullim</th><th>Fitimi</th><th>Mesatare</th></tr></thead><tbody>';
     clientStats.forEach((c, i) => { const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i+1); html += `<tr onclick="openClient360('${c.id}')" style="cursor:pointer"><td>${medal}</td><td>${c.name}</td><td>${c.salesCount}</td><td>${c.totalRevenue} ден</td><td style="color:var(--success);font-weight:700">${c.totalProfit} ден</td><td>${c.avgOrder} ден</td></tr>`; });
@@ -11594,17 +11657,19 @@ function generateMonthlyPDF() {
 
 // ADV-16: Yearly Comparison
 function showYearlyComparison() {
+    // Bug #60: state.sales guard + NaN fallbacks
     const now = new Date();
     const thisYear = now.getFullYear();
     const lastYear = thisYear - 1;
+    const ALL_SALES = (state.sales || []);
 
-    const thisYearSales = state.sales.filter(s => s.date && s.date.startsWith(thisYear + ''));
-    const lastYearSales = state.sales.filter(s => s.date && s.date.startsWith(lastYear + ''));
+    const thisYearSales = ALL_SALES.filter(s => s.date && s.date.startsWith(thisYear + ''));
+    const lastYearSales = ALL_SALES.filter(s => s.date && s.date.startsWith(lastYear + ''));
 
-    const thisRevenue = thisYearSales.reduce((s, x) => s + x.sellTotal, 0);
-    const lastRevenue = lastYearSales.reduce((s, x) => s + x.sellTotal, 0);
-    const thisProfit = thisYearSales.reduce((s, x) => s + x.profit, 0);
-    const lastProfit = lastYearSales.reduce((s, x) => s + x.profit, 0);
+    const thisRevenue = thisYearSales.reduce((s, x) => s + (x.sellTotal || 0), 0);
+    const lastRevenue = lastYearSales.reduce((s, x) => s + (x.sellTotal || 0), 0);
+    const thisProfit = thisYearSales.reduce((s, x) => s + (x.profit || 0), 0);
+    const lastProfit = lastYearSales.reduce((s, x) => s + (x.profit || 0), 0);
 
     const revChange = lastRevenue > 0 ? Math.round(((thisRevenue - lastRevenue) / lastRevenue) * 100) : 0;
     const profChange = lastProfit > 0 ? Math.round(((thisProfit - lastProfit) / lastProfit) * 100) : 0;
@@ -11631,8 +11696,8 @@ function showYearlyComparison() {
 
     for (let m = 0; m < 12; m++) {
         const mm = String(m + 1).padStart(2, '0');
-        const thisM = thisYearSales.filter(s => s.date && s.date.substring(5, 7) === mm).reduce((s, x) => s + x.sellTotal, 0);
-        const lastM = lastYearSales.filter(s => s.date && s.date.substring(5, 7) === mm).reduce((s, x) => s + x.sellTotal, 0);
+        const thisM = thisYearSales.filter(s => s.date && s.date.substring(5, 7) === mm).reduce((s, x) => s + (x.sellTotal || 0), 0);
+        const lastM = lastYearSales.filter(s => s.date && s.date.substring(5, 7) === mm).reduce((s, x) => s + (x.sellTotal || 0), 0);
         const change = lastM > 0 ? Math.round(((thisM - lastM) / lastM) * 100) : 0;
         html += `<tr><td>${monthNames[m]}</td><td>${thisM} ден</td><td>${lastM} ден</td>
             <td><span class="month-compare ${change >= 0 ? 'up' : 'down'}">${change > 0 ? '+' : ''}${change}%</span></td></tr>`;
