@@ -8572,11 +8572,24 @@ function exportDashboard(format) {
 
 // Sales export
 function exportSales(format) {
+    // Bug #21: guards — (state.sales || []), (state.clients || []); fallbacks për NaN
     const headers = ['Data', 'Produkti', 'Sasia', 'Cmimi shitjes', 'Totali', 'Fitimi', 'Pagesa', 'Klienti', 'Lokacioni'];
-    const rows = state.sales.map(s => {
+    const rows = (state.sales || []).map(s => {
         const p = getProduct(s.productId);
-        const client = s.clientId ? (state.clients.find(c => c.id === s.clientId) || {}) : {};
-        return [s.date, p.name, s.quantity, (s.sellPrice || p.sellPrice) + ' den', s.sellTotal + ' den', s.profit + ' den', s.paymentType || 'cash', client.name || '-', s.location || '-'];
+        const productName = (p && p.name) ? p.name : '-';
+        const client = s.clientId ? ((state.clients || []).find(c => c.id === s.clientId) || {}) : {};
+        const sellPrice = s.sellPrice || (p && p.sellPrice) || 0;
+        return [
+            s.date || '-',
+            productName,
+            s.quantity || 0,
+            sellPrice + ' den',
+            (s.sellTotal || 0) + ' den',
+            (s.profit || 0) + ' den',
+            s.paymentType || 'cash',
+            client.name || '-',
+            s.location || '-'
+        ];
     });
     const fname = 'Shitjet_' + new Date().toISOString().split('T')[0];
     if (format === 'excel') exportToExcel(headers, rows, fname);
@@ -8599,10 +8612,20 @@ function exportStock(format) {
 
 // Clients export
 function exportClients(format) {
+    // Bug #21: guards — (state.clients || []), (state.sales || []); fallback për c.debt NaN
     const headers = ['Emri', 'Telefoni', 'Kategoria', 'Borxhi', 'Limiti Kreditit', 'Blerje Totale'];
-    const rows = state.clients.map(c => {
-        const totalPurchases = state.sales.filter(s => s.clientId === c.id).reduce((sum, s) => sum + s.sellTotal, 0);
-        return [c.name, c.phone || '-', c.category || 'Regular', c.debt + ' den', (c.creditLimit || 0) + ' den', totalPurchases + ' den'];
+    const rows = (state.clients || []).map(c => {
+        const totalPurchases = (state.sales || [])
+            .filter(s => s.clientId === c.id)
+            .reduce((sum, s) => sum + (s.sellTotal || 0), 0);
+        return [
+            c.name || '-',
+            c.phone || '-',
+            c.category || 'Regular',
+            (c.debt || 0) + ' den',
+            (c.creditLimit || 0) + ' den',
+            totalPurchases + ' den'
+        ];
     });
     const fname = 'Klientet_' + new Date().toISOString().split('T')[0];
     if (format === 'excel') exportToExcel(headers, rows, fname);
@@ -8635,26 +8658,37 @@ function exportOrders(format) {
 
 // Faton export
 function exportFaton(format) {
+    // Bug #21: fallback për p.total/p.amount/p.quantity/p.date — shmang "undefined den" dhe localeCompare crash
     const headers = ['Data', 'Lloji', 'Pershkrim', 'Shuma', 'Kategoria'];
     const rows = [];
     // Add purchases
     (state.fatonPurchases || []).forEach(p => {
         const prod = getProduct(p.productId);
-        rows.push([p.date, 'Blerje', (prod ? prod.name : '-') + ' x' + p.quantity, '-' + p.total + ' den', '-']);
+        const prodName = (prod && prod.name) ? prod.name : '-';
+        rows.push([p.date || '-', 'Blerje', prodName + ' x' + (p.quantity || 0), '-' + (p.total || 0) + ' den', '-']);
     });
     // Add payments
     (state.fatonPayments || []).forEach(p => {
-        rows.push([p.date, 'Pagese', p.note || '-', '+' + p.amount + ' den', getCategoryLabel(p.category)]);
+        rows.push([p.date || '-', 'Pagese', p.note || '-', '+' + (p.amount || 0) + ' den', getCategoryLabel(p.category) || '-']);
     });
     // Add profit collections
     (state.fatonProfitCollections || []).forEach(c => {
-        rows.push([c.date, 'Mbledhje fitimi', c.note || c.type, '+' + c.amount + ' den', '-']);
+        rows.push([c.date || '-', 'Mbledhje fitimi', c.note || c.type || '-', '+' + (c.amount || 0) + ' den', '-']);
     });
-    // Sort by date
-    rows.sort((a, b) => b[0].localeCompare(a[0]));
+    // Sort by date (guard: localeCompare mbi string për të evituar crash nëse data mungon)
+    rows.sort((a, b) => String(b[0] || '').localeCompare(String(a[0] || '')));
     // Add summary row
+    const debt = calcFatonDebt() || 0;
+    const profitOwed = calcFatonProfitOwed() || 0;
+    const profitCollected = calcFatonProfitCollected() || 0;
     rows.push(['', '', '', '', '']);
-    rows.push(['PERMBLEDHJE', 'Borxh cash: ' + calcFatonDebt() + ' den', 'Fitim pa mbledhur: ' + (calcFatonProfitOwed() - calcFatonProfitCollected()) + ' den', 'TOTAL: ' + (calcFatonDebt() + calcFatonProfitOwed() - calcFatonProfitCollected()) + ' den', '']);
+    rows.push([
+        'PERMBLEDHJE',
+        'Borxh cash: ' + debt + ' den',
+        'Fitim pa mbledhur: ' + (profitOwed - profitCollected) + ' den',
+        'TOTAL: ' + (debt + profitOwed - profitCollected) + ' den',
+        ''
+    ]);
     const fname = 'Fatoni_' + new Date().toISOString().split('T')[0];
     if (format === 'excel') exportToExcel(headers, rows, fname);
     else if (format === 'pdf') exportToPDF('Llogaria e Fatonit', headers, rows, fname, 'landscape');
@@ -8691,11 +8725,20 @@ function exportReports(format) {
 
 // Balance/P&L export
 function exportBalance(format) {
-    const totalRevenue = state.sales.reduce((s, x) => s + x.sellTotal, 0);
-    const totalCost = state.sales.reduce((s, x) => s + (x.sellTotal - x.profit), 0);
-    const totalProfit = state.sales.reduce((s, x) => s + x.profit, 0);
-    const totalExpenses = state.expenses.reduce((s, x) => s + x.amount, 0);
+    // Bug #21: njëjtë me Bug #20 (Dashboard) — guards kundër crash + NaN + undefined
+    const sales = state.sales || [];
+    const expenses = state.expenses || [];
+    const totalRevenue = sales.reduce((s, x) => s + (x.sellTotal || 0), 0);
+    const totalProfit = sales.reduce((s, x) => s + (x.profit || 0), 0);
+    // Kosto = sellTotal - profit; të dyja me fallback për të shmangur NaN
+    const totalCost = sales.reduce((s, x) => s + ((x.sellTotal || 0) - (x.profit || 0)), 0);
+    const totalExpenses = expenses.reduce((s, x) => s + (x.amount || 0), 0);
     const netProfit = totalProfit - totalExpenses;
+    const split = state.profitSplit || { owner: 50, partner: 50 };
+    const partnerName = state.partnerName || 'Partneri';
+    const ownerShare = calcOwnerShare(netProfit) || 0;
+    const partnerShare = calcPartnerShare(netProfit) || 0;
+
     const headers = ['Zeri', 'Vlera'];
     const rows = [
         ['Te ardhura totale', totalRevenue + ' den'],
@@ -8703,8 +8746,8 @@ function exportBalance(format) {
         ['Fitimi bruto', totalProfit + ' den'],
         ['Shpenzime totale', totalExpenses + ' den'],
         ['Fitimi neto', netProfit + ' den'],
-        ['Pjesa jote (' + state.profitSplit.owner + '%)', calcOwnerShare(netProfit) + ' den'],
-        ['Pjesa e ' + state.partnerName + ' (' + state.profitSplit.partner + '%)', calcPartnerShare(netProfit) + ' den']
+        ['Pjesa jote (' + (split.owner || 50) + '%)', ownerShare + ' den'],
+        ['Pjesa e ' + partnerName + ' (' + (split.partner || 50) + '%)', partnerShare + ' den']
     ];
     const fname = 'Bilanci_' + new Date().toISOString().split('T')[0];
     if (format === 'excel') exportToExcel(headers, rows, fname);
