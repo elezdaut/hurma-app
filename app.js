@@ -10469,26 +10469,28 @@ function exportDailyReportPDF() {
     doc.text('Raport Ditor - ' + today, 20, 20);
     doc.setFontSize(12);
 
-    const todaySales = state.sales.filter(s => s.date === today);
-    const todayProfit = todaySales.reduce((sum, s) => sum + s.profit, 0);
-    const todayRevenue = todaySales.reduce((sum, s) => sum + s.sellTotal, 0);
+    const todaySales = (state.sales || []).filter(s => s.date === today);
+    const todayProfit = todaySales.reduce((sum, s) => sum + (s.profit || 0), 0);
+    const todayRevenue = todaySales.reduce((sum, s) => sum + (s.sellTotal || 0), 0);
     const fatonDebt = calcTotalOwedToFaton();
-    const totalDebtClients = state.clients.reduce((sum, c) => sum + (c.debt || 0), 0);
+    const totalDebtClients = (state.clients || []).reduce((sum, c) => sum + (c.debt || 0), 0);
+    const profitSplit = state.profitSplit || { owner: 50, partner: 50 };
+    const partnerName = state.partnerName || 'Partneri';
 
     let y = 35;
     const lines = [
         ['Shitje sot', todaySales.length + ''],
         ['Qarkullimi', todayRevenue + ' den'],
         ['Fitimi', todayProfit + ' den'],
-        ['Elez (' + state.profitSplit.owner + '%)', calcOwnerShare(todayProfit) + ' den'],
-        [state.partnerName + ' (' + state.profitSplit.partner + '%)', calcPartnerShare(todayProfit) + ' den'],
+        ['Elez (' + profitSplit.owner + '%)', calcOwnerShare(todayProfit) + ' den'],
+        [partnerName + ' (' + profitSplit.partner + '%)', calcPartnerShare(todayProfit) + ' den'],
         ['Borxhi Fatoni', fatonDebt + ' den'],
         ['Borxhi klientesh', totalDebtClients + ' den'],
     ];
     lines.forEach(l => { doc.text(l[0] + ': ' + l[1], 20, y); y += 8; });
 
     doc.save('raport-ditor-' + today + '.pdf');
-    showToast('PDF u shkarkua!');
+    if (typeof showToast === 'function') showToast('PDF u shkarkua!');
 }
 
 // Feature 7: Product 360° View
