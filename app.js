@@ -2808,9 +2808,12 @@ function openFatonPaymentModal(editIndex) {
 }
 
 function updateFatonPaymentPreview(currentDebt) {
-    const amount = parseInt(document.getElementById('faton-amount').value) || 0;
+    // Bug #102: DOM null-checks
+    const aEl = document.getElementById('faton-amount');
     const preview = document.getElementById('faton-payment-preview');
     const previewAmount = document.getElementById('faton-preview-amount');
+    if (!aEl || !preview || !previewAmount) return;
+    const amount = parseInt(aEl.value) || 0;
     if (amount > 0) {
         const newDebt = currentDebt - amount;
         preview.style.display = 'block';
@@ -2822,12 +2825,18 @@ function updateFatonPaymentPreview(currentDebt) {
 }
 
 function addFatonPayment() {
-    const amount = parseInt(document.getElementById('faton-amount').value) || 0;
+    // Bug #101: DOM null-checks + state.fatonPayments guard + logActivity guard
+    const aEl = document.getElementById('faton-amount');
+    if (!aEl) return;
+    const amount = parseInt(aEl.value) || 0;
     if (amount <= 0) return;
 
-    const category = document.getElementById('faton-payment-category').value;
-    const date = document.getElementById('faton-date').value;
-    const note = document.getElementById('faton-note').value;
+    const catEl = document.getElementById('faton-payment-category');
+    const dEl = document.getElementById('faton-date');
+    const nEl = document.getElementById('faton-note');
+    const category = catEl ? catEl.value : 'cash';
+    const date = dEl ? dEl.value : new Date().toISOString().split('T')[0];
+    const note = nEl ? nEl.value : '';
 
     function doPayment() {
         const payment = {
@@ -2837,6 +2846,7 @@ function addFatonPayment() {
             note: note,
             category: category
         };
+        if (!state.fatonPayments) state.fatonPayments = [];
         state.fatonPayments.push(payment);
         saveState();
 
@@ -2848,7 +2858,7 @@ function addFatonPayment() {
 
         refreshFaton();
         refreshDashboard();
-        logActivity('Faton Payment', amount + ' den - ' + getCategoryLabel(category));
+        if (typeof logActivity === 'function') logActivity('Faton Payment', amount + ' den - ' + getCategoryLabel(category));
 
         // Show confirmation modal instead of just toast
         showPaymentConfirmation(payment, receipt);
@@ -3034,11 +3044,16 @@ function openFatonInstallmentModal() {
 }
 
 function previewInstallments() {
+    // Bug #105: DOM null-checks
+    const cEl = document.getElementById('installment-count');
+    const sEl = document.getElementById('installment-start');
+    const iEl = document.getElementById('installment-interval');
+    if (!cEl || !sEl || !iEl) return;
     const debt = calcFatonDebt() + (calcFatonProfitOwed() - calcFatonProfitCollected());
-    const count = parseInt(document.getElementById('installment-count').value) || 3;
-    const start = document.getElementById('installment-start').value;
-    const interval = parseInt(document.getElementById('installment-interval').value) || 30;
-    const perInstallment = Math.ceil(debt / count);
+    const count = parseInt(cEl.value) || 3;
+    const start = sEl.value;
+    const interval = parseInt(iEl.value) || 30;
+    const perInstallment = count > 0 ? Math.ceil(debt / count) : 0;
 
     let html = '<table class="data-table"><thead><tr><th>#</th><th>Data</th><th>Shuma</th></tr></thead><tbody>';
     let remaining = debt;
@@ -5084,10 +5099,13 @@ function addNote() {
 }
 
 function updateNote(id) {
-    const note = state.notes.find(n => n.id === id);
+    // Bug #82: DOM null + state.notes guard
+    const note = (state.notes || []).find(n => n.id === id);
     if (!note) return;
-    note.title = document.getElementById('note-title').value.trim();
-    note.content = document.getElementById('note-content').value.trim();
+    const tEl = document.getElementById('note-title');
+    const cEl = document.getElementById('note-content');
+    if (tEl) note.title = (tEl.value || '').trim();
+    if (cEl) note.content = (cEl.value || '').trim();
     saveState();
     closeModal();
     refreshNotes();
@@ -5155,16 +5173,24 @@ function openTargetModal(editId) {
 }
 
 function addTarget() {
-    const title = document.getElementById('target-title').value.trim();
-    const goal = parseInt(document.getElementById('target-goal').value) || 0;
+    // Bug #83: DOM null-checks + state.targets guard
+    const tEl = document.getElementById('target-title');
+    const gEl = document.getElementById('target-goal');
+    if (!tEl || !gEl) return;
+    const title = (tEl.value || '').trim();
+    const goal = parseInt(gEl.value) || 0;
     if (!title || goal <= 0) return;
+    const cEl = document.getElementById('target-current');
+    const mEl = document.getElementById('target-month');
+    const dEl = document.getElementById('target-desc');
+    if (!state.targets) state.targets = [];
     state.targets.push({
         id: Date.now().toString(),
         title,
         goal,
-        current: parseInt(document.getElementById('target-current').value) || 0,
-        month: document.getElementById('target-month').value,
-        description: document.getElementById('target-desc').value
+        current: cEl ? (parseInt(cEl.value) || 0) : 0,
+        month: mEl ? mEl.value : '',
+        description: dEl ? dEl.value : ''
     });
     saveState();
     closeModal();
@@ -5172,13 +5198,19 @@ function addTarget() {
 }
 
 function updateTarget(id) {
-    const target = state.targets.find(t => t.id === id);
+    // Bug #84: DOM null + state.targets guard
+    const target = (state.targets || []).find(t => t.id === id);
     if (!target) return;
-    target.title = document.getElementById('target-title').value.trim();
-    target.goal = parseInt(document.getElementById('target-goal').value) || 0;
-    target.current = parseInt(document.getElementById('target-current').value) || 0;
-    target.month = document.getElementById('target-month').value;
-    target.description = document.getElementById('target-desc').value;
+    const tEl = document.getElementById('target-title');
+    const gEl = document.getElementById('target-goal');
+    const cEl = document.getElementById('target-current');
+    const mEl = document.getElementById('target-month');
+    const dEl = document.getElementById('target-desc');
+    if (tEl) target.title = (tEl.value || '').trim();
+    if (gEl) target.goal = parseInt(gEl.value) || 0;
+    if (cEl) target.current = parseInt(cEl.value) || 0;
+    if (mEl) target.month = mEl.value;
+    if (dEl) target.description = dEl.value;
     saveState();
     closeModal();
     refreshTargets();
@@ -5193,10 +5225,12 @@ function deleteTarget(id) {
 }
 
 function refreshTargets() {
+    // Bug #85: grid null + state.targets guard + divide-by-zero
     const grid = document.getElementById('targets-grid');
+    if (!grid) return;
     grid.innerHTML = '';
-    state.targets.forEach(tg => {
-        const pct = Math.min(100, Math.round((tg.current / tg.goal) * 100));
+    (state.targets || []).forEach(tg => {
+        const pct = tg.goal > 0 ? Math.min(100, Math.round(((tg.current || 0) / tg.goal) * 100)) : 0;
         grid.innerHTML += `
             <div class="target-card">
                 <h4>${tg.title}</h4>
@@ -5220,29 +5254,34 @@ function refreshTargets() {
 
 // ===================== CALCULATOR =====================
 function calculateQuick() {
-    const productId = document.getElementById('calc-product').value;
-    const quantity = parseInt(document.getElementById('calc-quantity').value) || 0;
+    // Bug #86: DOM null-checks + product null-check
+    const pEl = document.getElementById('calc-product');
+    const qEl = document.getElementById('calc-quantity');
+    if (!pEl || !qEl) return;
+    const productId = pEl.value;
+    const quantity = parseInt(qEl.value) || 0;
+    const setText = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
 
     if (!productId || quantity <= 0) {
-        document.getElementById('calc-buy-total').textContent = '0 ден';
-        document.getElementById('calc-sell-total').textContent = '0 ден';
-        document.getElementById('calc-profit').textContent = '0 ден';
-        document.getElementById('calc-your-share').textContent = '0 ден';
-        document.getElementById('calc-orhan-share').textContent = '0 ден';
+        setText('calc-buy-total', '0 ден');
+        setText('calc-sell-total', '0 ден');
+        setText('calc-profit', '0 ден');
+        setText('calc-your-share', '0 ден');
+        setText('calc-orhan-share', '0 ден');
         return;
     }
 
     const product = getProduct(productId);
-    const buyTotal = product.buyPrice * quantity;
-    const sellTotal = product.sellPrice * quantity;
+    if (!product) return;
+    const buyTotal = (product.buyPrice || 0) * quantity;
+    const sellTotal = (product.sellPrice || 0) * quantity;
     const profit = sellTotal - buyTotal;
 
-    document.getElementById('calc-buy-total').textContent = buyTotal + ' ден';
-    document.getElementById('calc-sell-total').textContent = sellTotal + ' ден';
-    document.getElementById('calc-profit').textContent = profit + ' ден';
-    // Feature 3: Use configurable profit split
-    document.getElementById('calc-your-share').textContent = calcOwnerShare(profit) + ' ден';
-    document.getElementById('calc-orhan-share').textContent = calcPartnerShare(profit) + ' ден';
+    setText('calc-buy-total', buyTotal + ' ден');
+    setText('calc-sell-total', sellTotal + ' ден');
+    setText('calc-profit', profit + ' ден');
+    setText('calc-your-share', calcOwnerShare(profit) + ' ден');
+    setText('calc-orhan-share', calcPartnerShare(profit) + ' ден');
 }
 
 // Feature 15: Markup calculator
@@ -5253,8 +5292,10 @@ function calculateMarkup() {
     const markupResult = document.getElementById('markup-result');
     if (!markupResult || !productId) return;
 
+    // Bug #87: product null-check + partnerName guard
     const product = getProduct(productId);
-    const buyPrice = product.buyPrice;
+    if (!product) return;
+    const buyPrice = product.buyPrice || 0;
     const newProfit = (newSellPrice - buyPrice) * quantity;
     const markup = buyPrice > 0 ? Math.round(((newSellPrice - buyPrice) / buyPrice) * 100) : 0;
 
@@ -5265,7 +5306,7 @@ function calculateMarkup() {
             <div class="stat-card"><div><h3>Fitimi total</h3><p>${newProfit} den</p></div></div>
             <div class="stat-card"><div><h3>Markup</h3><p>${markup}%</p></div></div>
             <div class="stat-card"><div><h3>Pjesa jote</h3><p>${calcOwnerShare(newProfit)} den</p></div></div>
-            <div class="stat-card"><div><h3>Pjesa e ${state.partnerName}</h3><p>${calcPartnerShare(newProfit)} den</p></div></div>
+            <div class="stat-card"><div><h3>Pjesa e ${state.partnerName || 'Partneri'}</h3><p>${calcPartnerShare(newProfit)} den</p></div></div>
         </div>
     `;
 }
@@ -5302,25 +5343,34 @@ function openExpenseModal() {
 }
 
 function addExpense() {
-    const description = document.getElementById('expense-desc').value.trim();
-    const amount = parseInt(document.getElementById('expense-amount').value) || 0;
-    const date = document.getElementById('expense-date').value;
-    const shared = document.getElementById('expense-shared') ? document.getElementById('expense-shared').checked : false;
+    // Bug #91: DOM null-checks + state.expenses guard + showToast/logActivity guards
+    const dEl = document.getElementById('expense-desc');
+    const aEl = document.getElementById('expense-amount');
+    const dtEl = document.getElementById('expense-date');
+    if (!dEl || !aEl) return;
+    const description = (dEl.value || '').trim();
+    const amount = parseInt(aEl.value) || 0;
+    const date = dtEl ? dtEl.value : new Date().toISOString().split('T')[0];
+    const sharedEl = document.getElementById('expense-shared');
+    const shared = sharedEl ? sharedEl.checked : false;
     const categoryEl = document.getElementById('expense-category');
     const category = categoryEl ? categoryEl.value : 'Tjeter';
 
     if (!description || amount <= 0) return;
 
+    if (!state.expenses) state.expenses = [];
     state.expenses.push({ id: Date.now(), description, amount, date, shared, category });
     saveState();
     closeModal();
     refreshExpenses();
-    showToast(t('add_expense') + ': ' + amount + ' den', 'success');
-    logActivity('Expense Added', `${description} - ${amount} den (${category})`);
+    if (typeof showToast === 'function') showToast(t('add_expense') + ': ' + amount + ' den', 'success');
+    if (typeof logActivity === 'function') logActivity('Expense Added', `${description} - ${amount} den (${category})`);
 }
 
 function deleteExpense(index) {
+    // Bug #92: state.expenses bounds
     modalConfirm('Fshi këtë shpenzim?', function() {
+        if (!state.expenses || !state.expenses[index]) return;
         state.expenses.splice(index, 1);
         saveState();
         refreshExpenses();
@@ -5328,9 +5378,11 @@ function deleteExpense(index) {
 }
 
 function refreshExpenses() {
+    // Bug #93: tbody null + state.expenses guard
     const tbody = document.getElementById('expenses-body');
+    if (!tbody) return;
     tbody.innerHTML = '';
-    state.expenses.forEach((e, i) => {
+    (state.expenses || []).forEach((e, i) => {
         const sharedLabel = e.shared ? ' <span style="color:var(--accent);font-size:0.8em;">(50/50)</span>' : '';
         const perPerson = e.shared ? `<br><span style="font-size:0.8em;">Per person: ${Math.round(e.amount / 2)} den</span>` : '';
         tbody.innerHTML += `
@@ -5359,7 +5411,11 @@ function openLocationModal() {
 }
 
 function addLocation() {
-    const name = document.getElementById('location-name').value.trim();
+    // Bug #88: DOM null + state.locations guard
+    const nEl = document.getElementById('location-name');
+    if (!nEl) return;
+    const name = (nEl.value || '').trim();
+    if (!state.locations) state.locations = [];
     if (!name || state.locations.includes(name)) return;
     state.locations.push(name);
     saveState();
@@ -5369,16 +5425,19 @@ function addLocation() {
 }
 
 function deleteLocation(name) {
-    state.locations = state.locations.filter(l => l !== name);
+    // Bug #89: state.locations guard
+    state.locations = (state.locations || []).filter(l => l !== name);
     saveState();
     refreshLocations();
     populateLocationSelects();
 }
 
 function refreshLocations() {
+    // Bug #90: container null + state.locations guard
     const container = document.getElementById('locations-list');
+    if (!container) return;
     container.innerHTML = '';
-    state.locations.forEach(l => {
+    (state.locations || []).forEach(l => {
         container.innerHTML += `
             <span class="location-tag">${l} <button onclick="deleteLocation('${l}')">&times;</button></span>
         `;
@@ -5494,14 +5553,20 @@ function generateReport() {
 }
 
 function updateReportCharts(sales) {
+    // Bug #94: DOM null-checks + Chart undefined guard + date null-check
+    if (typeof Chart === 'undefined') return;
+    sales = sales || [];
     // Comparison chart
     const months = {};
     sales.forEach(s => {
+        if (!s || !s.date) return;
         const m = s.date.substring(0, 7);
-        months[m] = (months[m] || 0) + s.profit;
+        months[m] = (months[m] || 0) + (s.profit || 0);
     });
 
-    const compCtx = document.getElementById('comparisonChart').getContext('2d');
+    const compEl = document.getElementById('comparisonChart');
+    if (!compEl) return;
+    const compCtx = compEl.getContext('2d');
     if (window.compChart) window.compChart.destroy();
     window.compChart = new Chart(compCtx, {
         type: 'bar',
@@ -5519,11 +5584,14 @@ function updateReportCharts(sales) {
     // Location chart
     const locationData = {};
     sales.forEach(s => {
+        if (!s) return;
         const loc = s.location || 'N/A';
-        locationData[loc] = (locationData[loc] || 0) + s.sellTotal;
+        locationData[loc] = (locationData[loc] || 0) + (s.sellTotal || 0);
     });
 
-    const locCtx = document.getElementById('locationChart').getContext('2d');
+    const locEl = document.getElementById('locationChart');
+    if (!locEl) return;
+    const locCtx = locEl.getContext('2d');
     if (window.locChart) window.locChart.destroy();
     window.locChart = new Chart(locCtx, {
         type: 'doughnut',
@@ -6971,16 +7039,17 @@ function generateOrhanReport() {
     const dateFrom = document.getElementById('orhan-date-from') ? document.getElementById('orhan-date-from').value : '';
     const dateTo = document.getElementById('orhan-date-to') ? document.getElementById('orhan-date-to').value : '';
 
-    let sales = state.sales;
+    // Bug #99: state.sales/expenses guards + NaN fallbacks
+    let sales = (state.sales || []);
     if (dateFrom) sales = sales.filter(s => s.date >= dateFrom);
     if (dateTo) sales = sales.filter(s => s.date <= dateTo);
 
-    const totalProfit = sales.reduce((sum, s) => sum + s.profit, 0);
-    let filteredExpenses = state.expenses;
+    const totalProfit = sales.reduce((sum, s) => sum + (s.profit || 0), 0);
+    let filteredExpenses = (state.expenses || []);
     if (dateFrom) filteredExpenses = filteredExpenses.filter(e => e.date >= dateFrom);
     if (dateTo) filteredExpenses = filteredExpenses.filter(e => e.date <= dateTo);
-    const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
-    const sharedExpenses = filteredExpenses.filter(e => e.shared).reduce((sum, e) => sum + e.amount, 0);
+    const totalExpenses = filteredExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+    const sharedExpenses = filteredExpenses.filter(e => e.shared).reduce((sum, e) => sum + (e.amount || 0), 0);
     const personalExpenses = totalExpenses - sharedExpenses;
     const sharedExpensePerPerson = Math.round(sharedExpenses / 2);
 
@@ -6988,8 +7057,8 @@ function generateOrhanReport() {
     const orhanShare = calcPartnerShare(netProfit);
     const orhanSharedExpense = sharedExpensePerPerson;
 
-    const cashProfit = sales.filter(s => (s.paymentType || 'cash') === 'cash').reduce((sum, s) => sum + s.profit, 0);
-    const invoiceProfit = sales.filter(s => s.paymentType === 'invoice_60').reduce((sum, s) => sum + s.profit, 0);
+    const cashProfit = sales.filter(s => (s.paymentType || 'cash') === 'cash').reduce((sum, s) => sum + (s.profit || 0), 0);
+    const invoiceProfit = sales.filter(s => s.paymentType === 'invoice_60').reduce((sum, s) => sum + (s.profit || 0), 0);
     const collectedProfit = calcFatonProfitCollected();
 
     let html = `
@@ -7046,8 +7115,9 @@ function exportOrhanReport() {
 
 // ===================== POPULATE CLIENT SELECTS WITH PINNED FIRST (Feature 24) =====================
 function getClientOptionsHtml(selectedId) {
+    // Bug #100: state.clients guard
     const pinned = state.pinnedClients || [];
-    const sorted = [...state.clients].sort((a, b) => {
+    const sorted = [...(state.clients || [])].sort((a, b) => {
         const aPin = pinned.includes(a.id) ? 0 : 1;
         const bPin = pinned.includes(b.id) ? 0 : 1;
         return aPin - bPin;
@@ -7089,38 +7159,53 @@ function openProductModal(editId) {
 }
 
 function addProduct() {
-    const name = document.getElementById('product-name').value.trim();
-    const weight = document.getElementById('product-weight').value.trim();
-    const buyPrice = parseFloat(document.getElementById('product-buy-price').value) || 0;
-    const sellPrice = parseFloat(document.getElementById('product-sell-price').value) || 0;
+    // Bug #95: DOM null-checks + state.stock guard + showToast/logActivity guards
+    const nEl = document.getElementById('product-name');
+    const wEl = document.getElementById('product-weight');
+    const bEl = document.getElementById('product-buy-price');
+    const sEl = document.getElementById('product-sell-price');
+    if (!nEl) return;
+    const name = (nEl.value || '').trim();
+    const weight = wEl ? (wEl.value || '').trim() : '';
+    const buyPrice = bEl ? (parseFloat(bEl.value) || 0) : 0;
+    const sellPrice = sEl ? (parseFloat(sEl.value) || 0) : 0;
 
     if (!name) {
-        showToast('Product name is required', 'error');
+        if (typeof showToast === 'function') showToast('Product name is required', 'error');
         return;
     }
 
     const id = 'custom_' + Date.now();
     const newProduct = { id, name, weight, buyPrice, sellPrice };
+    if (typeof PRODUCTS === 'undefined') return;
     PRODUCTS.push(newProduct);
     state.customProducts = [...PRODUCTS];
+    if (!state.stock) state.stock = {};
     state.stock[id] = 0;
 
     saveState();
     closeModal();
     refreshProducts();
     populateProductSelects();
-    showToast('Product added successfully', 'success');
-    logActivity('Product Added', `Added product: ${name}`);
+    if (typeof showToast === 'function') showToast('Product added successfully', 'success');
+    if (typeof logActivity === 'function') logActivity('Product Added', `Added product: ${name}`);
 }
 
 function updateProduct(id) {
-    const name = document.getElementById('product-name').value.trim();
-    const weight = document.getElementById('product-weight').value.trim();
-    const buyPrice = parseFloat(document.getElementById('product-buy-price').value) || 0;
-    const sellPrice = parseFloat(document.getElementById('product-sell-price').value) || 0;
+    // Bug #96: DOM null-checks + PRODUCTS guard + showToast/logActivity guards
+    if (typeof PRODUCTS === 'undefined') return;
+    const nEl = document.getElementById('product-name');
+    const wEl = document.getElementById('product-weight');
+    const bEl = document.getElementById('product-buy-price');
+    const sEl = document.getElementById('product-sell-price');
+    if (!nEl) return;
+    const name = (nEl.value || '').trim();
+    const weight = wEl ? (wEl.value || '').trim() : '';
+    const buyPrice = bEl ? (parseFloat(bEl.value) || 0) : 0;
+    const sellPrice = sEl ? (parseFloat(sEl.value) || 0) : 0;
 
     if (!name) {
-        showToast('Product name is required', 'error');
+        if (typeof showToast === 'function') showToast('Product name is required', 'error');
         return;
     }
 
@@ -7134,15 +7219,17 @@ function updateProduct(id) {
     closeModal();
     refreshProducts();
     populateProductSelects();
-    showToast('Product updated successfully', 'success');
-    logActivity('Product Updated', `Updated product: ${name}`);
+    if (typeof showToast === 'function') showToast('Product updated successfully', 'success');
+    if (typeof logActivity === 'function') logActivity('Product Updated', `Updated product: ${name}`);
 }
 
 function deleteProduct(id) {
+    // Bug #97: state.sales/stock guards + PRODUCTS guard + showToast/logActivity guards
     modalConfirm('Fshi këtë produkt? Kjo nuk mund të kthehet!', function() {
-        var usedInSales = state.sales.some(function(s) { return s.productId === id; });
+        if (typeof PRODUCTS === 'undefined') return;
+        var usedInSales = (state.sales || []).some(function(s) { return s.productId === id; });
         if (usedInSales) {
-            showToast('Nuk mund të fshihet: produkti përdoret në historinë e shitjeve', 'error');
+            if (typeof showToast === 'function') showToast('Nuk mund të fshihet: produkti përdoret në historinë e shitjeve', 'error');
             return;
         }
         var productIndex = PRODUCTS.findIndex(function(p) { return p.id === id; });
@@ -7150,13 +7237,13 @@ function deleteProduct(id) {
         var productName = PRODUCTS[productIndex].name;
         PRODUCTS.splice(productIndex, 1);
         state.customProducts = PRODUCTS.slice();
-        delete state.stock[id];
+        if (state.stock) delete state.stock[id];
         saveState();
         closeModal();
         refreshProducts();
         populateProductSelects();
-        showToast('Produkti u fshi!', 'success');
-        logActivity('Product Deleted', 'Deleted product: ' + productName);
+        if (typeof showToast === 'function') showToast('Produkti u fshi!', 'success');
+        if (typeof logActivity === 'function') logActivity('Product Deleted', 'Deleted product: ' + productName);
     });
 }
 
@@ -7168,15 +7255,18 @@ function refreshProducts() {
     html += '<button class="btn btn-primary" onclick="openProductModal()" style="margin-bottom:15px;">Add New Product</button>';
     html += '<table class="data-table"><thead><tr><th>Name</th><th>Weight</th><th>Buy Price</th><th>Sell Price</th><th>Margin</th><th>Actions</th></tr></thead><tbody>';
 
-    PRODUCTS.forEach(p => {
-        const margin = p.sellPrice - p.buyPrice;
-        const marginPct = p.buyPrice > 0 ? ((margin / p.buyPrice) * 100).toFixed(1) : 0;
+    // Bug #98: PRODUCTS guard + field fallbacks
+    (typeof PRODUCTS !== 'undefined' && PRODUCTS ? PRODUCTS : []).forEach(p => {
+        const buyPrice = p.buyPrice || 0;
+        const sellPrice = p.sellPrice || 0;
+        const margin = sellPrice - buyPrice;
+        const marginPct = buyPrice > 0 ? ((margin / buyPrice) * 100).toFixed(1) : 0;
         html += `
             <tr>
-                <td>${p.name}</td>
-                <td>${p.weight}</td>
-                <td>${p.buyPrice} den</td>
-                <td>${p.sellPrice} den</td>
+                <td>${p.name || '-'}</td>
+                <td>${p.weight || '-'}</td>
+                <td>${buyPrice} den</td>
+                <td>${sellPrice} den</td>
                 <td>${margin} den (${marginPct}%)</td>
                 <td>
                     <button class="btn btn-sm" onclick="openProductModal('${p.id}')">Edit</button>
@@ -7231,11 +7321,14 @@ function saveProfitSplit() {
 }
 
 function calcOwnerShare(profit) {
-    return Math.round(profit * (state.profitSplit.owner / 100));
+    // Bug #106: profitSplit guard + NaN fallback
+    const ps = state.profitSplit || { owner: 50, partner: 50 };
+    return Math.round((profit || 0) * ((ps.owner || 0) / 100));
 }
 
 function calcPartnerShare(profit) {
-    return Math.round(profit * (state.profitSplit.partner / 100));
+    const ps = state.profitSplit || { owner: 50, partner: 50 };
+    return Math.round((profit || 0) * ((ps.partner || 0) / 100));
 }
 
 // ===================== FEATURE 5: CASH DRAWER =====================
@@ -7640,18 +7733,22 @@ function openAutoBackupSettings() {
 }
 
 function saveAutoBackupSettings() {
-    const enabled = document.getElementById('backup-enabled').checked;
-    const interval = document.getElementById('backup-interval').value;
+    // Bug #103: DOM null-checks + state.autoBackup guard + showToast guard
+    const eEl = document.getElementById('backup-enabled');
+    const iEl = document.getElementById('backup-interval');
+    if (!eEl || !iEl) return;
+    const enabled = eEl.checked;
+    const interval = iEl.value;
 
     state.autoBackup = {
         enabled,
         interval,
-        lastBackup: state.autoBackup.lastBackup
+        lastBackup: (state.autoBackup && state.autoBackup.lastBackup) || null
     };
 
     saveState();
     closeModal();
-    showToast('Auto-backup settings saved', 'success');
+    if (typeof showToast === 'function') showToast('Auto-backup settings saved', 'success');
 }
 
 // ===================== FEATURE 14: DASHBOARD CUSTOMIZATION =====================
@@ -7696,17 +7793,25 @@ function openPresetModal(editId) {
 }
 
 function addPreset() {
-    const name = document.getElementById('preset-name').value.trim();
-    const productId = document.getElementById('preset-product').value;
-    const quantity = parseInt(document.getElementById('preset-quantity').value) || 1;
-    const discount = parseFloat(document.getElementById('preset-discount').value) || 0;
-    const location = document.getElementById('preset-location').value;
+    // Bug #104: DOM null-checks + state.salePresets guard + showToast guard
+    const nEl = document.getElementById('preset-name');
+    const pEl = document.getElementById('preset-product');
+    const qEl = document.getElementById('preset-quantity');
+    const dEl = document.getElementById('preset-discount');
+    const lEl = document.getElementById('preset-location');
+    if (!nEl) return;
+    const name = (nEl.value || '').trim();
+    const productId = pEl ? pEl.value : '';
+    const quantity = qEl ? (parseInt(qEl.value) || 1) : 1;
+    const discount = dEl ? (parseFloat(dEl.value) || 0) : 0;
+    const location = lEl ? lEl.value : '';
 
     if (!name) {
-        showToast('Preset name is required', 'error');
+        if (typeof showToast === 'function') showToast('Preset name is required', 'error');
         return;
     }
 
+    if (!state.salePresets) state.salePresets = [];
     state.salePresets.push({
         id: Date.now(),
         name,
@@ -7719,7 +7824,7 @@ function addPreset() {
     saveState();
     closeModal();
     refreshDashboard();
-    showToast('Preset added', 'success');
+    if (typeof showToast === 'function') showToast('Preset added', 'success');
 }
 
 function updatePreset(id) {
