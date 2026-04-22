@@ -3788,24 +3788,35 @@ function exportAllReceiptsPDF() {
     doc.text('Gjeneruar: ' + new Date().toLocaleDateString('sq-AL'), 105, 27, { align: 'center' });
 
     const headers = ['#', 'Data', 'Shuma', 'Metoda', 'Borxh Para', 'Borxh Pas', 'Elez', 'Orhan', 'Status'];
-    const rows = state.paymentReceipts.map(r => [
-        r.receiptNumber, r.date, r.amount + ' den', getCategoryLabel(r.category),
-        r.debtBefore + ' den', r.debtAfter + ' den',
-        r.elezShare + ' den', r.orhanShare + ' den',
+    const rows = (state.paymentReceipts || []).map(r => [
+        r.receiptNumber || '-', r.date || '-', (r.amount || 0) + ' den', getCategoryLabel(r.category),
+        (r.debtBefore || 0) + ' den', (r.debtAfter || 0) + ' den',
+        (r.elezShare || 0) + ' den', (r.orhanShare || 0) + ' den',
         getStatusLabel(r.status)
     ]);
 
-    doc.autoTable({
-        head: [headers],
-        body: rows,
-        startY: 34,
-        styles: { fontSize: 7, cellPadding: 2 },
-        headStyles: { fillColor: [44, 62, 80] },
-        alternateRowStyles: { fillColor: [245, 245, 245] }
-    });
+    if (typeof doc.autoTable === 'function') {
+        doc.autoTable({
+            head: [headers],
+            body: rows,
+            startY: 34,
+            styles: { fontSize: 7, cellPadding: 2 },
+            headStyles: { fillColor: [44, 62, 80] },
+            alternateRowStyles: { fillColor: [245, 245, 245] }
+        });
+    } else {
+        // Fallback: autoTable plugin missing — shkruaj rreshtat si tekst
+        let y = 40;
+        doc.setFontSize(9);
+        rows.forEach(r => {
+            if (y > 280) { doc.addPage(); y = 20; }
+            doc.text(r.join(' | '), 14, y);
+            y += 5;
+        });
+    }
 
     doc.save('Faturat_Te_Gjitha_' + new Date().toISOString().split('T')[0] + '.pdf');
-    showToast('PDF me te gjitha faturat u shkarkua', 'success');
+    if (typeof showToast === 'function') showToast('PDF me te gjitha faturat u shkarkua', 'success');
 }
 
 // ===================== ENHANCED PAYMENT MODAL (2-STEP) =====================
