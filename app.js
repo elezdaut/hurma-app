@@ -4540,7 +4540,8 @@ function exportFatonCSV() {
     link.href = URL.createObjectURL(blob);
     link.download = 'Faton_Kontabilitet_' + new Date().toISOString().split('T')[0] + '.csv';
     link.click();
-    showToast('CSV per kontabilistin u shkarkua', 'success');
+    // Bug #27: showToast guard
+    if (typeof showToast === 'function') showToast('CSV per kontabilistin u shkarkua', 'success');
 }
 
 // ===================== ONE-CLICK QUICK PAY =====================
@@ -8276,6 +8277,11 @@ function openResetCenter() {
 
 // Core Excel export
 function exportToExcel(headers, rows, filename) {
+    // Bug #36: guard XLSX library — nëse CDN nuk është ngarkuar, shfaq toast në vend të crash
+    if (typeof XLSX === 'undefined' || !XLSX.utils) {
+        if (typeof showToast === 'function') showToast('XLSX nuk u ngarkua! Provo më vonë ose kontrollo internetin.', 'error');
+        return;
+    }
     const wsData = [headers, ...rows];
     const ws = XLSX.utils.aoa_to_sheet(wsData);
     // Auto-width columns
@@ -8285,7 +8291,7 @@ function exportToExcel(headers, rows, filename) {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Data');
     XLSX.writeFile(wb, filename + '.xlsx');
-    showToast('Excel u shkarkua: ' + filename + '.xlsx', 'success');
+    if (typeof showToast === 'function') showToast('Excel u shkarkua: ' + filename + '.xlsx', 'success');
 }
 
 // Core PDF export
@@ -8301,17 +8307,29 @@ function exportToPDF(title, headers, rows, filename, orientation) {
     doc.text(title, 14, 20);
     doc.setFontSize(9);
     doc.text('Hurma App - ' + new Date().toLocaleDateString('sq-AL'), 14, 28);
-    doc.autoTable({
-        head: [headers],
-        body: rows,
-        startY: 34,
-        styles: { fontSize: 8, cellPadding: 3 },
-        headStyles: { fillColor: [44, 62, 80], textColor: 255 },
-        alternateRowStyles: { fillColor: [245, 245, 245] },
-        margin: { left: 14, right: 14 }
-    });
+    // Bug #37: autoTable fallback — nëse plugin-i nuk është ngarkuar, shkruaj rreshtat si tekst
+    if (typeof doc.autoTable === 'function') {
+        doc.autoTable({
+            head: [headers],
+            body: rows,
+            startY: 34,
+            styles: { fontSize: 8, cellPadding: 3 },
+            headStyles: { fillColor: [44, 62, 80], textColor: 255 },
+            alternateRowStyles: { fillColor: [245, 245, 245] },
+            margin: { left: 14, right: 14 }
+        });
+    } else {
+        doc.setFontSize(9);
+        let y = 40;
+        doc.text(headers.join(' | '), 14, y); y += 6;
+        rows.forEach(r => {
+            if (y > 280) { doc.addPage(); y = 20; }
+            doc.text((r || []).map(v => String(v == null ? '' : v)).join(' | '), 14, y);
+            y += 5;
+        });
+    }
     doc.save(filename + '.pdf');
-    showToast('PDF u shkarkua: ' + filename + '.pdf', 'success');
+    if (typeof showToast === 'function') showToast('PDF u shkarkua: ' + filename + '.pdf', 'success');
 }
 
 // Core Word export - Professional layout
@@ -8611,10 +8629,14 @@ function exportSales(format) {
 
 // Stock export
 function exportStock(format) {
+    // Bug #28: guards për PRODUCTS, state.stock, dhe fallback për fusha numerike (shmang "undefined den" dhe NaN)
     const headers = ['Produkti', 'Pesha', 'Sasia', 'Cmim Blerjes', 'Cmim Shitjes', 'Vlera Stokut'];
-    const rows = PRODUCTS.map(p => {
-        const count = state.stock[p.id] || 0;
-        return [p.name, p.weight, count, p.buyPrice + ' den', p.sellPrice + ' den', (count * p.buyPrice) + ' den'];
+    const stockMap = state.stock || {};
+    const rows = (typeof PRODUCTS !== 'undefined' && PRODUCTS ? PRODUCTS : []).map(p => {
+        const count = stockMap[p.id] || 0;
+        const buy = p.buyPrice || 0;
+        const sell = p.sellPrice || 0;
+        return [p.name || '-', p.weight || '-', count, buy + ' den', sell + ' den', (count * buy) + ' den'];
     });
     const fname = 'Stoku_' + new Date().toISOString().split('T')[0];
     if (format === 'excel') exportToExcel(headers, rows, fname);
@@ -8650,7 +8672,8 @@ function exportOrders(format) {
     const headers = ['Data', 'Klienti', 'Produkti', 'Sasia', 'Statusi', 'Shenimet'];
     const rows = (state.orders || []).map(o => {
         // Përkthe clientId → emër klienti (fusha reale është clientId, jo clientName)
-        const client = o.clientId ? (state.clients.find(c => c.id === o.clientId) || {}) : {};
+        // Bug #29: guard për state.clients
+        const client = o.clientId ? ((state.clients || []).find(c => c.id === o.clientId) || {}) : {};
         // Përkthe productId → emër produkti (fusha reale është productId, jo product)
         const prod = o.productId ? getProduct(o.productId) : null;
         return [
@@ -8773,7 +8796,8 @@ function exportReturns(format) {
     const rows = (state.returns || []).map(r => {
         const p = getProduct(r.productId);
         // Përkthe clientId → emër klienti (fusha reale: clientId, jo clientName)
-        const client = r.clientId ? (state.clients.find(c => c.id === r.clientId) || {}) : {};
+        // Bug #30: guard për state.clients
+        const client = r.clientId ? ((state.clients || []).find(c => c.id === r.clientId) || {}) : {};
         return [
             r.date || '-',
             (p && p.name) || '-',                       // fallback nëse produkti s'ekziston (ndryshe merr gabim runtime)
@@ -10038,7 +10062,8 @@ function exportClientPaymentsCSV() {
     link.href = URL.createObjectURL(blob);
     link.download = 'Pagesat_Klienteve_' + new Date().toISOString().split('T')[0] + '.csv';
     link.click();
-    showToast('CSV u shkarkua', 'success');
+    // Bug #31: showToast guard
+    if (typeof showToast === 'function') showToast('CSV u shkarkua', 'success');
 }
 
 // Feature 29: Print client history
@@ -13940,11 +13965,12 @@ function exportAuditLog() {
         a.date || a.timestamp || ''
     ]);
 
+    // Bug #39: showToast guards
     if (typeof exportToExcel === 'function') {
         exportToExcel(headers, rows, 'Audit_Log_' + new Date().toISOString().split('T')[0]);
-        showToast('Log-u u eksportua ne Excel', 'success');
+        if (typeof showToast === 'function') showToast('Log-u u eksportua ne Excel', 'success');
     } else {
-        showToast('Eksporti ne Excel nuk eshte i disponueshem', 'error');
+        if (typeof showToast === 'function') showToast('Eksporti ne Excel nuk eshte i disponueshem', 'error');
     }
 }
 
@@ -18145,17 +18171,18 @@ function createNewInvoice() {
 }
 
 function exportInvoicePDF(saleIndex) {
+    // Bug #26: showToast / logActivity guards
     var model = buildInvoiceModel(saleIndex);
-    if (!model) { showToast('Fatura nuk u gjet!', 'error'); return; }
+    if (!model) { if (typeof showToast === 'function') showToast('Fatura nuk u gjet!', 'error'); return; }
 
     var invoiceHtml = renderInvoiceHtml(model);
 
     // Get invoice CSS
     var invoiceStyles = '';
     var styleSheets = document.querySelectorAll('link[rel="stylesheet"][href*="style.css"]');
-    
+
     var win = window.open('', '_blank');
-    if (!win) { showToast('Lejo pop-up për ta shkarkuar PDF-in!', 'error'); return; }
+    if (!win) { if (typeof showToast === 'function') showToast('Lejo pop-up për ta shkarkuar PDF-in!', 'error'); return; }
 
     win.document.write('<!DOCTYPE html><html><head><title>Fatura ' + model.invoiceNumber + '</title>');
     win.document.write('<link rel="stylesheet" href="style.css">');
@@ -18173,15 +18200,16 @@ function exportInvoicePDF(saleIndex) {
     win.document.write('</body></html>');
     win.document.close();
 
-    showToast('Fatura u hap — kliko "Printo" pastaj "Save as PDF"', 'info');
-    logActivity('invoice_pdf', 'Eksport PDF: ' + model.invoiceNumber);
+    if (typeof showToast === 'function') showToast('Fatura u hap — kliko "Printo" pastaj "Save as PDF"', 'info');
+    if (typeof logActivity === 'function') logActivity('invoice_pdf', 'Eksport PDF: ' + model.invoiceNumber);
 }
 
 function sendInvoiceWhatsApp(saleIndex) {
-    var sale = state.sales[saleIndex];
+    // Bug #38: guards për state.sales dhe state.clients
+    var sale = (state.sales || [])[saleIndex];
     if (!sale) return;
     var product = getProduct(sale.productId);
-    var client = sale.clientId ? state.clients.find(function(c) { return c.id === sale.clientId; }) : null;
+    var client = sale.clientId ? (state.clients || []).find(function(c) { return c.id === sale.clientId; }) : null;
     var invNum = getInvoiceNumber(saleIndex, sale);
     var status = _getInvoiceStatus(sale);
     var paid = sale.paidAmount || (sale.invoicePaid ? sale.sellTotal : 0);
@@ -18270,11 +18298,12 @@ function createCorrectiveInvoice(originalIndex) {
 
 // ===================== EXPORT INVOICE AS WORD (.doc) =====================
 function exportInvoiceWord(saleIndex) {
-    var sale = state.sales[saleIndex];
-    if (!sale) { showToast('Fatura nuk u gjet!', 'error'); return; }
+    // Bug #32: guards për state.sales, state.clients, showToast
+    var sale = (state.sales || [])[saleIndex];
+    if (!sale) { if (typeof showToast === 'function') showToast('Fatura nuk u gjet!', 'error'); return; }
 
     var product = getProduct(sale.productId);
-    var client = sale.clientId ? state.clients.find(function(c) { return c.id === sale.clientId; }) : null;
+    var client = sale.clientId ? (state.clients || []).find(function(c) { return c.id === sale.clientId; }) : null;
     var profile = getInvoiceProfile();
     var invNum = getInvoiceNumber(saleIndex, sale);
     var paid = sale.paidAmount || (sale.invoicePaid ? sale.sellTotal : 0);
@@ -18329,7 +18358,7 @@ function exportInvoiceWord(saleIndex) {
     var clientHistory = [];
     var clientTotalBought = 0, clientTotalOrders = 0, clientTotalDebt = 0, clientAvgOrder = 0;
     if (client) {
-        var allClientSales = state.sales.filter(function(s) { return s.clientId === client.id; });
+        var allClientSales = (state.sales || []).filter(function(s) { return s.clientId === client.id; });
         clientHistory = allClientSales.filter(function(s) { return s !== sale; }).slice(-8).reverse();
         clientTotalBought = allClientSales.reduce(function(sum, s) { return sum + (s.sellTotal || 0); }, 0);
         clientTotalOrders = allClientSales.length;
@@ -19944,11 +19973,12 @@ function _distPayLabel(pt) {
 }
 
 function exportDistInvoiceWord(deliveryId) {
+    // Bug #33: shop null-guard, NaN në reduce (quantity/price), p.name null-guard, showToast guard
     var del = (state.distDeliveries || []).find(function(d) { return d.id === deliveryId; });
     if (!del) return;
-    var shop = getDistShop(del.shopId);
+    var shop = getDistShop(del.shopId) || {};
     var items = del.items || [];
-    var total = items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+    var total = items.reduce(function(s, i) { return s + (i.quantity || 0) * (i.price || 0); }, 0);
 
     var html = '<html><head><meta charset="utf-8"><style>body{font-family:Arial;padding:30px;}table{width:100%;border-collapse:collapse;margin:15px 0;}th,td{border:1px solid #ddd;padding:8px;text-align:left;}th{background:#e67e22;color:white;}.header{text-align:center;border-bottom:3px solid #e67e22;padding-bottom:15px;margin-bottom:20px;}</style></head><body>';
     html += '<div class="header"><h1 style="color:#e67e22;">Faturë Shpërndarje</h1><p>Nr: ' + (del.invoiceNum || '-') + ' | Data: ' + (del.date || '-') + '</p></div>';
@@ -19957,7 +19987,10 @@ function exportDistInvoiceWord(deliveryId) {
     html += '<table><tr><th>#</th><th>Produkti</th><th>Sasia</th><th>Cmimi</th><th>Totali</th></tr>';
     items.forEach(function(item, i) {
         var p = getDistProduct(item.productId);
-        html += '<tr><td>' + (i + 1) + '</td><td>' + p.name + '</td><td>' + item.quantity + '</td><td>' + item.price + ' den</td><td>' + (item.quantity * item.price) + ' den</td></tr>';
+        var pname = (p && p.name) ? p.name : '-';
+        var qty = item.quantity || 0;
+        var price = item.price || 0;
+        html += '<tr><td>' + (i + 1) + '</td><td>' + pname + '</td><td>' + qty + '</td><td>' + price + ' den</td><td>' + (qty * price) + ' den</td></tr>';
     });
     html += '<tr style="font-weight:bold;background:#fff3e0;"><td colspan="4">TOTALI</td><td>' + total + ' den</td></tr>';
     html += '</table>';
@@ -19973,19 +20006,23 @@ function exportDistInvoiceWord(deliveryId) {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    showToast('Fatura Word u shkarkua!', 'success');
+    if (typeof showToast === 'function') showToast('Fatura Word u shkarkua!', 'success');
 }
 
 function exportDistInvoicePDF(deliveryId) {
+    // Bug #34: p.name null-guard, NaN fallback për quantity/price
     var del = (state.distDeliveries || []).find(function(d) { return d.id === deliveryId; });
     if (!del) return;
     var items = del.items || [];
     var headers = ['#', 'Produkti', 'Sasia', 'Cmimi', 'Totali'];
     var rows = items.map(function(item, i) {
         var p = getDistProduct(item.productId);
-        return [i + 1, p.name, item.quantity, item.price + ' den', (item.quantity * item.price) + ' den'];
+        var pname = (p && p.name) ? p.name : '-';
+        var qty = item.quantity || 0;
+        var price = item.price || 0;
+        return [i + 1, pname, qty, price + ' den', (qty * price) + ' den'];
     });
-    var total = items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+    var total = items.reduce(function(s, i) { return s + (i.quantity || 0) * (i.price || 0); }, 0);
     rows.push(['', '', '', 'TOTALI', total + ' den']);
     exportToPDF('Faturë Shpërndarje ' + (del.invoiceNum || '-') + ' (' + (del.date || '-') + ')', headers, rows, 'Fatura_Shperndarje_' + (del.invoiceNum || del.id));
 }
@@ -20218,12 +20255,16 @@ function distWhatsAppReport() {
 
 // ===== EXPORT FUNCTIONS =====
 function exportDistribution(format) {
+    // Bug #35: shop null-guard, NaN në reduce, getDistProduct null-guard
     var deliveries = (state.distDeliveries || []);
     var headers = ['Nr.', 'Data', 'Dyqani', 'Produkte', 'Totali', 'Pagesa', 'Statusi', 'Paguar'];
     var rows = deliveries.map(function(d) {
-        var shop = getDistShop(d.shopId);
-        var total = (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
-        var itemsStr = (d.items || []).map(function(i) { return getDistProduct(i.productId).name + ' x' + i.quantity; }).join(', ');
+        var shop = getDistShop(d.shopId) || {};
+        var total = (d.items || []).reduce(function(s, i) { return s + (i.quantity || 0) * (i.price || 0); }, 0);
+        var itemsStr = (d.items || []).map(function(i) {
+            var p = getDistProduct(i.productId);
+            return ((p && p.name) ? p.name : '-') + ' x' + (i.quantity || 0);
+        }).join(', ');
         // Etiketa e pagesës: trajto undefined/null pa crash, përdor shqip "Faturë" jo anglisht "invoice"
         var pt = d.paymentType || 'cash';
         var payLabel;
