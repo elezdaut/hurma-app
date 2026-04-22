@@ -5309,42 +5309,50 @@ function refreshLocations() {
 
 // ===================== REPORTS =====================
 function generateReport() {
-    const period = document.getElementById('report-period').value;
-    const dateFrom = document.getElementById('report-date-from').value;
-    const dateTo = document.getElementById('report-date-to').value;
+    // Bug #48-#52: DOM null-checks, state guards, NaN fallbacks, p null-check, profitSplit/partnerName guards
+    const periodEl = document.getElementById('report-period');
+    const dateFromEl = document.getElementById('report-date-from');
+    const dateToEl = document.getElementById('report-date-to');
+    const period = periodEl ? periodEl.value : '';
+    const dateFrom = dateFromEl ? dateFromEl.value : '';
+    const dateTo = dateToEl ? dateToEl.value : '';
 
-    let sales = state.sales;
+    let sales = (state.sales || []);
     if (dateFrom) sales = sales.filter(s => s.date >= dateFrom);
     if (dateTo) sales = sales.filter(s => s.date <= dateTo);
 
-    const totalRevenue = sales.reduce((sum, s) => sum + s.sellTotal, 0);
-    const totalProfit = sales.reduce((sum, s) => sum + s.profit, 0);
-    let filteredExpenses = state.expenses;
+    const totalRevenue = sales.reduce((sum, s) => sum + (s.sellTotal || 0), 0);
+    const totalProfit = sales.reduce((sum, s) => sum + (s.profit || 0), 0);
+    let filteredExpenses = (state.expenses || []);
     if (dateFrom) filteredExpenses = filteredExpenses.filter(e => e.date >= dateFrom);
     if (dateTo) filteredExpenses = filteredExpenses.filter(e => e.date <= dateTo);
-    const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalExpenses = filteredExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
     const netProfit = totalProfit - totalExpenses;
-    let filteredReturns = state.returns;
+    let filteredReturns = (state.returns || []);
     if (dateFrom) filteredReturns = filteredReturns.filter(r => r.date >= dateFrom);
     if (dateTo) filteredReturns = filteredReturns.filter(r => r.date <= dateTo);
     const returnLoss = filteredReturns.reduce((sum, r) => {
         const p = getProduct(r.productId);
-        return sum + (p.sellPrice - p.buyPrice) * r.quantity;
+        if (!p) return sum;
+        return sum + ((p.sellPrice || 0) - (p.buyPrice || 0)) * (r.quantity || 0);
     }, 0);
 
     // Cash vs Invoice breakdown
     const cashSales = sales.filter(s => (s.paymentType || 'cash') === 'cash');
     const invoiceSales = sales.filter(s => s.paymentType === 'invoice_60');
-    const totalCashRevenue = cashSales.reduce((sum, s) => sum + s.sellTotal, 0);
-    const totalInvoiceRevenue = invoiceSales.reduce((sum, s) => sum + s.sellTotal, 0);
+    const totalCashRevenue = cashSales.reduce((sum, s) => sum + (s.sellTotal || 0), 0);
+    const totalInvoiceRevenue = invoiceSales.reduce((sum, s) => sum + (s.sellTotal || 0), 0);
     const paidInvoices = invoiceSales.filter(s => s.invoicePaid);
     const unpaidInvoices = invoiceSales.filter(s => !s.invoicePaid);
-    const paidInvoiceTotal = paidInvoices.reduce((sum, s) => sum + s.sellTotal, 0);
-    const unpaidInvoiceTotal = unpaidInvoices.reduce((sum, s) => sum + s.sellTotal, 0);
+    const paidInvoiceTotal = paidInvoices.reduce((sum, s) => sum + (s.sellTotal || 0), 0);
+    const unpaidInvoiceTotal = unpaidInvoices.reduce((sum, s) => sum + (s.sellTotal || 0), 0);
     const overdueInv = unpaidInvoices.filter(s => s.dueDate && s.dueDate < new Date().toISOString().split('T')[0]);
-    const overdueInvTotal = overdueInv.reduce((sum, s) => sum + s.sellTotal, 0);
+    const overdueInvTotal = overdueInv.reduce((sum, s) => sum + (s.sellTotal || 0), 0);
 
     const statsContainer = document.getElementById('report-stats');
+    if (!statsContainer) return;
+    const _profitSplit = state.profitSplit || { owner: 50, partner: 50 };
+    const _partnerName = state.partnerName || 'Partneri';
     statsContainer.innerHTML = `
         <div class="stat-card">
             <i class="fas fa-money-bill-wave"></i>
@@ -5364,11 +5372,11 @@ function generateReport() {
         </div>
         <div class="stat-card">
             <i class="fas fa-user"></i>
-            <div><h3>${t('your_share')} (${state.profitSplit.owner}%)</h3><p>${calcOwnerShare(netProfit)} ден</p></div>
+            <div><h3>${t('your_share')} (${_profitSplit.owner}%)</h3><p>${calcOwnerShare(netProfit)} ден</p></div>
         </div>
         <div class="stat-card">
             <i class="fas fa-user-friends"></i>
-            <div><h3>${state.partnerName} (${state.profitSplit.partner}%)</h3><p>${calcPartnerShare(netProfit)} ден</p></div>
+            <div><h3>${_partnerName} (${_profitSplit.partner}%)</h3><p>${calcPartnerShare(netProfit)} ден</p></div>
         </div>
         <div class="stat-card">
             <i class="fas fa-money-bill"></i>
@@ -5396,7 +5404,7 @@ function generateReport() {
         </div>
         <div class="stat-card" style="border-left:4px solid var(--success)">
             <i class="fas fa-check-circle"></i>
-            <div><h3>Fitimi real</h3><p>${cashSales.reduce((s, x) => s + x.profit, 0) + calcFatonProfitCollected()} ден</p></div>
+            <div><h3>Fitimi real</h3><p>${cashSales.reduce((s, x) => s + (x.profit || 0), 0) + (calcFatonProfitCollected() || 0)} ден</p></div>
         </div>
         <div class="stat-card" style="border-left:4px solid var(--warning)">
             <i class="fas fa-file-alt"></i>
@@ -10129,44 +10137,46 @@ function autoRegisterCashPayment(sale) {
 
 // Feature 1: Global Search
 function globalSearch(query) {
+    // Bug #40-#43: guards për state.X arrays, c.name/p.name, PRODUCTS, DOM elements
     const results = document.getElementById('global-search-results');
+    if (!results) return;
     if (!query || query.length < 2) { results.classList.add('hidden'); return; }
     query = query.toLowerCase();
     let html = '';
 
     // Search clients
-    state.clients.filter(c => c.name.toLowerCase().includes(query) || (c.phone && c.phone.includes(query))).slice(0, 3).forEach(c => {
+    (state.clients || []).filter(c => (c.name && c.name.toLowerCase().includes(query)) || (c.phone && c.phone.includes(query))).slice(0, 3).forEach(c => {
         html += `<div class="search-result-item" onclick="navigateTo('clients');closeSidePanel();hideSearchResults();">
-            <i class="fas fa-user"></i><div><div class="sr-name">${c.name}</div><div class="sr-detail">${c.phone || ''} | Borxh: ${c.debt || 0} ден</div></div><span class="sr-type">Klient</span></div>`;
+            <i class="fas fa-user"></i><div><div class="sr-name">${c.name || '-'}</div><div class="sr-detail">${c.phone || ''} | Borxh: ${c.debt || 0} ден</div></div><span class="sr-type">Klient</span></div>`;
     });
 
     // Search products
-    PRODUCTS.filter(p => p.name.toLowerCase().includes(query)).slice(0, 3).forEach(p => {
+    (typeof PRODUCTS !== 'undefined' && PRODUCTS ? PRODUCTS : []).filter(p => p.name && p.name.toLowerCase().includes(query)).slice(0, 3).forEach(p => {
         html += `<div class="search-result-item" onclick="openProduct360('${p.id}')">
-            <i class="fas fa-box"></i><div><div class="sr-name">${p.name}</div><div class="sr-detail">Blerje: ${p.buyPrice} | Shitje: ${p.sellPrice} ден</div></div><span class="sr-type">Produkt</span></div>`;
+            <i class="fas fa-box"></i><div><div class="sr-name">${p.name}</div><div class="sr-detail">Blerje: ${p.buyPrice || 0} | Shitje: ${p.sellPrice || 0} ден</div></div><span class="sr-type">Produkt</span></div>`;
     });
 
     // Search sales
-    state.sales.filter(s => {
+    (state.sales || []).filter(s => {
         const p = getProduct(s.productId);
-        const c = state.clients.find(cl => cl.id === s.clientId);
-        return (p && p.name.toLowerCase().includes(query)) || (c && c.name.toLowerCase().includes(query)) || (s.date && s.date.includes(query));
+        const c = (state.clients || []).find(cl => cl.id === s.clientId);
+        return (p && p.name && p.name.toLowerCase().includes(query)) || (c && c.name && c.name.toLowerCase().includes(query)) || (s.date && s.date.includes(query));
     }).slice(0, 3).forEach(s => {
         const p = getProduct(s.productId);
         html += `<div class="search-result-item" onclick="navigateTo('sales');hideSearchResults();">
-            <i class="fas fa-cash-register"></i><div><div class="sr-name">${p ? p.name : 'N/A'} x${s.quantity}</div><div class="sr-detail">${s.date} | ${s.sellTotal} ден</div></div><span class="sr-type">Shitje</span></div>`;
+            <i class="fas fa-cash-register"></i><div><div class="sr-name">${p ? p.name : 'N/A'} x${s.quantity || 0}</div><div class="sr-detail">${s.date || '-'} | ${s.sellTotal || 0} ден</div></div><span class="sr-type">Shitje</span></div>`;
     });
 
     // Search notes
-    state.notes.filter(n => (n.title && n.title.toLowerCase().includes(query)) || (n.content && n.content.toLowerCase().includes(query))).slice(0, 2).forEach(n => {
+    (state.notes || []).filter(n => (n.title && n.title.toLowerCase().includes(query)) || (n.content && n.content.toLowerCase().includes(query))).slice(0, 2).forEach(n => {
         html += `<div class="search-result-item" onclick="navigateTo('notes');hideSearchResults();">
             <i class="fas fa-sticky-note"></i><div><div class="sr-name">${n.title || 'Shënim'}</div><div class="sr-detail">${(n.content || '').substring(0, 50)}...</div></div><span class="sr-type">Shënim</span></div>`;
     });
 
     // Search contacts
-    state.contacts.filter(c => (c.name && c.name.toLowerCase().includes(query)) || (c.phone && c.phone.includes(query))).slice(0, 2).forEach(c => {
+    (state.contacts || []).filter(c => (c.name && c.name.toLowerCase().includes(query)) || (c.phone && c.phone.includes(query))).slice(0, 2).forEach(c => {
         html += `<div class="search-result-item" onclick="navigateTo('contacts');hideSearchResults();">
-            <i class="fas fa-address-book"></i><div><div class="sr-name">${c.name}</div><div class="sr-detail">${c.phone || ''}</div></div><span class="sr-type">Kontakt</span></div>`;
+            <i class="fas fa-address-book"></i><div><div class="sr-name">${c.name || '-'}</div><div class="sr-detail">${c.phone || ''}</div></div><span class="sr-type">Kontakt</span></div>`;
     });
 
     // Search distribution shops
@@ -10180,8 +10190,10 @@ function globalSearch(query) {
 }
 
 function showSearchResults() {
+    // Bug #43: null-check për DOM input
     const input = document.getElementById('global-search-input');
-    if (input.value.length >= 2) globalSearch(input.value);
+    if (!input) return;
+    if ((input.value || '').length >= 2) globalSearch(input.value);
 }
 
 function hideSearchResults() {
@@ -10908,61 +10920,80 @@ function toggleRecentBar() {
 
 // Feature 16: Master Export
 function masterExport() {
-    if (typeof XLSX === 'undefined') { showToast('XLSX library not loaded'); return; }
+    // Bug #44-#47: guards, NaN fallbacks, showToast guard
+    if (typeof XLSX === 'undefined' || !XLSX.utils) {
+        if (typeof showToast === 'function') showToast('XLSX library not loaded', 'error');
+        return;
+    }
     const wb = XLSX.utils.book_new();
+    const PRODS = (typeof PRODUCTS !== 'undefined' && PRODUCTS ? PRODUCTS : []);
+    const clients = (state.clients || []);
+    const sales = (state.sales || []);
+    const orders = (state.orders || []);
+    const stockMap = state.stock || {};
 
     // Sales sheet
-    const salesData = state.sales.map(s => {
+    const salesData = sales.map(s => {
         const p = getProduct(s.productId);
-        const c = state.clients.find(cl => cl.id === s.clientId);
-        return { Data: s.date, Produkti: p ? p.name : s.productId, Sasia: s.quantity, Cmimi_Blerje: s.buyTotal, Cmimi_Shitje: s.sellTotal, Fitimi: s.profit, Klienti: c ? c.name : '-', Pagesa: s.paymentType || 'cash' };
+        const c = clients.find(cl => cl.id === s.clientId);
+        return {
+            Data: s.date || '-',
+            Produkti: p ? p.name : s.productId,
+            Sasia: s.quantity || 0,
+            Cmimi_Blerje: s.buyTotal || 0,
+            Cmimi_Shitje: s.sellTotal || 0,
+            Fitimi: s.profit || 0,
+            Klienti: c ? c.name : '-',
+            Pagesa: s.paymentType || 'cash'
+        };
     });
     if (salesData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(salesData), 'Shitjet');
 
     // Clients sheet
-    const clientsData = state.clients.map(c => ({ Emri: c.name, Telefoni: c.phone || '', Kategoria: c.category || '', Borxhi: c.debt || 0 }));
+    const clientsData = clients.map(c => ({ Emri: c.name || '-', Telefoni: c.phone || '', Kategoria: c.category || '', Borxhi: c.debt || 0 }));
     if (clientsData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(clientsData), 'Klientet');
 
     // Stock sheet
-    const stockData = PRODUCTS.map(p => ({ Produkti: p.name, Sasia: state.stock[p.id] || 0, Cmimi_Blerje: p.buyPrice, Cmimi_Shitje: p.sellPrice }));
+    const stockData = PRODS.map(p => ({ Produkti: p.name || '-', Sasia: stockMap[p.id] || 0, Cmimi_Blerje: p.buyPrice || 0, Cmimi_Shitje: p.sellPrice || 0 }));
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(stockData), 'Stoku');
 
     // Faton payments sheet
-    const fatonData = (state.fatonPayments || []).map(p => ({ Data: p.date, Shuma: p.amount, Shenim: p.note || '' }));
+    const fatonData = (state.fatonPayments || []).map(p => ({ Data: p.date || '-', Shuma: p.amount || 0, Shenim: p.note || '' }));
     if (fatonData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(fatonData), 'Pagesa_Fatoni');
 
     // Orders sheet
-    const ordersData = state.orders.map(o => ({ Data: o.date, Produkti: o.productId, Sasia: o.quantity, Statusi: o.status }));
+    const ordersData = orders.map(o => ({ Data: o.date || '-', Produkti: o.productId || '-', Sasia: o.quantity || 0, Statusi: o.status || '-' }));
     if (ordersData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(ordersData), 'Porosite');
 
     // Returns sheet
-    const returnsData = (state.returns || []).map(r => ({ Data: r.date, Produkti: r.productId, Sasia: r.quantity, Kthim: r.refundAmount || 0 }));
+    const returnsData = (state.returns || []).map(r => ({ Data: r.date || '-', Produkti: r.productId || '-', Sasia: r.quantity || 0, Kthim: r.refundAmount || 0 }));
     if (returnsData.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(returnsData), 'Kthimet');
 
     // Summary sheet
     const fatonDebt = calcTotalOwedToFaton();
-    const totalDebtClients = state.clients.reduce((s, c) => s + (c.debt || 0), 0);
-    const totalProfit = state.sales.reduce((s, x) => s + x.profit, 0);
+    const totalDebtClients = clients.reduce((s, c) => s + (c.debt || 0), 0);
+    const totalProfit = sales.reduce((s, x) => s + (x.profit || 0), 0);  // Bug #45: || 0 — shmang NaN
     const summaryData = [
-        { Emertimi: 'Shitje totale', Vlera: state.sales.length },
+        { Emertimi: 'Shitje totale', Vlera: sales.length },
         { Emertimi: 'Fitim total', Vlera: totalProfit },
         { Emertimi: 'Borxh Fatoni', Vlera: fatonDebt },
         { Emertimi: 'Borxh klientesh', Vlera: totalDebtClients },
-        { Emertimi: 'Klientë', Vlera: state.clients.length },
-        { Emertimi: 'Produkte', Vlera: PRODUCTS.length },
+        { Emertimi: 'Klientë', Vlera: clients.length },
+        { Emertimi: 'Produkte', Vlera: PRODS.length },
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryData), 'Permbledhje');
 
     XLSX.writeFile(wb, 'hurma-eksport-total-' + new Date().toISOString().split('T')[0] + '.xlsx');
-    showToast('Eksporti total u shkarkua!');
+    if (typeof showToast === 'function') showToast('Eksporti total u shkarkua!', 'success');
 }
 
 // Feature 17: Sync Status Bar
 function updateSyncStatusBar() {
+    // Bug #53: guards për state arrays dhe fallback për reduce
     // Data status
     const dataEl = document.getElementById('sync-data-status');
     if (dataEl) {
-        const hasData = state.sales.length > 0 || state.clients.length > 0;
+        const hasData = (state.sales || []).length > 0 || (state.clients || []).length > 0;
         dataEl.textContent = hasData ? 'OK ✓' : 'Bosh';
         dataEl.className = hasData ? 'sync-ok' : 'sync-warn';
     }
@@ -10984,7 +11015,7 @@ function updateSyncStatusBar() {
     // Stock count
     const stockEl = document.getElementById('sync-stock-count');
     if (stockEl) {
-        const total = Object.values(state.stock).reduce((s, v) => s + v, 0);
+        const total = Object.values(state.stock || {}).reduce((s, v) => s + (v || 0), 0);
         stockEl.textContent = total + ' copë';
         stockEl.className = total < 10 ? 'sync-danger' : 'sync-ok';
     }
@@ -10992,7 +11023,7 @@ function updateSyncStatusBar() {
     // Debt count
     const debtEl = document.getElementById('sync-debt-count');
     if (debtEl) {
-        const debtCount = state.clients.filter(c => c.debt > 0).length;
+        const debtCount = (state.clients || []).filter(c => c.debt > 0).length;
         debtEl.textContent = debtCount + ' borxhe';
         debtEl.className = debtCount > 0 ? 'sync-warn' : 'sync-ok';
     }
