@@ -8906,17 +8906,22 @@ function exportActivityLog(format) {
 
 // Trends export
 function exportTrends(format) {
-    const last30 = state.sales.filter(s => {
+    // Bug #22: guards — (state.sales || []), skip shitjet pa datë, fallback për NaN
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000);
+    const last30 = (state.sales || []).filter(s => {
+        if (!s.date) return false;
         const d = new Date(s.date);
-        return d >= new Date(Date.now() - 30 * 86400000);
+        if (isNaN(d.getTime())) return false; // date e pavlefshme
+        return d >= thirtyDaysAgo;
     });
     const byProduct = {};
     last30.forEach(s => {
         const p = getProduct(s.productId);
-        if (!byProduct[p.name]) byProduct[p.name] = { qty: 0, rev: 0, profit: 0 };
-        byProduct[p.name].qty += s.quantity;
-        byProduct[p.name].rev += s.sellTotal;
-        byProduct[p.name].profit += s.profit;
+        const name = (p && p.name) ? p.name : '-';
+        if (!byProduct[name]) byProduct[name] = { qty: 0, rev: 0, profit: 0 };
+        byProduct[name].qty += (s.quantity || 0);
+        byProduct[name].rev += (s.sellTotal || 0);
+        byProduct[name].profit += (s.profit || 0);
     });
     const headers = ['Produkti', 'Sasia (30 dite)', 'Te ardhura', 'Fitimi'];
     const rows = Object.entries(byProduct).map(([name, d]) => [name, d.qty, d.rev + ' den', d.profit + ' den']);
