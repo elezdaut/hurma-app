@@ -26,7 +26,7 @@
     <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.svg">
     <link rel="mask-icon" href="icons/icon-192.svg" color="#E29A2B">
 
-    <link rel="stylesheet" href="style.css?v=8">
+    <link rel="stylesheet" href="style.css?v=9">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -103,8 +103,9 @@
             <h1 id="page-title" data-i18n="dashboard">Dashboard</h1>
             <!-- Global Search -->
             <div class="global-search" id="global-search">
-                <i class="fas fa-search"></i>
-                <input type="text" id="global-search-input" placeholder="Kërko kudo..." oninput="globalSearch(this.value)" onfocus="showSearchResults()" onblur="setTimeout(()=>hideSearchResults(),200)">
+                <i class="fas fa-search sr-icon"></i>
+                <input type="text" id="global-search-input" placeholder="Kërko kudo... (⌘K)" autocomplete="off" oninput="_srInputChange(this.value)" onfocus="showSearchResults()" onblur="setTimeout(()=>hideSearchResults(),250)" onkeydown="_srHandleKey(event)">
+                <button type="button" id="global-search-clear" class="sr-clear" onmousedown="event.preventDefault()" onclick="_srClear()" title="Pastro" style="display:none;"><i class="fas fa-times"></i></button>
                 <div id="global-search-results" class="global-search-results hidden"></div>
             </div>
             <!-- Global Date Filter -->
@@ -1210,7 +1211,7 @@
     </nav>
 
     <script src="i18n.js"></script>
-    <script src="app.js?v=61"></script>
+    <script src="app.js?v=62"></script>
     <script src="hurma-polish.js?v=5" defer></script>
 
     <!-- ==========================================================================

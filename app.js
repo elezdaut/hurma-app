@@ -10319,68 +10319,349 @@ function autoRegisterCashPayment(sale) {
 // ===================== CROSS-TAB INTEGRATION =====================
 
 // Feature 1: Global Search
+// ===================== GLOBAL SEARCH (refaktoruar: Bug #107-#129) =====================
+// Bug #107: XSS mbrojtje — escape gjithë tekstet e user-generated
+function _srEsc(v) {
+    if (v === null || v === undefined) return '';
+    return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// Bug #108: highlight të nënvargut që përputhet
+function _srHi(text, q) {
+    const esc = _srEsc(text || '');
+    if (!q) return esc;
+    const qEsc = _srEsc(q);
+    const re = new RegExp('(' + qEsc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig');
+    return esc.replace(re, '<mark class="sr-hi">$1</mark>');
+}
+
+// Bug #109: indeksi i rezultateve aktiv për keyboard navigation
+window._srActiveIndex = -1;
+
+// Bug #110: debouncing — mos kërko çdo tastë
+window._srDebounce = null;
+
 function globalSearch(query) {
-    // Bug #40-#43: guards për state.X arrays, c.name/p.name, PRODUCTS, DOM elements
     const results = document.getElementById('global-search-results');
     if (!results) return;
-    if (!query || query.length < 2) { results.classList.add('hidden'); return; }
-    query = query.toLowerCase();
-    let html = '';
 
-    // Search clients
-    (state.clients || []).filter(c => (c.name && c.name.toLowerCase().includes(query)) || (c.phone && c.phone.includes(query))).slice(0, 3).forEach(c => {
-        html += `<div class="search-result-item" onclick="navigateTo('clients');closeSidePanel();hideSearchResults();">
-            <i class="fas fa-user"></i><div><div class="sr-name">${c.name || '-'}</div><div class="sr-detail">${c.phone || ''} | Borxh: ${c.debt || 0} ден</div></div><span class="sr-type">Klient</span></div>`;
-    });
+    // Bug #111: trim whitespace — hapësirat bosh mos bllokojnë kërkimin
+    query = (query || '').trim();
+    if (query.length < 2) {
+        // Bug #112: empty-state hint kur query < 2 karaktere
+        if (query.length === 0) {
+            results.classList.add('hidden');
+        } else {
+            results.innerHTML = '<div class="sr-empty"><i class="fas fa-keyboard"></i> Shkruani së paku 2 karaktere…</div>';
+            results.classList.remove('hidden');
+        }
+        return;
+    }
 
-    // Search products
-    (typeof PRODUCTS !== 'undefined' && PRODUCTS ? PRODUCTS : []).filter(p => p.name && p.name.toLowerCase().includes(query)).slice(0, 3).forEach(p => {
-        html += `<div class="search-result-item" onclick="openProduct360('${p.id}')">
-            <i class="fas fa-box"></i><div><div class="sr-name">${p.name}</div><div class="sr-detail">Blerje: ${p.buyPrice || 0} | Shitje: ${p.sellPrice || 0} ден</div></div><span class="sr-type">Produkt</span></div>`;
-    });
+    // Bug #113: debounce 150ms për të shmangur kërkim në çdo tastë
+    if (window._srDebounce) clearTimeout(window._srDebounce);
+    window._srDebounce = setTimeout(() => _doGlobalSearch(query, results), 150);
+}
 
-    // Search sales
-    (state.sales || []).filter(s => {
+function _doGlobalSearch(query, results) {
+    const qLower = query.toLowerCase();
+    let sections = [];
+    let totalFound = 0;
+
+    // Bug #114: Klientë — kërkim edhe në email/kategori/adresë
+    const clientMatches = (state.clients || []).filter(c =>
+        (c.name && c.name.toLowerCase().includes(qLower)) ||
+        (c.phone && String(c.phone).toLowerCase().includes(qLower)) ||
+        (c.email && c.email.toLowerCase().includes(qLower)) ||
+        (c.address && c.address.toLowerCase().includes(qLower)) ||
+        (c.category && c.category.toLowerCase().includes(qLower))
+    );
+    totalFound += clientMatches.length;
+    if (clientMatches.length) {
+        let html = '<div class="sr-section-header"><i class="fas fa-user"></i> Klientë (' + clientMatches.length + ')</div>';
+        clientMatches.slice(0, 5).forEach(c => {
+            html += `<div class="search-result-item" data-sr-action="client" data-sr-id="${_srEsc(c.id)}" onclick="_srOpen('client','${_srEsc(c.id)}')">
+                <i class="fas fa-user"></i>
+                <div class="sr-body"><div class="sr-name">${_srHi(c.name || '-', query)}</div>
+                <div class="sr-detail">${_srEsc(c.phone || '')}${c.email ? ' | ' + _srEsc(c.email) : ''} | Borxh: ${c.debt || 0} ден</div></div>
+                <span class="sr-type">Klient</span></div>`;
+        });
+        sections.push(html);
+    }
+
+    // Bug #115: Produkte — kërkim edhe në id/weight, limit 5
+    const prodList = (typeof PRODUCTS !== 'undefined' && PRODUCTS ? PRODUCTS : []);
+    const prodMatches = prodList.filter(p =>
+        (p.name && p.name.toLowerCase().includes(qLower)) ||
+        (p.id && String(p.id).toLowerCase().includes(qLower)) ||
+        (p.weight && String(p.weight).toLowerCase().includes(qLower))
+    );
+    totalFound += prodMatches.length;
+    if (prodMatches.length) {
+        let html = '<div class="sr-section-header"><i class="fas fa-box"></i> Produkte (' + prodMatches.length + ')</div>';
+        prodMatches.slice(0, 5).forEach(p => {
+            html += `<div class="search-result-item" data-sr-action="product" data-sr-id="${_srEsc(p.id)}" onclick="_srOpen('product','${_srEsc(p.id)}')">
+                <i class="fas fa-box"></i>
+                <div class="sr-body"><div class="sr-name">${_srHi(p.name, query)}</div>
+                <div class="sr-detail">${_srEsc(p.weight || '')} | Blerje: ${p.buyPrice || 0} | Shitje: ${p.sellPrice || 0} ден | Stok: ${((state.stock || {})[p.id] || 0)}</div></div>
+                <span class="sr-type">Produkt</span></div>`;
+        });
+        sections.push(html);
+    }
+
+    // Bug #116: Shitje — include sellTotal search + null-safe profit
+    const salesMatches = (state.sales || []).filter(s => {
         const p = getProduct(s.productId);
         const c = (state.clients || []).find(cl => cl.id === s.clientId);
-        return (p && p.name && p.name.toLowerCase().includes(query)) || (c && c.name && c.name.toLowerCase().includes(query)) || (s.date && s.date.includes(query));
-    }).slice(0, 3).forEach(s => {
-        const p = getProduct(s.productId);
-        html += `<div class="search-result-item" onclick="navigateTo('sales');hideSearchResults();">
-            <i class="fas fa-cash-register"></i><div><div class="sr-name">${p ? p.name : 'N/A'} x${s.quantity || 0}</div><div class="sr-detail">${s.date || '-'} | ${s.sellTotal || 0} ден</div></div><span class="sr-type">Shitje</span></div>`;
+        return (p && p.name && p.name.toLowerCase().includes(qLower)) ||
+               (c && c.name && c.name.toLowerCase().includes(qLower)) ||
+               (s.date && s.date.includes(qLower)) ||
+               (s.note && s.note.toLowerCase().includes(qLower)) ||
+               (s.sellTotal && String(s.sellTotal).includes(qLower));
     });
+    totalFound += salesMatches.length;
+    if (salesMatches.length) {
+        let html = '<div class="sr-section-header"><i class="fas fa-cash-register"></i> Shitje (' + salesMatches.length + ')</div>';
+        salesMatches.slice(0, 5).forEach(s => {
+            const p = getProduct(s.productId);
+            const c = (state.clients || []).find(cl => cl.id === s.clientId);
+            html += `<div class="search-result-item" data-sr-action="sale" onclick="_srOpen('sale')">
+                <i class="fas fa-cash-register"></i>
+                <div class="sr-body"><div class="sr-name">${_srHi((p ? p.name : 'N/A') + ' x' + (s.quantity || 0), query)}</div>
+                <div class="sr-detail">${_srEsc(s.date || '-')} | ${s.sellTotal || 0} ден${c ? ' | ' + _srEsc(c.name) : ''}</div></div>
+                <span class="sr-type">Shitje</span></div>`;
+        });
+        sections.push(html);
+    }
 
-    // Search notes
-    (state.notes || []).filter(n => (n.title && n.title.toLowerCase().includes(query)) || (n.content && n.content.toLowerCase().includes(query))).slice(0, 2).forEach(n => {
-        html += `<div class="search-result-item" onclick="navigateTo('notes');hideSearchResults();">
-            <i class="fas fa-sticky-note"></i><div><div class="sr-name">${n.title || 'Shënim'}</div><div class="sr-detail">${(n.content || '').substring(0, 50)}...</div></div><span class="sr-type">Shënim</span></div>`;
+    // Bug #117: Porosi — kategori e re kërkimi
+    const orderMatches = (state.orders || []).filter(o => {
+        const p = getProduct(o.productId);
+        const c = (state.clients || []).find(cl => cl.id === o.clientId);
+        return (p && p.name && p.name.toLowerCase().includes(qLower)) ||
+               (c && c.name && c.name.toLowerCase().includes(qLower)) ||
+               (o.note && o.note.toLowerCase().includes(qLower)) ||
+               (o.status && o.status.toLowerCase().includes(qLower));
     });
+    totalFound += orderMatches.length;
+    if (orderMatches.length) {
+        let html = '<div class="sr-section-header"><i class="fas fa-shopping-cart"></i> Porosi (' + orderMatches.length + ')</div>';
+        orderMatches.slice(0, 3).forEach(o => {
+            const p = getProduct(o.productId);
+            html += `<div class="search-result-item" data-sr-action="order" onclick="_srOpen('order')">
+                <i class="fas fa-shopping-cart"></i>
+                <div class="sr-body"><div class="sr-name">${_srHi((p ? p.name : 'N/A') + ' x' + (o.quantity || 0), query)}</div>
+                <div class="sr-detail">${_srEsc(o.date || '-')} | ${_srEsc(o.status || 'pending')}</div></div>
+                <span class="sr-type">Porosi</span></div>`;
+        });
+        sections.push(html);
+    }
 
-    // Search contacts
-    (state.contacts || []).filter(c => (c.name && c.name.toLowerCase().includes(query)) || (c.phone && c.phone.includes(query))).slice(0, 2).forEach(c => {
-        html += `<div class="search-result-item" onclick="navigateTo('contacts');hideSearchResults();">
-            <i class="fas fa-address-book"></i><div><div class="sr-name">${c.name || '-'}</div><div class="sr-detail">${c.phone || ''}</div></div><span class="sr-type">Kontakt</span></div>`;
+    // Bug #118: Shpenzime — kategori e re kërkimi
+    const expMatches = (state.expenses || []).filter(e =>
+        (e.description && e.description.toLowerCase().includes(qLower)) ||
+        (e.category && e.category.toLowerCase().includes(qLower)) ||
+        (e.amount && String(e.amount).includes(qLower))
+    );
+    totalFound += expMatches.length;
+    if (expMatches.length) {
+        let html = '<div class="sr-section-header"><i class="fas fa-receipt"></i> Shpenzime (' + expMatches.length + ')</div>';
+        expMatches.slice(0, 3).forEach(e => {
+            html += `<div class="search-result-item" data-sr-action="expense" onclick="_srOpen('expense')">
+                <i class="fas fa-receipt"></i>
+                <div class="sr-body"><div class="sr-name">${_srHi(e.description || '-', query)}</div>
+                <div class="sr-detail">${_srEsc(e.date || '-')} | ${e.amount || 0} ден | ${_srEsc(e.category || '-')}</div></div>
+                <span class="sr-type">Shpenzim</span></div>`;
+        });
+        sections.push(html);
+    }
+
+    // Bug #119: Kthime — kategori e re
+    const retMatches = (state.returns || []).filter(r => {
+        const p = getProduct(r.productId);
+        return (p && p.name && p.name.toLowerCase().includes(qLower)) ||
+               (r.reason && r.reason.toLowerCase().includes(qLower));
     });
+    totalFound += retMatches.length;
+    if (retMatches.length) {
+        let html = '<div class="sr-section-header"><i class="fas fa-undo"></i> Kthime (' + retMatches.length + ')</div>';
+        retMatches.slice(0, 3).forEach(r => {
+            const p = getProduct(r.productId);
+            html += `<div class="search-result-item" data-sr-action="return" onclick="_srOpen('return')">
+                <i class="fas fa-undo"></i>
+                <div class="sr-body"><div class="sr-name">${_srHi((p ? p.name : 'N/A') + ' x' + (r.quantity || 0), query)}</div>
+                <div class="sr-detail">${_srEsc(r.date || '-')} | ${_srEsc(r.reason || '-')}</div></div>
+                <span class="sr-type">Kthim</span></div>`;
+        });
+        sections.push(html);
+    }
 
-    // Search distribution shops
-    (state.distShops || []).filter(function(s) { return (s.name && s.name.toLowerCase().includes(query)) || (s.phone && s.phone.includes(query)); }).slice(0, 3).forEach(function(s) {
-        html += '<div class="search-result-item" onclick="navigateTo(\'distribution\');hideSearchResults();"><i class="fas fa-store"></i><div><div class="sr-name">' + s.name + '</div><div class="sr-detail">' + (s.address || '') + '</div></div><span class="sr-type">Dyqan Dist.</span></div>';
-    });
+    // Bug #120: Shënime — content substring null-safe + escaping
+    const noteMatches = (state.notes || []).filter(n =>
+        (n.title && n.title.toLowerCase().includes(qLower)) ||
+        (n.content && n.content.toLowerCase().includes(qLower))
+    );
+    totalFound += noteMatches.length;
+    if (noteMatches.length) {
+        let html = '<div class="sr-section-header"><i class="fas fa-sticky-note"></i> Shënime (' + noteMatches.length + ')</div>';
+        noteMatches.slice(0, 3).forEach(n => {
+            const snippet = (n.content || '').substring(0, 60);
+            html += `<div class="search-result-item" data-sr-action="note" onclick="_srOpen('note')">
+                <i class="fas fa-sticky-note"></i>
+                <div class="sr-body"><div class="sr-name">${_srHi(n.title || 'Shënim', query)}</div>
+                <div class="sr-detail">${_srHi(snippet + (n.content && n.content.length > 60 ? '…' : ''), query)}</div></div>
+                <span class="sr-type">Shënim</span></div>`;
+        });
+        sections.push(html);
+    }
 
-    if (!html) html = '<div class="search-result-item"><i class="fas fa-info-circle"></i><div class="sr-name">Asnjë rezultat</div></div>';
-    results.innerHTML = html;
+    // Bug #121: Kontakte — escape + null-safe
+    const contactMatches = (state.contacts || []).filter(c =>
+        (c.name && c.name.toLowerCase().includes(qLower)) ||
+        (c.phone && String(c.phone).toLowerCase().includes(qLower)) ||
+        (c.email && c.email.toLowerCase().includes(qLower)) ||
+        (c.role && c.role.toLowerCase().includes(qLower))
+    );
+    totalFound += contactMatches.length;
+    if (contactMatches.length) {
+        let html = '<div class="sr-section-header"><i class="fas fa-address-book"></i> Kontakte (' + contactMatches.length + ')</div>';
+        contactMatches.slice(0, 3).forEach(c => {
+            html += `<div class="search-result-item" data-sr-action="contact" onclick="_srOpen('contact')">
+                <i class="fas fa-address-book"></i>
+                <div class="sr-body"><div class="sr-name">${_srHi(c.name || '-', query)}</div>
+                <div class="sr-detail">${_srEsc(c.phone || '')}${c.email ? ' | ' + _srEsc(c.email) : ''}</div></div>
+                <span class="sr-type">Kontakt</span></div>`;
+        });
+        sections.push(html);
+    }
+
+    // Bug #122: Dyqanet Dist. — escape + null-safe
+    const distMatches = (state.distShops || []).filter(s =>
+        (s.name && s.name.toLowerCase().includes(qLower)) ||
+        (s.phone && String(s.phone).toLowerCase().includes(qLower)) ||
+        (s.address && s.address.toLowerCase().includes(qLower))
+    );
+    totalFound += distMatches.length;
+    if (distMatches.length) {
+        let html = '<div class="sr-section-header"><i class="fas fa-store"></i> Dyqane Dist. (' + distMatches.length + ')</div>';
+        distMatches.slice(0, 3).forEach(s => {
+            html += `<div class="search-result-item" data-sr-action="dist" onclick="_srOpen('dist')">
+                <i class="fas fa-store"></i>
+                <div class="sr-body"><div class="sr-name">${_srHi(s.name || '-', query)}</div>
+                <div class="sr-detail">${_srEsc(s.address || '')}${s.phone ? ' | ' + _srEsc(s.phone) : ''}</div></div>
+                <span class="sr-type">Dyqan</span></div>`;
+        });
+        sections.push(html);
+    }
+
+    // Bug #123: Pagesa Faton — kategori e re
+    const fatonMatches = (state.fatonPayments || []).filter(f =>
+        (f.note && f.note.toLowerCase().includes(qLower)) ||
+        (f.category && f.category.toLowerCase().includes(qLower)) ||
+        (f.amount && String(f.amount).includes(qLower)) ||
+        (f.date && f.date.includes(qLower))
+    );
+    totalFound += fatonMatches.length;
+    if (fatonMatches.length) {
+        let html = '<div class="sr-section-header"><i class="fas fa-hand-holding-usd"></i> Pagesa Faton (' + fatonMatches.length + ')</div>';
+        fatonMatches.slice(0, 3).forEach(f => {
+            html += `<div class="search-result-item" data-sr-action="faton" onclick="_srOpen('faton')">
+                <i class="fas fa-hand-holding-usd"></i>
+                <div class="sr-body"><div class="sr-name">${_srHi((f.amount || 0) + ' ден', query)}</div>
+                <div class="sr-detail">${_srEsc(f.date || '-')} | ${_srEsc(f.category || '-')}${f.note ? ' | ' + _srEsc(f.note) : ''}</div></div>
+                <span class="sr-type">Faton</span></div>`;
+        });
+        sections.push(html);
+    }
+
+    // Bug #124: Total counter në header
+    let finalHtml = '';
+    if (sections.length === 0) {
+        finalHtml = '<div class="sr-empty"><i class="fas fa-search-minus"></i> Asnjë rezultat për "<strong>' + _srEsc(query) + '</strong>"</div>';
+    } else {
+        finalHtml = '<div class="sr-total">Gjetur: <strong>' + totalFound + '</strong> rezultate për "<strong>' + _srEsc(query) + '</strong>"</div>' + sections.join('');
+    }
+
+    results.innerHTML = finalHtml;
     results.classList.remove('hidden');
+    window._srActiveIndex = -1;
+}
+
+// Bug #125: dispatcher i unifikuar për click/enter
+function _srOpen(type, id) {
+    hideSearchResults();
+    switch (type) {
+        case 'client': navigateTo('clients'); if (id && typeof openClient360 === 'function') setTimeout(() => openClient360(id), 100); break;
+        case 'product': if (id && typeof openProduct360 === 'function') openProduct360(id); else navigateTo('stock'); break;
+        case 'sale': navigateTo('sales'); break;
+        case 'order': navigateTo('orders'); break;
+        case 'expense': navigateTo('expenses'); break;
+        case 'return': navigateTo('returns'); break;
+        case 'note': navigateTo('notes'); break;
+        case 'contact': navigateTo('contacts'); break;
+        case 'dist': navigateTo('distribution'); break;
+        case 'faton': navigateTo('faton'); break;
+    }
+    if (typeof closeSidePanel === 'function') closeSidePanel();
 }
 
 function showSearchResults() {
-    // Bug #43: null-check për DOM input
     const input = document.getElementById('global-search-input');
     if (!input) return;
-    if ((input.value || '').length >= 2) globalSearch(input.value);
+    if ((input.value || '').trim().length >= 2) globalSearch(input.value);
 }
 
 function hideSearchResults() {
-    document.getElementById('global-search-results').classList.add('hidden');
+    // Bug #126: null-check
+    const r = document.getElementById('global-search-results');
+    if (r) r.classList.add('hidden');
+    window._srActiveIndex = -1;
+}
+
+// Bug #127: keyboard navigation (ArrowDown/Up/Enter/Esc)
+function _srHandleKey(ev) {
+    const results = document.getElementById('global-search-results');
+    if (!results || results.classList.contains('hidden')) {
+        if (ev.key === 'Escape') { const i = document.getElementById('global-search-input'); if (i) i.blur(); }
+        return;
+    }
+    const items = results.querySelectorAll('.search-result-item');
+    if (!items.length) return;
+    if (ev.key === 'ArrowDown') {
+        ev.preventDefault();
+        window._srActiveIndex = Math.min(items.length - 1, (window._srActiveIndex || 0) + 1);
+        items.forEach((el, i) => el.classList.toggle('sr-active', i === window._srActiveIndex));
+        if (items[window._srActiveIndex]) items[window._srActiveIndex].scrollIntoView({ block: 'nearest' });
+    } else if (ev.key === 'ArrowUp') {
+        ev.preventDefault();
+        window._srActiveIndex = Math.max(0, (window._srActiveIndex || 0) - 1);
+        items.forEach((el, i) => el.classList.toggle('sr-active', i === window._srActiveIndex));
+        if (items[window._srActiveIndex]) items[window._srActiveIndex].scrollIntoView({ block: 'nearest' });
+    } else if (ev.key === 'Enter') {
+        if (window._srActiveIndex >= 0 && items[window._srActiveIndex]) {
+            ev.preventDefault();
+            items[window._srActiveIndex].click();
+        }
+    } else if (ev.key === 'Escape') {
+        hideSearchResults();
+        const i = document.getElementById('global-search-input'); if (i) i.blur();
+    }
+}
+
+// Bug #128: Clear (X) button
+function _srClear() {
+    const input = document.getElementById('global-search-input');
+    if (input) { input.value = ''; input.focus(); }
+    hideSearchResults();
+    const btn = document.getElementById('global-search-clear');
+    if (btn) btn.style.display = 'none';
+}
+
+function _srInputChange(val) {
+    globalSearch(val);
+    // Bug #129: toggle Clear (X) button
+    const btn = document.getElementById('global-search-clear');
+    if (btn) btn.style.display = (val && val.length > 0) ? 'inline-flex' : 'none';
 }
 
 // Feature 2: Dashboard Miniatures (enhance refreshDashboard - called via refreshDashboardMiniatures)
