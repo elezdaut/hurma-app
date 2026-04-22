@@ -5487,8 +5487,9 @@ function exportPDF() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
 
-        const totalSales = state.sales.reduce((s, x) => s + (x.sellTotal || 0), 0);
-        const totalProfit = state.sales.reduce((s, x) => s + (x.profit || 0), 0);
+        const salesList = (state.sales || []);
+        const totalSales = salesList.reduce((s, x) => s + (x.sellTotal || 0), 0);
+        const totalProfit = salesList.reduce((s, x) => s + (x.profit || 0), 0);
         const totalExpenses = (state.expenses || []).reduce((s, x) => s + (x.amount || 0), 0);
 
         // Header
@@ -5506,7 +5507,7 @@ function exportPDF() {
 
         // Sales table
         const headers = ['Data', 'Produkti', 'Sasia', 'Totali (den)', 'Fitimi (den)'];
-        const rows = state.sales.map(s => {
+        const rows = salesList.map(s => {
             const p = getProduct(s.productId);
             return [
                 s.date || '',
