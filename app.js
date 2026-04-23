@@ -2121,11 +2121,16 @@ function resetProductStock(productId) {
 }
 
 function refreshStock() {
+    // Bug #166: container + PRODUCTS + state.stock guards
     const container = document.getElementById('stock-cards');
+    if (!container) return;
     container.innerHTML = '';
+    const products = (typeof PRODUCTS !== 'undefined' && PRODUCTS) ? PRODUCTS : [];
+    const stockMap = state.stock || {};
 
-    PRODUCTS.forEach(p => {
-        const count = state.stock[p.id] || 0;
+    products.forEach(p => {
+        if (!p) return;
+        const count = stockMap[p.id] || 0;
         const isLow = count < 10;
         // Feature 14: Smart stock depletion
         const depletionDays = calcStockDepletionDays(p.id);
@@ -2147,12 +2152,15 @@ function refreshStock() {
         `;
     });
 
-    // Expiry table
+    // Expiry table (Bug #167: null-safe expiry + deleted-product safe)
     const expiryBody = document.getElementById('expiry-body');
+    if (!expiryBody) return;
     expiryBody.innerHTML = '';
-    state.stockBatches.forEach(batch => {
+    (state.stockBatches || []).forEach(batch => {
+        if (!batch) return;
         const product = getProduct(batch.productId);
-        const daysLeft = Math.ceil((new Date(batch.expiry) - new Date()) / (1000 * 60 * 60 * 24));
+        const pname = (product && product.name) ? product.name : '-';
+        const daysLeft = batch.expiry ? Math.ceil((new Date(batch.expiry) - new Date()) / (1000 * 60 * 60 * 24)) : 0;
         let status = t('ok_status');
         let statusClass = '';
         if (daysLeft < 0) { status = t('expired'); statusClass = 'color:var(--danger)'; }
@@ -2160,9 +2168,9 @@ function refreshStock() {
 
         expiryBody.innerHTML += `
             <tr>
-                <td>${product.name}</td>
-                <td>${batch.quantity}</td>
-                <td>${batch.expiry}</td>
+                <td>${pname}</td>
+                <td>${batch.quantity || 0}</td>
+                <td>${batch.expiry || '-'}</td>
                 <td>${daysLeft}</td>
                 <td style="${statusClass}">${status}</td>
                 <td><button class="btn btn-sm btn-danger" onclick="deleteStockBatch(${batch.id})" title="Fshi ngarkesën"><i class="fas fa-trash"></i></button></td>
@@ -2768,16 +2776,18 @@ function refreshOrders() {
     tbody.innerHTML = '';
 
     (state.orders || []).forEach((o, i) => {
+        if (!o) return;
         const product = getProduct(o.productId);
-        const client = (state.clients || []).find(c => c.id === o.clientId);
+        const client = (state.clients || []).find(c => c && c.id === o.clientId);
         const statusColors = { pending: 'var(--warning)', completed: 'var(--success)', cancelled: 'var(--danger)' };
 
+        // Bug #168: null-safe product + client name
         tbody.innerHTML += `
             <tr>
-                <td>${o.date}</td>
-                <td>${client ? client.name : '-'}</td>
-                <td>${product.name}</td>
-                <td>${o.quantity}</td>
+                <td>${o.date || '-'}</td>
+                <td>${(client && client.name) ? client.name : '-'}</td>
+                <td>${(product && product.name) ? product.name : '-'}</td>
+                <td>${o.quantity || 0}</td>
                 <td style="color:${statusColors[o.status] || ''}">${t(o.status)}</td>
                 <td>
                     ${o.status === 'pending' ? `
@@ -5024,18 +5034,22 @@ function deleteReturn(index) {
 }
 
 function refreshReturns() {
+    // Bug #169: tbody + state.returns/clients + product null-safe
     const tbody = document.getElementById('returns-body');
+    if (!tbody) return;
     tbody.innerHTML = '';
-    [...state.returns].reverse().forEach((r, i) => {
-        const realIndex = state.returns.length - 1 - i;
+    const returns = state.returns || [];
+    [...returns].reverse().forEach((r, i) => {
+        if (!r) return;
+        const realIndex = returns.length - 1 - i;
         const product = getProduct(r.productId);
-        const client = state.clients.find(c => c.id === r.clientId);
+        const client = (state.clients || []).find(c => c && c.id === r.clientId);
         tbody.innerHTML += `
             <tr>
-                <td>${r.date}</td>
-                <td>${client ? client.name : '-'}</td>
-                <td>${product.name}</td>
-                <td>${r.quantity}</td>
+                <td>${r.date || '-'}</td>
+                <td>${(client && client.name) ? client.name : '-'}</td>
+                <td>${(product && product.name) ? product.name : '-'}</td>
+                <td>${r.quantity || 0}</td>
                 <td>${r.reason || '-'}</td>
                 <td>
                     <button class="btn btn-sm btn-danger" onclick="deleteReturn(${realIndex})"><i class="fas fa-trash"></i></button>
@@ -7017,7 +7031,7 @@ function checkWeeklyReport() {
             const counts = {};
             weekSales.forEach(s => counts[s.productId] = (counts[s.productId] || 0) + s.quantity);
             const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
-            return top ? getProduct(top[0]).name : '-';
+            return top ? ((getProduct(top[0]) || {}).name || '-') : '-';
         })(),
         generatedAt: new Date().toISOString()
     };
@@ -7402,6 +7416,8 @@ function refreshProducts() {
 
 // ===================== FEATURE 3: CONFIGURABLE PROFIT SPLIT =====================
 function openProfitSplitModal() {
+    // Bug #170: state.profitSplit null-guard
+    const split = state.profitSplit || { owner: 50, partner: 50 };
     let html = `
         <div class="form-group">
             <label>Partner Name:</label>
@@ -7409,11 +7425,11 @@ function openProfitSplitModal() {
         </div>
         <div class="form-group">
             <label>Owner Share (%):</label>
-            <input type="number" id="profit-owner-pct" min="0" max="100" value="${state.profitSplit.owner}">
+            <input type="number" id="profit-owner-pct" min="0" max="100" value="${split.owner || 50}">
         </div>
         <div class="form-group">
             <label>Partner Share (%):</label>
-            <input type="number" id="profit-partner-pct" min="0" max="100" value="${state.profitSplit.partner}">
+            <input type="number" id="profit-partner-pct" min="0" max="100" value="${split.partner || 50}">
         </div>
         <p style="font-size:12px; color:#666;">Note: Percentages should add up to 100%</p>
         <button class="btn btn-primary" onclick="saveProfitSplit()" style="width:100%;">Save Profit Split</button>
