@@ -117,7 +117,9 @@ function initAfterAuth() {
 
     const theme = localStorage.getItem('hurma-theme') || 'light';
     document.documentElement.setAttribute('data-theme', theme);
-    document.getElementById('dark-mode-toggle').checked = theme === 'dark';
+    // Bug #151: dark-mode-toggle null-guard
+    const _dmt = document.getElementById('dark-mode-toggle');
+    if (_dmt) _dmt.checked = theme === 'dark';
     try { initCrossTabFeatures(); } catch(e) { console.log('CrossTab init error:', e); }
     try { initPWA(); } catch(e) { console.log('PWA init error:', e); }
 }
@@ -233,7 +235,9 @@ function navigateTo(page) {
     }
 
     if (window.innerWidth <= 768) {
-        document.getElementById('sidebar').classList.remove('open');
+        // Bug #152: sidebar null-guard
+        const _sb = document.getElementById('sidebar');
+        if (_sb) _sb.classList.remove('open');
     }
 
     refreshPage(page);
@@ -245,16 +249,20 @@ document.querySelectorAll('.nav-item').forEach(item => {
 });
 
 function toggleSidebar() {
-    document.getElementById('sidebar').classList.toggle('open');
+    // Bug #153: sidebar null-guard
+    const _sb = document.getElementById('sidebar');
+    if (_sb) _sb.classList.toggle('open');
 }
 
 // ===================== THEME =====================
 function toggleTheme() {
+    // Bug #154: dark-mode-toggle null-guard
     const current = document.documentElement.getAttribute('data-theme');
     const next = current === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', next);
     localStorage.setItem('hurma-theme', next);
-    document.getElementById('dark-mode-toggle').checked = next === 'dark';
+    const _dmt = document.getElementById('dark-mode-toggle');
+    if (_dmt) _dmt.checked = next === 'dark';
 }
 
 // ===================== REFRESH =====================
@@ -304,72 +312,75 @@ function refreshPage(page) {
 
 // ===================== DASHBOARD =====================
 function refreshDashboard() {
+    // Bug #155: null-safe dashboard (DOM + state + getProduct)
+    const _set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
     const today = new Date().toISOString().split('T')[0];
-    const todaySales = state.sales.filter(s => s.date === today);
-    const todayReturns = state.returns.filter(r => r.date === today);
+    const todaySales = (state.sales || []).filter(s => s && s.date === today);
+    const todayReturns = (state.returns || []).filter(r => r && r.date === today);
 
-    const todayProfit = todaySales.reduce((sum, s) => sum + s.profit, 0);
-    const todayReturnLoss = todayReturns.reduce((sum, r) => sum + (getProduct(r.productId).sellPrice - getProduct(r.productId).buyPrice) * r.quantity, 0);
+    const todayProfit = todaySales.reduce((sum, s) => sum + (s.profit || 0), 0);
+    const todayReturnLoss = todayReturns.reduce((sum, r) => {
+        const prod = getProduct(r.productId);
+        if (!prod) return sum;
+        return sum + ((prod.sellPrice || 0) - (prod.buyPrice || 0)) * (r.quantity || 0);
+    }, 0);
     const netTodayProfit = todayProfit - todayReturnLoss;
 
-    document.getElementById('today-profit').textContent = netTodayProfit + ' ден';
-    document.getElementById('today-sales').textContent = todaySales.length;
-    // Feature 3: Use configurable profit split
-    document.getElementById('your-share').textContent = calcOwnerShare(netTodayProfit) + ' ден';
+    _set('today-profit', netTodayProfit + ' ден');
+    _set('today-sales', todaySales.length);
+    _set('your-share', calcOwnerShare(netTodayProfit) + ' ден');
     const partnerShareEl = document.getElementById('orhan-share');
     if (partnerShareEl) {
         partnerShareEl.textContent = calcPartnerShare(netTodayProfit) + ' ден';
         // Update label if partner name changed
-        const partnerLabelEl = partnerShareEl.parentElement.querySelector('.stat-label');
-        if (partnerLabelEl) partnerLabelEl.textContent = state.partnerName + ' Share';
+        const partnerLabelEl = partnerShareEl.parentElement ? partnerShareEl.parentElement.querySelector('.stat-label') : null;
+        if (partnerLabelEl) partnerLabelEl.textContent = (state.partnerName || '') + ' Share';
     }
 
-    const totalStock = Object.values(state.stock).reduce((sum, v) => sum + v, 0);
-    document.getElementById('total-stock').textContent = totalStock + ' ' + t('pieces');
+    const totalStock = Object.values(state.stock || {}).reduce((sum, v) => sum + (v || 0), 0);
+    _set('total-stock', totalStock + ' ' + t('pieces'));
 
     const fatonDebt = calcFatonDebt();
-    document.getElementById('faton-debt').textContent = fatonDebt + ' ден';
+    _set('faton-debt', fatonDebt + ' ден');
 
-    // Profit to collect from Faton (from invoice sales)
     const profitToCollect = calcFatonProfitOwed() - calcFatonProfitCollected();
-    document.getElementById('faton-profit-to-collect').textContent = profitToCollect + ' ден';
+    _set('faton-profit-to-collect', profitToCollect + ' ден');
 
     const now = new Date();
-    const monthSales = state.sales.filter(s => {
+    const monthSales = (state.sales || []).filter(s => {
+        if (!s || !s.date) return false;
         const d = new Date(s.date);
         return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
     });
-    const monthlyProfit = monthSales.reduce((sum, s) => sum + s.profit, 0);
-    document.getElementById('monthly-profit').textContent = monthlyProfit + ' ден';
+    const monthlyProfit = monthSales.reduce((sum, s) => sum + (s.profit || 0), 0);
+    _set('monthly-profit', monthlyProfit + ' ден');
 
-    // Best seller
     const productCounts = {};
-    state.sales.forEach(s => {
-        productCounts[s.productId] = (productCounts[s.productId] || 0) + s.quantity;
+    (state.sales || []).forEach(s => {
+        if (!s || !s.productId) return;
+        productCounts[s.productId] = (productCounts[s.productId] || 0) + (s.quantity || 0);
     });
     const bestId = Object.keys(productCounts).sort((a, b) => productCounts[b] - productCounts[a])[0];
-    document.getElementById('best-seller').textContent = bestId ? getProduct(bestId).name : '-';
+    const bestProd = bestId ? getProduct(bestId) : null;
+    _set('best-seller', (bestProd && bestProd.name) ? bestProd.name : '-');
 
-    // Cash vs Invoice stats
-    const todayCash = todaySales.filter(s => (s.paymentType || 'cash') === 'cash').reduce((sum, s) => sum + s.sellTotal, 0);
-    const todayInvoice = todaySales.filter(s => s.paymentType === 'invoice_60').reduce((sum, s) => sum + s.sellTotal, 0);
-    document.getElementById('today-cash').textContent = todayCash + ' ден';
-    document.getElementById('today-invoice').textContent = todayInvoice + ' ден';
+    const todayCash = todaySales.filter(s => (s.paymentType || 'cash') === 'cash').reduce((sum, s) => sum + (s.sellTotal || 0), 0);
+    const todayInvoice = todaySales.filter(s => s.paymentType === 'invoice_60').reduce((sum, s) => sum + (s.sellTotal || 0), 0);
+    _set('today-cash', todayCash + ' ден');
+    _set('today-invoice', todayInvoice + ' ден');
 
-    // Open invoices (unpaid)
-    const openInvoices = state.sales.filter(s => s.paymentType === 'invoice_60' && !s.invoicePaid);
-    const openInvoiceTotal = openInvoices.reduce((sum, s) => sum + s.sellTotal, 0);
-    document.getElementById('open-invoices').textContent = openInvoices.length + ' (' + openInvoiceTotal + ' ден)';
+    const openInvoices = (state.sales || []).filter(s => s && s.paymentType === 'invoice_60' && !s.invoicePaid);
+    const openInvoiceTotal = openInvoices.reduce((sum, s) => sum + (s.sellTotal || 0), 0);
+    _set('open-invoices', openInvoices.length + ' (' + openInvoiceTotal + ' ден)');
 
-    // Overdue invoices
     const today2 = new Date().toISOString().split('T')[0];
     const overdueInvoices = openInvoices.filter(s => s.dueDate && s.dueDate < today2);
-    const overdueTotal = overdueInvoices.reduce((sum, s) => sum + s.sellTotal, 0);
-    document.getElementById('overdue-invoices').textContent = overdueInvoices.length + ' (' + overdueTotal + ' ден)';
+    const overdueTotal = overdueInvoices.reduce((sum, s) => sum + (s.sellTotal || 0), 0);
+    _set('overdue-invoices', overdueInvoices.length + ' (' + overdueTotal + ' ден)');
 
-    // Feature 11: Real profit vs Paper profit
-    const allProfit = state.sales.reduce((sum, s) => sum + s.profit, 0);
-    const cashProfit = state.sales.filter(s => (s.paymentType || 'cash') === 'cash').reduce((sum, s) => sum + s.profit, 0);
+    // Feature 11: Real profit vs Paper profit (Bug #156: null-safe)
+    const allProfit = (state.sales || []).reduce((sum, s) => sum + ((s && s.profit) || 0), 0);
+    const cashProfit = (state.sales || []).filter(s => s && (s.paymentType || 'cash') === 'cash').reduce((sum, s) => sum + (s.profit || 0), 0);
     const collectedInvoiceProfit = calcFatonProfitCollected();
     const realProfit = cashProfit + collectedInvoiceProfit;
     const realProfitEl = document.getElementById('real-profit');
@@ -381,8 +392,8 @@ function refreshDashboard() {
     const weekStart = new Date();
     weekStart.setDate(weekStart.getDate() - weekStart.getDay());
     const weekStartStr = weekStart.toISOString().split('T')[0];
-    const thisWeekSales = state.sales.filter(s => s.date >= weekStartStr);
-    const thisWeekProfit = thisWeekSales.reduce((sum, s) => sum + s.profit, 0);
+    const thisWeekSales = (state.sales || []).filter(s => s && s.date && s.date >= weekStartStr);
+    const thisWeekProfit = thisWeekSales.reduce((sum, s) => sum + (s.profit || 0), 0);
 
     const lastWeekStart = new Date(weekStart);
     lastWeekStart.setDate(lastWeekStart.getDate() - 7);
@@ -390,14 +401,14 @@ function refreshDashboard() {
     lastWeekEnd.setDate(lastWeekEnd.getDate() - 1);
     const lastWeekStartStr = lastWeekStart.toISOString().split('T')[0];
     const lastWeekEndStr = lastWeekEnd.toISOString().split('T')[0];
-    const lastWeekSales = state.sales.filter(s => s.date >= lastWeekStartStr && s.date <= lastWeekEndStr);
-    const lastWeekProfit = lastWeekSales.reduce((sum, s) => sum + s.profit, 0);
+    const lastWeekSales = (state.sales || []).filter(s => s && s.date && s.date >= lastWeekStartStr && s.date <= lastWeekEndStr);
+    const lastWeekProfit = lastWeekSales.reduce((sum, s) => sum + (s.profit || 0), 0);
 
     const monthStart = now.toISOString().substring(0, 7);
     const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const lastMonthStr = lastMonthDate.toISOString().substring(0, 7);
-    const lastMonthSales = state.sales.filter(s => s.date.startsWith(lastMonthStr));
-    const lastMonthProfit = lastMonthSales.reduce((sum, s) => sum + s.profit, 0);
+    const lastMonthSales = (state.sales || []).filter(s => s && s.date && s.date.startsWith(lastMonthStr));
+    const lastMonthProfit = lastMonthSales.reduce((sum, s) => sum + (s.profit || 0), 0);
 
     const weekStatsEl = document.getElementById('week-stats');
     if (weekStatsEl) {
@@ -1109,25 +1120,28 @@ function refreshSales() {
         `;
     });
 
-    document.getElementById('sales-total').textContent = totalSales + ' ден';
-    document.getElementById('sales-profit-total').textContent = totalProfit + ' ден';
-    document.getElementById('sales-your-share').textContent = calcOwnerShare(totalProfit) + ' ден';
-    document.getElementById('sales-orhan-share').textContent = calcPartnerShare(totalProfit) + ' ден';
-    document.getElementById('sales-cash-total').textContent = totalCash + ' ден';
-    document.getElementById('sales-invoice-total').textContent = totalInvoice + ' ден';
+    // Bug #157: DOM null-checks për totalet e shitjeve
+    const _setSale = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    _setSale('sales-total', totalSales + ' ден');
+    _setSale('sales-profit-total', totalProfit + ' ден');
+    _setSale('sales-your-share', calcOwnerShare(totalProfit) + ' ден');
+    _setSale('sales-orhan-share', calcPartnerShare(totalProfit) + ' ден');
+    _setSale('sales-cash-total', totalCash + ' ден');
+    _setSale('sales-invoice-total', totalInvoice + ' ден');
 
-    // Update sales count badge
     var countBadge = document.getElementById('sales-count-badge');
     if (countBadge) {
-        countBadge.textContent = state.sales.length;
+        countBadge.textContent = (state.sales || []).length;
     }
 }
 
 function markInvoicePaid(index) {
+    // Bug #158: sale + client null-guards
+    if (!state.sales || !state.sales[index]) return;
     const sale = state.sales[index];
-    const profit = sale.profit;
+    const profit = sale.profit || 0;
     const cashDebt = calcFatonDebt();
-    const client = sale.clientId ? state.clients.find(c => c.id === sale.clientId) : null;
+    const client = sale.clientId ? (state.clients || []).find(c => c && c.id === sale.clientId) : null;
     const product = getProduct(sale.productId);
     const paid = sale.paidAmount || 0;
     const remaining = sale.sellTotal - paid;
