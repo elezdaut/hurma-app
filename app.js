@@ -3109,14 +3109,20 @@ function previewInstallments() {
         html += '<tr><td>' + (i + 1) + '</td><td>' + d.toISOString().split('T')[0] + '</td><td>' + amount + ' den</td></tr>';
     }
     html += '</tbody></table>';
-    document.getElementById('installment-preview').innerHTML = html;
+    const previewEl = document.getElementById('installment-preview');
+    if (previewEl) previewEl.innerHTML = html;
 }
 
 function saveFatonInstallments() {
+    // Bug #134: DOM null-checks për installments
+    const cEl = document.getElementById('installment-count');
+    const sEl = document.getElementById('installment-start');
+    const iEl = document.getElementById('installment-interval');
+    if (!cEl || !sEl || !iEl) return;
     const debt = calcFatonDebt() + (calcFatonProfitOwed() - calcFatonProfitCollected());
-    const count = parseInt(document.getElementById('installment-count').value) || 3;
-    const start = document.getElementById('installment-start').value;
-    const interval = parseInt(document.getElementById('installment-interval').value) || 30;
+    const count = parseInt(cEl.value) || 3;
+    const start = sEl.value;
+    const interval = parseInt(iEl.value) || 30;
     const perInstallment = Math.ceil(debt / count);
 
     const installments = [];
@@ -3133,8 +3139,8 @@ function saveFatonInstallments() {
     saveState();
     closeModal();
     refreshFaton();
-    showToast('Plani i kesteve u ruajt', 'success');
-    logActivity('Faton', 'Plan kestesh: ' + count + ' x ' + perInstallment + ' den');
+    if (typeof showToast === 'function') showToast('Plani i kesteve u ruajt', 'success');
+    if (typeof logActivity === 'function') logActivity('Faton', 'Plan kestesh: ' + count + ' x ' + perInstallment + ' den');
 }
 
 function markInstallmentPaid(index) {
@@ -4516,11 +4522,16 @@ function openReferencePaymentModal() {
 }
 
 function updateRefTotal() {
+    // Bug #135: null-safe purchases[idx] + DOM null-check
     const checks = document.querySelectorAll('.ref-check:checked');
     const purchases = state.fatonPurchases || [];
     let total = 0;
-    checks.forEach(c => { total += purchases[parseInt(c.value)].total; });
-    document.getElementById('ref-total').innerHTML = 'Totali: <span style="color:var(--success);">' + total + ' den</span> (' + checks.length + ' blerje)';
+    checks.forEach(c => {
+        const p = purchases[parseInt(c.value)];
+        if (p) total += (p.total || 0);
+    });
+    const el = document.getElementById('ref-total');
+    if (el) el.innerHTML = 'Totali: <span style="color:var(--success);">' + total + ' den</span> (' + checks.length + ' blerje)';
 }
 
 function processReferencePayment() {
@@ -6065,7 +6076,9 @@ function checkNotifications() {
 }
 
 function toggleNotifications() {
-    document.getElementById('notification-panel').classList.toggle('hidden');
+    // Bug #138: DOM null-check
+    const el = document.getElementById('notification-panel');
+    if (el) el.classList.toggle('hidden');
 }
 
 // ===================== INVOICE =====================
@@ -6076,13 +6089,20 @@ function generateInvoice(saleIndex) {
 }
 
 function closeInvoiceModal() {
-    document.getElementById('invoice-modal').classList.add('hidden');
-    document.getElementById('modal-overlay').classList.add('hidden');
+    // Bug #136: DOM null-checks
+    const m = document.getElementById('invoice-modal');
+    const o = document.getElementById('modal-overlay');
+    if (m) m.classList.add('hidden');
+    if (o) o.classList.add('hidden');
 }
 
 function printInvoice() {
-    const content = document.getElementById('invoice-content').innerHTML;
+    // Bug #137: DOM + window.open null-check
+    const el = document.getElementById('invoice-content');
+    if (!el) return;
+    const content = el.innerHTML;
     const win = window.open('', '_blank');
+    if (!win) { if (typeof showToast === 'function') showToast('Lejo pop-up për të printuar', 'error'); return; }
     win.document.write(`
         <html><head><title>${t('invoice')}</title>
         <link rel="stylesheet" href="style.css">
@@ -6456,45 +6476,59 @@ function clientStatusBadge(clientId) {
 }
 
 function openModal(title, bodyHtml) {
+    // Bug #139: DOM null-checks për modal (p.sh. nëse përdoret para DOM ready)
+    const titleEl = document.getElementById('modal-title');
+    const bodyEl = document.getElementById('modal-body');
+    const modalEl = document.getElementById('modal');
+    const overlayEl = document.getElementById('modal-overlay');
     if (bodyHtml === undefined) {
-        // Single argument: treat as full HTML body
-        document.getElementById('modal-title').textContent = '';
-        document.getElementById('modal-body').innerHTML = title;
+        if (titleEl) titleEl.textContent = '';
+        if (bodyEl) bodyEl.innerHTML = title;
     } else {
-        document.getElementById('modal-title').textContent = title;
-        document.getElementById('modal-body').innerHTML = bodyHtml;
+        if (titleEl) titleEl.textContent = title;
+        if (bodyEl) bodyEl.innerHTML = bodyHtml;
     }
-    document.getElementById('modal').classList.remove('hidden');
-    document.getElementById('modal-overlay').classList.remove('hidden');
+    if (modalEl) modalEl.classList.remove('hidden');
+    if (overlayEl) overlayEl.classList.remove('hidden');
 }
 
 function closeModal() {
-    document.getElementById('modal').classList.add('hidden');
-    document.getElementById('modal-overlay').classList.add('hidden');
-    document.getElementById('invoice-modal').classList.add('hidden');
+    // Bug #140: DOM null-checks
+    const m = document.getElementById('modal');
+    const o = document.getElementById('modal-overlay');
+    const i = document.getElementById('invoice-modal');
+    if (m) m.classList.add('hidden');
+    if (o) o.classList.add('hidden');
+    if (i) i.classList.add('hidden');
 }
 
 function populateProductSelects() {
-    // Sales filter
+    // Bug #141: DOM null-checks + PRODUCTS guard
     const salesFilter = document.getElementById('sales-product-filter');
-    salesFilter.innerHTML = `<option value="">${t('all_products')}</option>`;
-    PRODUCTS.forEach(p => {
-        salesFilter.innerHTML += `<option value="${p.id}">${p.name}</option>`;
-    });
+    const products = (typeof PRODUCTS !== 'undefined' && PRODUCTS) ? PRODUCTS : [];
+    if (salesFilter) {
+        salesFilter.innerHTML = `<option value="">${t('all_products')}</option>`;
+        products.forEach(p => {
+            if (p) salesFilter.innerHTML += `<option value="${p.id}">${p.name || '-'}</option>`;
+        });
+    }
 
-    // Calculator
     const calcSelect = document.getElementById('calc-product');
-    calcSelect.innerHTML = '<option value="">--</option>';
-    PRODUCTS.forEach(p => {
-        calcSelect.innerHTML += `<option value="${p.id}">${p.name} (${p.buyPrice}/${p.sellPrice})</option>`;
-    });
+    if (calcSelect) {
+        calcSelect.innerHTML = '<option value="">--</option>';
+        products.forEach(p => {
+            if (p) calcSelect.innerHTML += `<option value="${p.id}">${p.name || '-'} (${p.buyPrice || 0}/${p.sellPrice || 0})</option>`;
+        });
+    }
 }
 
 function populateLocationSelects() {
+    // Bug #142: DOM null-check + state.locations guard
     const salesLocFilter = document.getElementById('sales-location-filter');
+    if (!salesLocFilter) return;
     salesLocFilter.innerHTML = `<option value="">${t('all_locations')}</option>`;
-    state.locations.forEach(l => {
-        salesLocFilter.innerHTML += `<option value="${l}">${l}</option>`;
+    (state.locations || []).forEach(l => {
+        if (l) salesLocFilter.innerHTML += `<option value="${l}">${l}</option>`;
     });
 }
 
@@ -11190,32 +11224,27 @@ function _numToWordsAL(num) {
 }
 
 function updateTabBadges() {
+    // Bug #143: null-safe state collections + PRODUCTS/stock guards
     const today = new Date().toISOString().split('T')[0];
 
-    // Sales badge - total sales count (always visible)
-    setBadge('badge-sales', state.sales.length, true);
+    setBadge('badge-sales', (state.sales || []).length, true);
 
-    // Stock badge - total stock units (always visible)
     var totalStock = 0;
-    PRODUCTS.forEach(function(p) { totalStock += (state.stock[p.id] || 0); });
+    const products = (typeof PRODUCTS !== 'undefined' && PRODUCTS) ? PRODUCTS : [];
+    const stock = state.stock || {};
+    products.forEach(function(p) { if (p) totalStock += (stock[p.id] || 0); });
     setBadge('badge-stock', totalStock, true);
 
-    // Clients badge - total clients (always visible)
-    setBadge('badge-clients', state.clients.length, true);
+    setBadge('badge-clients', (state.clients || []).length, true);
+    setBadge('badge-orders', (state.orders || []).length, true);
 
-    // Orders badge - total orders (always visible)
-    setBadge('badge-orders', state.orders.length, true);
-
-    // Faton badge - debt amount
     var fatonDebt = calcTotalOwedToFaton();
     setBadge('badge-faton', fatonDebt, true);
 
-    // Returns badge - total returns (always visible)
-    setBadge('badge-returns', state.returns.length, true);
+    setBadge('badge-returns', (state.returns || []).length, true);
 
-    // Invoices badge - unpaid invoices count
-    var unpaidInvoices = state.sales.filter(function(s) {
-        return (s.paymentType === 'invoice_60' || s.paymentType === 'invoice_30' || s.paymentType === 'invoice_90') && !s.invoicePaid;
+    var unpaidInvoices = (state.sales || []).filter(function(s) {
+        return s && (s.paymentType === 'invoice_60' || s.paymentType === 'invoice_30' || s.paymentType === 'invoice_90') && !s.invoicePaid;
     }).length;
     setBadge('badge-invoices', unpaidInvoices, true);
 
