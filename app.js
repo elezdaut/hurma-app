@@ -1185,9 +1185,13 @@ function markInvoicePaid(index) {
 }
 
 function confirmMarkInvoicePaid(index) {
+    // Bug #150: sale + DOM null-guards
+    if (!state.sales || !state.sales[index]) return;
     const sale = state.sales[index];
-    const profitType = document.getElementById('invoice-profit-type').value;
-    const amount = parseInt(document.getElementById('invoice-profit-amount').value) || 0;
+    const profitTypeEl = document.getElementById('invoice-profit-type');
+    const profitType = profitTypeEl ? profitTypeEl.value : '';
+    const amountEl = document.getElementById('invoice-profit-amount');
+    const amount = amountEl ? (parseInt(amountEl.value) || 0) : 0;
     const payMethod = document.getElementById('invoice-pay-method')?.value || 'cash';
     const payDate = document.getElementById('invoice-pay-date')?.value || new Date().toISOString().split('T')[0];
     const payNote = document.getElementById('invoice-pay-note')?.value || '';
@@ -2275,14 +2279,16 @@ function openClientTaskModal(clientId, editId) {
 }
 
 function saveClientTask(editId) {
+    // Bug #144: DOM null-checks për fushat e task-ut
+    const _v = (id) => { const el = document.getElementById(id); return el ? (el.value || '') : ''; };
     const payload = {
         id: editId || Date.now().toString(),
-        clientId: document.getElementById('client-task-client').value,
-        title: document.getElementById('client-task-title').value.trim(),
-        type: document.getElementById('client-task-type').value,
-        priority: document.getElementById('client-task-priority').value,
-        dueDate: document.getElementById('client-task-due').value,
-        note: document.getElementById('client-task-note').value,
+        clientId: _v('client-task-client'),
+        title: _v('client-task-title').trim(),
+        type: _v('client-task-type'),
+        priority: _v('client-task-priority'),
+        dueDate: _v('client-task-due'),
+        note: _v('client-task-note'),
         status: editId ? ((state.clientTasks || []).find(t => t.id === editId)?.status || 'todo') : 'todo'
     };
     if (!payload.title) return;
@@ -2346,13 +2352,15 @@ function openClientVisitModal(clientId, editId) {
 }
 
 function saveClientVisit(editId) {
+    // Bug #145: DOM null-checks për fushat e vizitës
+    const _v = (id) => { const el = document.getElementById(id); return el ? (el.value || '') : ''; };
     const payload = {
         id: editId || Date.now().toString(),
-        clientId: document.getElementById('client-visit-client').value,
-        date: document.getElementById('client-visit-date').value,
-        purpose: document.getElementById('client-visit-purpose').value,
-        nextVisitDate: document.getElementById('client-next-visit-date').value,
-        note: document.getElementById('client-visit-note').value
+        clientId: _v('client-visit-client'),
+        date: _v('client-visit-date'),
+        purpose: _v('client-visit-purpose'),
+        nextVisitDate: _v('client-next-visit-date'),
+        note: _v('client-visit-note')
     };
     if (!state.clientVisits) state.clientVisits = [];
     if (editId) {
@@ -2913,24 +2921,29 @@ function addFatonPayment() {
 }
 
 function updateFatonPayment(index) {
-    const amount = parseInt(document.getElementById('faton-amount').value) || 0;
+    // Bug #146: DOM + state.fatonPayments guard
+    const _v = (id) => { const el = document.getElementById(id); return el ? (el.value || '') : ''; };
+    const amount = parseInt(_v('faton-amount')) || 0;
     if (amount <= 0) return;
-    const oldAmount = state.fatonPayments[index].amount;
+    if (!state.fatonPayments || !state.fatonPayments[index]) return;
+    const oldAmount = state.fatonPayments[index].amount || 0;
     state.fatonPayments[index].amount = amount;
-    state.fatonPayments[index].date = document.getElementById('faton-date').value;
-    state.fatonPayments[index].note = document.getElementById('faton-note').value;
-    state.fatonPayments[index].category = document.getElementById('faton-payment-category').value;
+    state.fatonPayments[index].date = _v('faton-date');
+    state.fatonPayments[index].note = _v('faton-note');
+    state.fatonPayments[index].category = _v('faton-payment-category');
     saveState();
-    addPaymentAudit('EDITIM_PAGESE', 'Index: ' + index + ', Shuma e vjeter: ' + oldAmount + ' den, Shuma e re: ' + amount + ' den');
+    if (typeof addPaymentAudit === 'function') addPaymentAudit('EDITIM_PAGESE', 'Index: ' + index + ', Shuma e vjeter: ' + oldAmount + ' den, Shuma e re: ' + amount + ' den');
     closeModal();
     refreshFaton();
-    showToast('Pagesa u perditesua', 'success');
+    if (typeof showToast === 'function') showToast('Pagesa u perditesua', 'success');
 }
 
 function deleteFatonPayment(index) {
+    // Bug #147: state.fatonPayments + payment null-guard
     modalConfirm('Fshi këtë pagesë?', function() {
+    if (!state.fatonPayments || !state.fatonPayments[index]) return;
     var payment = state.fatonPayments[index];
-    addPaymentAudit('FSHIRJE_PAGESE', 'Shuma: ' + payment.amount + ' den, Data: ' + payment.date);
+    if (typeof addPaymentAudit === 'function') addPaymentAudit('FSHIRJE_PAGESE', 'Shuma: ' + (payment.amount || 0) + ' den, Data: ' + (payment.date || '-'));
     state.fatonPayments.splice(index, 1);
     saveState();
     refreshFaton();
@@ -2989,26 +3002,30 @@ function openProfitCollectionModal() {
 }
 
 function toggleProfitCollectionFields() {
-    const type = document.getElementById('profit-collection-type').value;
+    // Bug #148: DOM null-checks
+    const typeEl = document.getElementById('profit-collection-type');
+    const type = typeEl ? typeEl.value : '';
     const amountGroup = document.getElementById('profit-amount-group');
     const deductGroup = document.getElementById('profit-deduct-group');
     const cashGroup = document.getElementById('profit-cash-group');
 
-    amountGroup.classList.remove('hidden');
-    deductGroup.classList.add('hidden');
-    cashGroup.classList.add('hidden');
+    if (amountGroup) amountGroup.classList.remove('hidden');
+    if (deductGroup) deductGroup.classList.add('hidden');
+    if (cashGroup) cashGroup.classList.add('hidden');
 
     if (type === 'combination') {
-        amountGroup.classList.add('hidden');
-        deductGroup.classList.remove('hidden');
-        cashGroup.classList.remove('hidden');
+        if (amountGroup) amountGroup.classList.add('hidden');
+        if (deductGroup) deductGroup.classList.remove('hidden');
+        if (cashGroup) cashGroup.classList.remove('hidden');
     }
 }
 
 function addProfitCollection() {
-    const type = document.getElementById('profit-collection-type').value;
-    const date = document.getElementById('profit-collection-date').value;
-    const note = document.getElementById('profit-collection-note').value;
+    // Bug #149: DOM null-checks për mbledhje fitimi
+    const _v = (id) => { const el = document.getElementById(id); return el ? (el.value || '') : ''; };
+    const type = _v('profit-collection-type');
+    const date = _v('profit-collection-date');
+    const note = _v('profit-collection-note');
     const profitRemaining = calcFatonProfitOwed() - calcFatonProfitCollected();
 
     if (!state.fatonProfitCollections) state.fatonProfitCollections = [];
@@ -3018,15 +3035,14 @@ function addProfitCollection() {
     let cashAmount = 0;
 
     if (type === 'combination') {
-        deductAmount = parseInt(document.getElementById('profit-deduct-amount').value) || 0;
-        cashAmount = parseInt(document.getElementById('profit-cash-amount').value) || 0;
+        deductAmount = parseInt(_v('profit-deduct-amount')) || 0;
+        cashAmount = parseInt(_v('profit-cash-amount')) || 0;
         amount = deductAmount + cashAmount;
     } else if (type === 'deduct_from_debt') {
-        amount = parseInt(document.getElementById('profit-collection-amount').value) || 0;
+        amount = parseInt(_v('profit-collection-amount')) || 0;
         deductAmount = amount;
     } else {
-        // faton_returns_cash or periodic_payment
-        amount = parseInt(document.getElementById('profit-collection-amount').value) || 0;
+        amount = parseInt(_v('profit-collection-amount')) || 0;
         cashAmount = amount;
     }
 
