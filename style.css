@@ -5966,3 +5966,212 @@ header.main-header.is-scrolled {
     }
 }
 
+
+/* ===================== DESIGN POLISH BATCH (33 improvements) ===================== */
+/* Design #1: Smoother transitions on all interactive elements */
+.btn, .nav-tab, .stock-card, .contact-card, .data-table tr, .modal, .dropdown-content {
+    transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, transform 0.15s ease;
+}
+
+/* Design #2: Buttons lift slightly on hover */
+.btn:not(:disabled):hover { transform: translateY(-1px); }
+.btn:not(:disabled):active { transform: translateY(0); }
+
+/* Design #3: Refined focus ring for accessibility on all inputs */
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(225, 112, 85, 0.22);
+    border-color: var(--primary, #e17055);
+}
+
+/* Design #4: Primary button gradient polish */
+.btn-primary {
+    background-image: linear-gradient(135deg, var(--primary, #e17055) 0%, #d35400 100%);
+    border: none;
+}
+.btn-primary:hover { filter: brightness(1.05); }
+
+/* Design #5: Danger button gradient */
+.btn-danger {
+    background-image: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    border: none;
+}
+
+/* Design #6: Success button gradient */
+.btn-success {
+    background-image: linear-gradient(135deg, #00b894 0%, #009975 100%);
+    border: none;
+}
+
+/* Design #7: Card hover lift + shadow */
+.stat-card, .stock-card, .contact-card {
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.stat-card:hover, .stock-card:hover, .contact-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 22px rgba(0,0,0,0.08);
+}
+
+/* Design #8: Subtle zebra striping for tables */
+.data-table tbody tr:nth-child(even) { background: rgba(0,0,0,0.018); }
+.data-table tbody tr:hover { background: rgba(225, 112, 85, 0.06); }
+
+/* Design #9: Modal entrance animation */
+.modal:not(.hidden) { animation: modalFadeIn 0.22s ease; }
+@keyframes modalFadeIn {
+    from { opacity: 0; transform: translate(-50%, -46%) scale(0.98); }
+    to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+/* Design #10: Modal overlay smooth fade */
+.modal-overlay:not(.hidden) { animation: overlayFade 0.22s ease; }
+@keyframes overlayFade { from { opacity: 0; } to { opacity: 1; } }
+
+/* Design #11: Nicer scrollbar (webkit) */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(139, 90, 43, 0.35); border-radius: 5px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(139, 90, 43, 0.55); }
+
+/* Design #12: Rounded badges */
+.badge, .notification-badge {
+    border-radius: 999px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+}
+
+/* Design #13: Better toast shadow + position */
+#toast-container { top: 24px !important; right: 24px !important; }
+#toast-container > div {
+    box-shadow: 0 8px 28px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.08) !important;
+    border-radius: 10px !important;
+}
+
+/* Design #14: Input/select uniform height */
+input[type="text"], input[type="number"], input[type="date"], input[type="email"],
+input[type="tel"], input[type="search"], select, textarea {
+    min-height: 40px;
+    border-radius: 10px;
+}
+textarea { min-height: 80px; }
+
+/* Design #15: Section headings more breathing room */
+h2, h3 { letter-spacing: -0.01em; }
+.page h2, .page > h3 { margin-bottom: 14px; }
+
+/* Design #16: Empty state helper */
+.empty-state {
+    text-align: center;
+    padding: 48px 20px;
+    color: var(--text-secondary, #999);
+}
+.empty-state i { font-size: 3em; opacity: 0.3; margin-bottom: 12px; display: block; }
+
+/* Design #17: Better link underline */
+a { text-underline-offset: 2px; text-decoration-thickness: 1px; }
+
+/* Design #18: Form-group spacing */
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.9em; color: var(--text-secondary, #666); }
+
+/* Design #19: Disabled state polish */
+.btn:disabled, button:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+
+/* Design #20: Sticky table headers */
+.data-table thead th {
+    position: sticky;
+    top: 0;
+    background: var(--bg-primary, #fff);
+    z-index: 1;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.08);
+}
+
+/* Design #21: Subtle divider between sections */
+.divider, hr {
+    border: none;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(0,0,0,0.08), transparent);
+    margin: 18px 0;
+}
+
+/* Design #22: Icons slightly spaced from text */
+.btn i + * , .btn i:not(:last-child), i.fas + * { margin-left: 2px; }
+.btn i:first-child { margin-right: 6px; }
+
+/* Design #23: Loading spinner / skeleton shimmer */
+@keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+.skeleton {
+    background: linear-gradient(90deg, rgba(0,0,0,0.04) 25%, rgba(0,0,0,0.08) 50%, rgba(0,0,0,0.04) 75%);
+    background-size: 800px 100%;
+    animation: shimmer 1.2s infinite linear;
+    border-radius: 8px;
+}
+
+/* Design #24: Focus-visible only (not on click) */
+.btn:focus:not(:focus-visible) { box-shadow: none; }
+.btn:focus-visible { box-shadow: 0 0 0 3px rgba(225, 112, 85, 0.28); }
+
+/* Design #25: Checkbox + radio polish */
+input[type="checkbox"], input[type="radio"] {
+    accent-color: var(--primary, #e17055);
+    width: 18px; height: 18px;
+    cursor: pointer;
+}
+
+/* Design #26: Nav-tab active indicator underline */
+.nav-tab { position: relative; }
+.nav-tab.active::after {
+    content: '';
+    position: absolute;
+    left: 12px; right: 12px; bottom: 0;
+    height: 3px;
+    background: var(--primary, #e17055);
+    border-radius: 3px 3px 0 0;
+}
+
+/* Design #27: Badge pulse for new items */
+@keyframes badgePulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.14); }
+}
+.badge.badge-new { animation: badgePulse 1.6s ease-in-out infinite; }
+
+/* Design #28: Text-primary utility shouldn't wrap underline on hover */
+a.text-primary:hover { text-decoration: underline; }
+
+/* Design #29: Consistent card padding */
+.stat-card, .stock-card, .contact-card, .invoice-card {
+    padding: 16px 18px;
+    border-radius: 14px;
+}
+
+/* Design #30: Dropdown/select appearance */
+select {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path fill='%23888' d='M6 8L2 4h8z'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 12px;
+    padding-right: 32px;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+/* Design #31: Selection color matches brand */
+::selection { background: rgba(225, 112, 85, 0.25); }
+
+/* Design #32: Smooth page transitions */
+.page { animation: pageFadeIn 0.25s ease; }
+@keyframes pageFadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Design #33: Print-friendly cleanup */
+@media print {
+    .topbar, .sidebar, .nav-tabs, .btn, .notification-panel { display: none !important; }
+    .page { animation: none; }
+    body { background: #fff !important; }
+}
+
+/* Respect reduced motion across all additions */
+@media (prefers-reduced-motion: reduce) {
+    .btn:hover, .stat-card:hover, .stock-card:hover, .contact-card:hover { transform: none !important; }
+    .modal, .modal-overlay, .page, .badge.badge-new, .skeleton { animation: none !important; }
+}
