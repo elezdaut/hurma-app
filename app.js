@@ -584,13 +584,13 @@ function openSaleModal(editId) {
             <label>${t('client')} (${t('optional')}):</label>
             <select id="sale-client">
                 <option value="">-- ${t('select_client')} --</option>
-                ${state.clients.map(c => `<option value="${c.id}" ${sale && sale.clientId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+                ${(state.clients || []).map(c => `<option value="${c.id}" ${sale && sale.clientId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
             </select>
         </div>
         <div class="form-group">
             <label>${t('location')}:</label>
             <select id="sale-location">
-                ${state.locations.map(l => `<option value="${l}" ${sale && sale.location === l ? 'selected' : ''}>${l}</option>`).join('')}
+                ${(state.locations || []).map(l => `<option value="${l}" ${sale && sale.location === l ? 'selected' : ''}>${l}</option>`).join('')}
             </select>
         </div>
         <div class="form-group">
@@ -2329,7 +2329,7 @@ function saveClientTask(editId) {
     if (!payload.title) return;
     if (!state.clientTasks) state.clientTasks = [];
     if (editId) {
-        const idx = state.clientTasks.findIndex(task => task.id === editId);
+        const idx = (state.clientTasks || []).findIndex(task => task.id === editId);
         if (idx >= 0) state.clientTasks[idx] = payload;
     } else {
         state.clientTasks.push(payload);
@@ -2399,7 +2399,7 @@ function saveClientVisit(editId) {
     };
     if (!state.clientVisits) state.clientVisits = [];
     if (editId) {
-        const idx = state.clientVisits.findIndex(visit => visit.id === editId);
+        const idx = (state.clientVisits || []).findIndex(visit => visit.id === editId);
         if (idx >= 0) state.clientVisits[idx] = payload;
     } else {
         state.clientVisits.push(payload);
@@ -2476,7 +2476,7 @@ function deleteClient(id) {
     var client = (state.clients || []).find(c => c && c.id === id);
     modalConfirm('Fshi klientin' + (client ? ' <strong>' + client.name + '</strong>' : '') + '?', function() {
         logActivity('client', 'Klient fshirë: ' + (client ? client.name : id), 'clients');
-        state.clients = state.clients.filter(c => c.id !== id);
+        state.clients = (state.clients || []).filter(c => c.id !== id);
         saveState();
         refreshClients();
     });
@@ -2551,15 +2551,15 @@ function refreshClients() {
 
     clients.forEach(c => {
         const clientSales = (state.sales || []).filter(s => s && s.clientId === c.id);
-        const totalPurchases = clientSales.reduce((sum, s) => sum + s.sellTotal, 0);
-        const clientCash = clientSales.filter(s => (s.paymentType || 'cash') === 'cash').reduce((sum, s) => sum + s.sellTotal, 0);
+        const totalPurchases = clientSales.reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0);
+        const clientCash = clientSales.filter(s => (s.paymentType || 'cash') === 'cash').reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0);
         const clientOpenInvoices = clientSales.filter(s => s.paymentType === 'invoice_60' && !s.invoicePaid);
-        const clientOpenInvoiceTotal = clientOpenInvoices.reduce((sum, s) => sum + s.sellTotal, 0);
+        const clientOpenInvoiceTotal = clientOpenInvoices.reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0);
         const clientOverdue = clientOpenInvoices.filter(s => s.dueDate && s.dueDate < new Date().toISOString().split('T')[0]);
-        const clientOverdueTotal = clientOverdue.reduce((sum, s) => sum + s.sellTotal, 0);
+        const clientOverdueTotal = clientOverdue.reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0);
 
         // Feature 13: Client margin/stats
-        const clientProfit = clientSales.reduce((sum, s) => sum + s.profit, 0);
+        const clientProfit = clientSales.reduce((sum, s) => sum + ((s && s.profit) || 0), 0);
         const avgPerOrder = clientSales.length > 0 ? Math.round(clientProfit / clientSales.length) : 0;
         const uniqueDates = [...new Set(clientSales.map(s => s.date))];
         const frequency = uniqueDates.length;
@@ -2655,7 +2655,7 @@ function openOrderModal(editId) {
             <label>${t('client')}:</label>
             <select id="order-client">
                 <option value="">-- ${t('select_client')} --</option>
-                ${state.clients.map(c => `<option value="${c.id}" ${order && order.clientId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+                ${(state.clients || []).map(c => `<option value="${c.id}" ${order && order.clientId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
             </select>
         </div>
         <div class="form-group">
@@ -2815,7 +2815,7 @@ function calcFatonDebt() {
     // Cash debt: all stock purchases minus cash payments made to Faton
     // Invoice sales are paid by client directly, so they don't add to debt
     const purchases = (state.fatonPurchases || []).reduce((sum, p) => sum + p.total, 0);
-    const payments = state.fatonPayments.reduce((sum, p) => sum + p.amount, 0);
+    const payments = (state.fatonPayments || []).reduce((sum, p) => sum + ((p && p.amount) || 0), 0);
 
     // Subtract amounts that were deducted from debt via profit collection
     const deductedFromDebt = (state.fatonProfitCollections || [])
@@ -3234,13 +3234,13 @@ function openFatonMonthlyReport() {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
         const key = d.toISOString().slice(0, 7);
         const purchases = (state.fatonPurchases || []).filter(p => p.date && p.date.startsWith(key));
-        const payments = state.fatonPayments.filter(p => p.date && p.date.startsWith(key));
+        const payments = (state.fatonPayments || []).filter(p => p.date && p.date.startsWith(key));
         const collections = (state.fatonProfitCollections || []).filter(c => c.date && c.date.startsWith(key));
 
         months.push({
             label: d.toLocaleDateString('sq-AL', { month: 'long', year: 'numeric' }),
             totalPurchases: purchases.reduce((s, p) => s + p.total, 0),
-            totalPayments: payments.reduce((s, p) => s + p.amount, 0),
+            totalPayments: payments.reduce((s, p) => s + ((p && p.amount) || 0), 0),
             totalCollections: collections.reduce((s, c) => s + c.amount, 0),
             purchaseCount: purchases.length,
             paymentCount: payments.length
@@ -3288,7 +3288,7 @@ function getCategoryIcon(cat) {
 function refreshFaton() {
     const purchases = state.fatonPurchases || [];
     const totalPurchased = purchases.reduce((sum, p) => sum + p.total, 0);
-    const totalPaid = state.fatonPayments.reduce((sum, p) => sum + p.amount, 0);
+    const totalPaid = (state.fatonPayments || []).reduce((sum, p) => sum + ((p && p.amount) || 0), 0);
 
     const deductedFromDebt = (state.fatonProfitCollections || [])
         .filter(c => c.type === 'deduct_from_debt' || c.type === 'combination')
@@ -3367,7 +3367,7 @@ function refreshFaton() {
         });
 
         // Add payments
-        state.fatonPayments.forEach((p, i) => {
+        (state.fatonPayments || []).forEach((p, i) => {
             events.push({
                 date: p.date,
                 type: 'payment',
@@ -3447,10 +3447,10 @@ function refreshFaton() {
 
     // Feature 7: Installment plan display
     const installmentDiv = document.getElementById('faton-installment-plan');
-    if (installmentDiv && state.fatonInstallments && state.fatonInstallments.length > 0) {
+    if (installmentDiv && state.fatonInstallments && (state.fatonInstallments || []).length > 0) {
         let html = '<div style="background:var(--bg-secondary);padding:15px;border-radius:10px;"><h4 style="margin-bottom:10px;"><i class="fas fa-calendar-check"></i> Plani i kesteve</h4>';
         html += '<div style="display:flex;flex-wrap:wrap;gap:10px;">';
-        state.fatonInstallments.forEach((inst, i) => {
+        (state.fatonInstallments || []).forEach((inst, i) => {
             const isOverdue = !inst.paid && inst.date < new Date().toISOString().split('T')[0];
             const bg = inst.paid ? 'var(--success)' : isOverdue ? 'var(--danger)' : 'var(--bg-primary)';
             const color = inst.paid || isOverdue ? 'white' : 'var(--text)';
@@ -3500,7 +3500,7 @@ function renderFatonPurchasesVsPaymentsChart() {
     }
 
     const purchaseData = months.map(m => (state.fatonPurchases || []).filter(p => p.date && p.date.startsWith(m)).reduce((s, p) => s + p.total, 0));
-    const paymentData = months.map(m => state.fatonPayments.filter(p => p.date && p.date.startsWith(m)).reduce((s, p) => s + p.amount, 0));
+    const paymentData = months.map(m => (state.fatonPayments || []).filter(p => p.date && p.date.startsWith(m)).reduce((s, p) => s + ((p && p.amount) || 0), 0));
     const labels = months.map(m => { const d = new Date(m + '-01'); return d.toLocaleDateString('sq-AL', { month: 'short', year: '2-digit' }); });
 
     window.fatonPvPChart = new Chart(ctx, {
@@ -3536,9 +3536,9 @@ function createReceipt(payment, paymentIndex) {
     const debt = calcFatonDebt();
     const profitOwed = calcFatonProfitOwed();
     const profitCollected = calcFatonProfitCollected();
-    const totalSales = state.sales.reduce((s, x) => s + x.sellTotal, 0);
-    const totalProfit = state.sales.reduce((s, x) => s + x.profit, 0);
-    const totalExpenses = state.expenses.reduce((s, x) => s + x.amount, 0);
+    const totalSales = (state.sales || []).reduce((s, x) => s + x.sellTotal, 0);
+    const totalProfit = (state.sales || []).reduce((s, x) => s + x.profit, 0);
+    const totalExpenses = (state.expenses || []).reduce((s, x) => s + ((x && x.amount) || 0), 0);
     const netProfit = totalProfit - totalExpenses;
 
     const receipt = {
@@ -3997,8 +3997,8 @@ function showPaymentConfirmation(payment, receipt) {
     const profitOwed = calcFatonProfitOwed();
     const profitCollected = calcFatonProfitCollected();
     const netTotal = debt + (profitOwed - profitCollected);
-    const totalProfit = state.sales.reduce((s, x) => s + x.profit, 0);
-    const totalExpenses = state.expenses.reduce((s, x) => s + x.amount, 0);
+    const totalProfit = (state.sales || []).reduce((s, x) => s + x.profit, 0);
+    const totalExpenses = (state.expenses || []).reduce((s, x) => s + ((x && x.amount) || 0), 0);
     const netProfit = totalProfit - totalExpenses;
 
     let html = '<div style="text-align:center;padding:10px;">';
@@ -4207,7 +4207,7 @@ function openPaymentCalendar() {
     // Get payment dates and installment dates for this month
     const monthStr = (year + '-' + String(month + 1).padStart(2, '0'));
     const paymentDates = {};
-    state.fatonPayments.forEach(p => {
+    (state.fatonPayments || []).forEach(p => {
         if (p.date && p.date.startsWith(monthStr)) {
             const day = parseInt(p.date.split('-')[2]);
             if (!paymentDates[day]) paymentDates[day] = [];
@@ -4239,7 +4239,7 @@ function openPaymentCalendar() {
                 if (isToday) style += 'background:var(--accent);color:white;border-radius:50%;font-weight:bold;';
 
                 html += '<td style="' + style + '">' + dayNum;
-                if (hasPayment) html += '<div style="font-size:0.65em;color:var(--success);font-weight:bold;">+' + hasPayment.reduce((s, p) => s + p.amount, 0) + '</div>';
+                if (hasPayment) html += '<div style="font-size:0.65em;color:var(--success);font-weight:bold;">+' + hasPayment.reduce((s, p) => s + ((p && p.amount) || 0), 0) + '</div>';
                 if (hasInstallment) {
                     const inst = hasInstallment[0];
                     html += '<div style="font-size:0.65em;color:' + (inst.paid ? 'var(--success)' : 'var(--warning)') + ';">' + (inst.paid ? '✓' : '⏰') + inst.amount + '</div>';
@@ -4263,12 +4263,12 @@ function showFatonComparison() {
 
     function getMonthData(monthKey) {
         const purchases = (state.fatonPurchases || []).filter(p => p.date && p.date.startsWith(monthKey));
-        const payments = state.fatonPayments.filter(p => p.date && p.date.startsWith(monthKey));
+        const payments = (state.fatonPayments || []).filter(p => p.date && p.date.startsWith(monthKey));
         const collections = (state.fatonProfitCollections || []).filter(c => c.date && c.date.startsWith(monthKey));
         return {
             purchaseTotal: purchases.reduce((s, p) => s + p.total, 0),
             purchaseCount: purchases.length,
-            paymentTotal: payments.reduce((s, p) => s + p.amount, 0),
+            paymentTotal: payments.reduce((s, p) => s + ((p && p.amount) || 0), 0),
             paymentCount: payments.length,
             collectionTotal: collections.reduce((s, c) => s + c.amount, 0)
         };
@@ -4338,14 +4338,14 @@ function showProfitPerPersonChart() {
         const elezData = months.map(m => {
             const monthSales = state.sales.filter(s => s.date && s.date.startsWith(m));
             const profit = monthSales.reduce((s, x) => s + x.profit, 0);
-            const expenses = state.expenses.filter(e => e.date && e.date.startsWith(m)).reduce((s, x) => s + x.amount, 0);
+            const expenses = (state.expenses || []).filter(e => e.date && e.date.startsWith(m)).reduce((s, x) => s + ((x && x.amount) || 0), 0);
             return calcOwnerShare(profit - expenses);
         });
 
         const orhanData = months.map(m => {
             const monthSales = state.sales.filter(s => s.date && s.date.startsWith(m));
             const profit = monthSales.reduce((s, x) => s + x.profit, 0);
-            const expenses = state.expenses.filter(e => e.date && e.date.startsWith(m)).reduce((s, x) => s + x.amount, 0);
+            const expenses = (state.expenses || []).filter(e => e.date && e.date.startsWith(m)).reduce((s, x) => s + ((x && x.amount) || 0), 0);
             return calcPartnerShare(profit - expenses);
         });
 
@@ -4527,7 +4527,7 @@ function notifyFatonPayment(payment) {
 // ===================== PAYMENT METHOD COMPARISON CHART =====================
 function showPaymentMethodChart() {
     const methods = {};
-    state.fatonPayments.forEach(p => {
+    (state.fatonPayments || []).forEach(p => {
         const cat = p.category || 'cash';
         if (!methods[cat]) methods[cat] = 0;
         methods[cat] += p.amount;
@@ -4783,8 +4783,8 @@ function showPaymentStats() {
     // Monthly trend
     const thisMonth = new Date().toISOString().slice(0, 7);
     const lastMonth = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString().slice(0, 7);
-    const thisMonthTotal = payments.filter(p => p.date && p.date.startsWith(thisMonth)).reduce((s, p) => s + p.amount, 0);
-    const lastMonthTotal = payments.filter(p => p.date && p.date.startsWith(lastMonth)).reduce((s, p) => s + p.amount, 0);
+    const thisMonthTotal = payments.filter(p => p.date && p.date.startsWith(thisMonth)).reduce((s, p) => s + ((p && p.amount) || 0), 0);
+    const lastMonthTotal = payments.filter(p => p.date && p.date.startsWith(lastMonth)).reduce((s, p) => s + ((p && p.amount) || 0), 0);
 
     let html = '<div class="confirmation-grid" style="grid-template-columns:repeat(2,1fr);">';
     html += '<div class="confirmation-card"><div class="conf-label">Pagesa totale</div><div class="conf-value">' + payments.length + '</div></div>';
@@ -4878,8 +4878,8 @@ function renderFatonMiniDashboard() {
     const debt = calcFatonDebt();
     const profitRemaining = calcFatonProfitOwed() - calcFatonProfitCollected();
     const netTotal = debt + profitRemaining;
-    const totalProfit = state.sales.reduce((s, x) => s + x.profit, 0);
-    const totalExpenses = state.expenses.reduce((s, x) => s + x.amount, 0);
+    const totalProfit = (state.sales || []).reduce((s, x) => s + x.profit, 0);
+    const totalExpenses = (state.expenses || []).reduce((s, x) => s + ((x && x.amount) || 0), 0);
     const netProfit = totalProfit - totalExpenses;
 
     // Last 7 days trend
@@ -4888,7 +4888,7 @@ function renderFatonMiniDashboard() {
         const d = new Date();
         d.setDate(d.getDate() - i);
         const dateStr = d.toISOString().split('T')[0];
-        const dayPayments = state.fatonPayments.filter(p => p.date === dateStr).reduce((s, p) => s + p.amount, 0);
+        const dayPayments = (state.fatonPayments || []).filter(p => p.date === dateStr).reduce((s, p) => s + ((p && p.amount) || 0), 0);
         const dayPurchases = (state.fatonPurchases || []).filter(p => p.date === dateStr).reduce((s, p) => s + p.total, 0);
         last7.push({ date: dateStr, payments: dayPayments, purchases: dayPurchases });
     }
@@ -4904,8 +4904,8 @@ function renderFatonMiniDashboard() {
     // Mini card 2: Quick stats
     html += '<div class="faton-mini-card">';
     html += '<div class="mini-label">Pagesa sot</div>';
-    const todayPayments = state.fatonPayments.filter(p => p.date === new Date().toISOString().split('T')[0]);
-    html += '<div class="mini-value" style="color:var(--success);">' + todayPayments.reduce((s, p) => s + p.amount, 0) + ' den</div>';
+    const todayPayments = (state.fatonPayments || []).filter(p => p.date === new Date().toISOString().split('T')[0]);
+    html += '<div class="mini-value" style="color:var(--success);">' + todayPayments.reduce((s, p) => s + ((p && p.amount) || 0), 0) + ' den</div>';
     html += '<div class="mini-label" style="margin-top:5px;">Blerje sot</div>';
     const todayPurchases = (state.fatonPurchases || []).filter(p => p.date === new Date().toISOString().split('T')[0]);
     html += '<div class="mini-value" style="color:var(--danger);">' + todayPurchases.reduce((s, p) => s + p.total, 0) + ' den</div>';
@@ -4970,7 +4970,7 @@ function openReturnModal() {
             <label>${t('client')}:</label>
             <select id="return-client">
                 <option value="">-- ${t('select_client')} --</option>
-                ${state.clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+                ${(state.clients || []).map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
             </select>
         </div>
         <div class="form-group">
@@ -6042,7 +6042,7 @@ function checkNotifications() {
     });
 
     // Client debts
-    state.clients.forEach(c => {
+    (state.clients || []).forEach(c => {
         if (c.debt > 0) {
             state.notifications.push({
                 type: 'info',
@@ -6460,8 +6460,8 @@ function updateCharts() {
         const dateStr = d.toISOString().split('T')[0];
         days.push(dateStr.substring(5));
         const daySales = state.sales.filter(s => s.date === dateStr);
-        salesData.push(daySales.reduce((sum, s) => sum + s.sellTotal, 0));
-        profitData.push(daySales.reduce((sum, s) => sum + s.profit, 0));
+        salesData.push(daySales.reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0));
+        profitData.push(daySales.reduce((sum, s) => sum + ((s && s.profit) || 0), 0));
     }
 
     salesChart.data.labels = days;
@@ -6641,13 +6641,13 @@ function duplicateSale(index) {
             <label>${t('client')} (${t('optional')}):</label>
             <select id="sale-client">
                 <option value="">-- ${t('select_client')} --</option>
-                ${state.clients.map(c => `<option value="${c.id}" ${sale.clientId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+                ${(state.clients || []).map(c => `<option value="${c.id}" ${sale.clientId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
             </select>
         </div>
         <div class="form-group">
             <label>${t('location')}:</label>
             <select id="sale-location">
-                ${state.locations.map(l => `<option value="${l}" ${sale.location === l ? 'selected' : ''}>${l}</option>`).join('')}
+                ${(state.locations || []).map(l => `<option value="${l}" ${sale.location === l ? 'selected' : ''}>${l}</option>`).join('')}
             </select>
         </div>
         <div class="form-group">
@@ -6687,7 +6687,7 @@ function renderSalesMonthTabs() {
     if (!tabsEl) return;
 
     const months = new Set();
-    state.sales.forEach(s => {
+    (state.sales || []).forEach(s => {
         if (s.date) months.add(s.date.substring(0, 7));
     });
     const sortedMonths = [...months].sort().reverse();
@@ -6713,7 +6713,7 @@ function showProductHistory(productId) {
     const productSales = (state.sales || []).filter(s => s && s.productId === productId);
     const totalSold = productSales.reduce((sum, s) => sum + s.quantity, 0);
     const totalBought = (state.fatonPurchases || []).filter(p => p.productId === productId).reduce((sum, p) => sum + p.quantity, 0);
-    const totalProfit = productSales.reduce((sum, s) => sum + s.profit, 0);
+    const totalProfit = productSales.reduce((sum, s) => sum + ((s && s.profit) || 0), 0);
 
     // Top clients
     const clientCounts = {};
@@ -6932,9 +6932,9 @@ function refreshBalance() {
     });
 
     // Cash from sales (approximate cash in hand)
-    const totalCashRevenue = state.sales.filter(s => (s.paymentType || 'cash') === 'cash').reduce((sum, s) => sum + s.sellTotal, 0);
-    const totalFatonPayments = state.fatonPayments.reduce((sum, p) => sum + p.amount, 0);
-    const totalExpenses = state.expenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalCashRevenue = state.sales.filter(s => (s.paymentType || 'cash') === 'cash').reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0);
+    const totalFatonPayments = (state.fatonPayments || []).reduce((sum, p) => sum + ((p && p.amount) || 0), 0);
+    const totalExpenses = (state.expenses || []).reduce((sum, e) => sum + e.amount, 0);
     const cashInHand = totalCashRevenue - totalFatonPayments - totalExpenses;
 
     // Net balance: what we have - what we owe
@@ -6983,9 +6983,9 @@ function refreshBalance() {
             <table>
                 <thead><tr><th>Klienti</th><th>Borxhi</th><th>Faturat e hapura</th></tr></thead>
                 <tbody>
-                    ${state.clients.filter(c => c.debt > 0 || state.sales.some(s => s.clientId === c.id && s.paymentType === 'invoice_60' && !s.invoicePaid)).map(c => {
+                    ${(state.clients || []).filter(c => c.debt > 0 || state.sales.some(s => s.clientId === c.id && s.paymentType === 'invoice_60' && !s.invoicePaid)).map(c => {
                         const openInv = (state.sales || []).filter(s => s && s.clientId === c.id && s.paymentType === 'invoice_60' && !s.invoicePaid);
-                        const invTotal = openInv.reduce((sum, s) => sum + s.sellTotal, 0);
+                        const invTotal = openInv.reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0);
                         return `<tr>
                             <td>${c.name}</td>
                             <td style="color:var(--danger)">${c.debt || 0} den</td>
@@ -7031,10 +7031,10 @@ function checkWeeklyReport() {
         weekStart: lastWeekStartStr,
         weekEnd: lastWeekEndStr,
         totalSales: weekSales.length,
-        totalRevenue: weekSales.reduce((sum, s) => sum + s.sellTotal, 0),
-        totalProfit: weekSales.reduce((sum, s) => sum + s.profit, 0),
-        cashRevenue: weekSales.filter(s => (s.paymentType || 'cash') === 'cash').reduce((sum, s) => sum + s.sellTotal, 0),
-        invoiceRevenue: weekSales.filter(s => s.paymentType === 'invoice_60').reduce((sum, s) => sum + s.sellTotal, 0),
+        totalRevenue: weekSales.reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0),
+        totalProfit: weekSales.reduce((sum, s) => sum + ((s && s.profit) || 0), 0),
+        cashRevenue: weekSales.filter(s => (s.paymentType || 'cash') === 'cash').reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0),
+        invoiceRevenue: weekSales.filter(s => s.paymentType === 'invoice_60').reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0),
         topProduct: (() => {
             const counts = {};
             weekSales.forEach(s => counts[s.productId] = (counts[s.productId] || 0) + s.quantity);
@@ -7481,11 +7481,11 @@ function refreshCashDrawer() {
     const today = new Date().toISOString().split('T')[0];
     const drawerToday = state.cashDrawer.find(d => d.date === today);
     const todaySales = state.sales.filter(s => s.date === today && s.paymentType === 'cash');
-    const todayFatonPayments = state.fatonPayments.filter(f => f.date === today);
-    const todayExpenses = state.expenses.filter(e => e.date === today);
+    const todayFatonPayments = (state.fatonPayments || []).filter(f => f.date === today);
+    const todayExpenses = (state.expenses || []).filter(e => e.date === today);
 
     const startingCash = drawerToday ? drawerToday.startingCash : 0;
-    const cashSales = todaySales.reduce((sum, s) => sum + s.sellTotal, 0);
+    const cashSales = todaySales.reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0);
     const fatonPayments = todayFatonPayments.reduce((sum, f) => sum + f.amount, 0);
     const expenses = todayExpenses.reduce((sum, e) => sum + e.amount, 0);
     const expectedBalance = startingCash + cashSales - fatonPayments - expenses;
@@ -7595,9 +7595,9 @@ function addClientPaymentLog(clientId, amount, method, note) {
 function generatePLReport() {
     const filterMonth = state.salesMonthFilter || '';
     const sales = filterMonth ? state.sales.filter(s => s.date.startsWith(filterMonth)) : state.sales;
-    const expenses = filterMonth ? state.expenses.filter(e => e.date.startsWith(filterMonth)) : state.expenses;
+    const expenses = filterMonth ? (state.expenses || []).filter(e => e.date.startsWith(filterMonth)) : state.expenses;
 
-    const totalRevenue = sales.reduce((sum, s) => sum + s.sellTotal, 0);
+    const totalRevenue = sales.reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0);
     const totalCOGS = sales.reduce((sum, s) => sum + s.buyTotal, 0);
     const grossProfit = totalRevenue - totalCOGS;
     const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
@@ -7678,8 +7678,8 @@ function generateTrendTable(months) {
         return {
             month: m,
             count: sales.length,
-            revenue: sales.reduce((sum, s) => sum + s.sellTotal, 0),
-            profit: sales.reduce((sum, s) => sum + s.profit, 0)
+            revenue: sales.reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0),
+            profit: sales.reduce((sum, s) => sum + ((s && s.profit) || 0), 0)
         };
     });
 
@@ -7710,7 +7710,7 @@ function generateTrendTable(months) {
 // ===================== FEATURE 11: AGING REPORT FOR DEBTS =====================
 function generateAgingReport() {
     const today = new Date();
-    const clients = state.clients.filter(c => c.debt > 0);
+    const clients = (state.clients || []).filter(c => c.debt > 0);
 
     const aging = {
         '0-30': [],
@@ -7926,7 +7926,7 @@ function openPresetModal(editId) {
         <div class="form-group">
             <label>Location:</label>
             <select id="preset-location">
-                ${state.locations.map(l => `<option value="${l}" ${preset && preset.location === l ? 'selected' : ''}>${l}</option>`).join('')}
+                ${(state.locations || []).map(l => `<option value="${l}" ${preset && preset.location === l ? 'selected' : ''}>${l}</option>`).join('')}
             </select>
         </div>
         <button class="btn btn-primary" onclick="${isEdit ? `updatePreset(${editId})` : 'addPreset()'}" style="width:100%;">
@@ -8323,8 +8323,8 @@ function resetClients() {
 // 4. Reset vetem Borxhet e Klienteve (pa fshire klientet)
 function resetClientDebts() {
     confirmReset('Borxhet e Klienteve', function() {
-            state.clients.forEach(c => { c.debt = 0; });
-        state.sales.forEach(s => {
+            (state.clients || []).forEach(c => { c.debt = 0; });
+        (state.sales || []).forEach(s => {
             if (s.paymentType === 'invoice_60' && !s.invoicePaid) {
                 s.invoicePaid = true;
             }
@@ -8464,7 +8464,7 @@ function resetPresets() {
 function resetProfit() {
     confirmReset('Fitimi & Ndarja', function() {
             // Zero out profit from all sales
-        state.sales.forEach(s => { s.profit = 0; });
+        (state.sales || []).forEach(s => { s.profit = 0; });
         // Reset Faton profit tracking
         state.fatonProfitOwed = [];
         state.fatonProfitCollections = [];
@@ -8558,7 +8558,7 @@ function openResetCenter() {
             </button>
             <button class="btn btn-reset" onclick="resetClientDebts()">
                 <i class="fas fa-hand-holding-usd"></i> Zero Borxhet
-                <span class="reset-desc">${state.clients.filter(c=>c.debt>0).length} me borxh</span>
+                <span class="reset-desc">${(state.clients || []).filter(c=>c.debt>0).length} me borxh</span>
             </button>
             <button class="btn btn-reset" onclick="resetFaton()">
                 <i class="fas fa-handshake"></i> Reset Fatoni
@@ -9318,8 +9318,8 @@ function getExportButtons(exportFuncName) {
 function openClientPaymentDashboard() {
     const today = new Date().toISOString().split('T')[0];
     const todayPayments = (state.clientPayments || []).filter(p => p.date === today);
-    const todayTotal = todayPayments.reduce((s, p) => s + p.amount, 0);
-    const clientsWithDebt = state.clients.filter(c => c.debt > 0);
+    const todayTotal = todayPayments.reduce((s, p) => s + ((p && p.amount) || 0), 0);
+    const clientsWithDebt = (state.clients || []).filter(c => c.debt > 0);
     const totalDebt = clientsWithDebt.reduce((s, c) => s + c.debt, 0);
 
     // Profit split for today
@@ -9377,7 +9377,7 @@ function openQuickCollectModal(clientId) {
     const clientSales = (state.sales || []).filter(s => s && s.clientId === clientId);
     const totalProfit = clientSales.reduce((s, x) => s + x.profit, 0);
     const totalBought = clientSales.reduce((s, x) => s + x.sellTotal, 0);
-    const totalPaid = (state.clientPayments || []).filter(p => p.clientId === clientId && p.status !== 'cancelled').reduce((s, p) => s + p.amount, 0);
+    const totalPaid = (state.clientPayments || []).filter(p => p.clientId === clientId && p.status !== 'cancelled').reduce((s, p) => s + ((p && p.amount) || 0), 0);
     const lastPayments = (state.clientPayments || []).filter(p => p.clientId === clientId && p.status !== 'cancelled').sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
     const paidPercent = client.debt > 0 ? Math.round((totalPaid / (totalPaid + client.debt)) * 100) : 100;
 
@@ -9563,7 +9563,7 @@ function collectClientPayment(clientId) {
 function sendProfitSplitWhatsApp(clientId, amount, oldDebt, profit, ownerShare, partnerShare) {
     const client = (state.clients || []).find(c => c && c.id === clientId);
     if (!client) return;
-    const totalPaid = (state.clientPayments || []).filter(p => p.clientId === clientId && p.status !== 'cancelled').reduce((s, p) => s + p.amount, 0);
+    const totalPaid = (state.clientPayments || []).filter(p => p.clientId === clientId && p.status !== 'cancelled').reduce((s, p) => s + ((p && p.amount) || 0), 0);
     const totalBought = (state.sales || []).filter(s => s && s.clientId === clientId).reduce((s, x) => s + x.sellTotal, 0);
     const today = new Date().toLocaleDateString('sq-AL');
 
@@ -9859,7 +9859,7 @@ function showClientPaymentHistory(clientId) {
     if (!client) return;
     const payments = (state.clientPayments || []).filter(p => p.clientId === clientId).sort((a, b) => b.date.localeCompare(a.date));
     const clientSales = (state.sales || []).filter(s => s && s.clientId === clientId).sort((a, b) => b.date.localeCompare(a.date));
-    const totalPaid = payments.filter(p => p.status !== 'cancelled').reduce((s, p) => s + p.amount, 0);
+    const totalPaid = payments.filter(p => p.status !== 'cancelled').reduce((s, p) => s + ((p && p.amount) || 0), 0);
     const totalBought = clientSales.reduce((s, x) => s + x.sellTotal, 0);
     const totalProfit = clientSales.reduce((s, x) => s + x.profit, 0);
 
@@ -10238,7 +10238,7 @@ function showClientRanking() {
     let html = '<table class="data-table"><thead><tr><th>#</th><th>Klienti</th><th>Borxhi</th><th>Blerje totale</th><th>Pagesa totale</th><th>Statusi</th></tr></thead><tbody>';
     clients.forEach((c, i) => {
         const totalBought = (state.sales || []).filter(s => s && s.clientId === c.id).reduce((s, x) => s + x.sellTotal, 0);
-        const totalPaid = (state.clientPayments || []).filter(p => p.clientId === c.id && p.status !== 'cancelled').reduce((s, p) => s + p.amount, 0);
+        const totalPaid = (state.clientPayments || []).filter(p => p.clientId === c.id && p.status !== 'cancelled').reduce((s, p) => s + ((p && p.amount) || 0), 0);
         const status = c.debt <= 0 ? '<span style="color:var(--success);"><i class="fas fa-check-circle"></i> I rregullt</span>' : c.debt > 10000 ? '<span style="color:var(--danger);"><i class="fas fa-exclamation-circle"></i> Borxh i larte</span>' : '<span style="color:var(--warning);"><i class="fas fa-clock"></i> Ka borxh</span>';
         html += '<tr><td><strong>' + (i + 1) + '</strong></td><td>' + c.name + '</td>';
         html += '<td style="color:' + (c.debt > 0 ? 'var(--danger)' : 'var(--success)') + ';font-weight:bold;">' + c.debt + ' den</td>';
@@ -10261,7 +10261,7 @@ function showClientPaymentChart(clientId) {
         const now = new Date();
         for (let i = 5; i >= 0; i--) { const d = new Date(now.getFullYear(), now.getMonth() - i, 1); months.push(d.toISOString().slice(0, 7)); }
         const buyData = months.map(m => (state.sales || []).filter(s => s && s.clientId === clientId && s.date && s.date.startsWith(m)).reduce((s, x) => s + x.sellTotal, 0));
-        const payData = months.map(m => (state.clientPayments || []).filter(p => p.clientId === clientId && p.date && p.date.startsWith(m)).reduce((s, p) => s + p.amount, 0));
+        const payData = months.map(m => (state.clientPayments || []).filter(p => p.clientId === clientId && p.date && p.date.startsWith(m)).reduce((s, p) => s + ((p && p.amount) || 0), 0));
         const labels = months.map(m => new Date(m + '-01').toLocaleDateString('sq-AL', { month: 'short' }));
         new Chart(canvas, {
             type: 'bar',
@@ -10295,11 +10295,11 @@ function showPaymentsByPeriod() {
 
 // Feature 22: Client comparison
 function showClientComparison() {
-    const clients = state.clients.filter(c => state.sales.some(s => s.clientId === c.id));
+    const clients = (state.clients || []).filter(c => state.sales.some(s => s.clientId === c.id));
     let html = '<table class="data-table"><thead><tr><th>Klienti</th><th>Blerje</th><th>Paguar</th><th>Borxh</th><th>% Paguar</th><th>Vleresimi</th></tr></thead><tbody>';
     clients.forEach(c => {
         const bought = (state.sales || []).filter(s => s && s.clientId === c.id).reduce((s, x) => s + x.sellTotal, 0);
-        const paid = (state.clientPayments || []).filter(p => p.clientId === c.id && p.status !== 'cancelled').reduce((s, p) => s + p.amount, 0);
+        const paid = (state.clientPayments || []).filter(p => p.clientId === c.id && p.status !== 'cancelled').reduce((s, p) => s + ((p && p.amount) || 0), 0);
         const pct = bought > 0 ? Math.round(paid / bought * 100) : 100;
         const rating = pct >= 90 ? '<span style="color:var(--success);">Shkelqyeshem</span>' : pct >= 70 ? '<span style="color:var(--accent);">Mire</span>' : pct >= 50 ? '<span style="color:var(--warning);">Mesatar</span>' : '<span style="color:var(--danger);">Dobet</span>';
         html += '<tr><td><strong>' + c.name + '</strong></td><td>' + bought + '</td><td style="color:var(--success);">' + paid + '</td><td style="color:var(--danger);">' + c.debt + '</td>';
@@ -10313,7 +10313,7 @@ function showClientComparison() {
 // Feature 13: Auto debt reminders check
 function checkClientDebtReminders() {
     const now = new Date();
-    state.clients.forEach(c => {
+    (state.clients || []).forEach(c => {
         if (c.debt <= 0) return;
         const lastPayment = (state.clientPayments || []).filter(p => p.clientId === c.id).sort((a, b) => b.date.localeCompare(a.date))[0];
         if (lastPayment) {
@@ -10350,7 +10350,7 @@ function showWeeklyPaymentReport() {
     const weekAgo = new Date(now.getTime() - 7 * 86400000);
     const weekStr = weekAgo.toISOString().split('T')[0];
     const weekPayments = (state.clientPayments || []).filter(p => p.date >= weekStr && p.status !== 'cancelled');
-    const totalCollected = weekPayments.reduce((s, p) => s + p.amount, 0);
+    const totalCollected = weekPayments.reduce((s, p) => s + ((p && p.amount) || 0), 0);
     const totalDebtRemaining = state.clients.reduce((s, c) => s + c.debt, 0);
     const clientsWhoPaid = [...new Set(weekPayments.map(p => p.clientId))].length;
 
@@ -10823,7 +10823,7 @@ function refreshDashboardMiniatures() {
     }
 
     const lowStock = PRODUCTS.filter(p => (state.stock[p.id] || 0) < 5);
-    const debtClients = state.clients.filter(c => c.debt > 0);
+    const debtClients = (state.clients || []).filter(c => c.debt > 0);
     const totalDebt = debtClients.reduce((s, c) => s + (c.debt || 0), 0);
     const pendingOrders = (state.orders || []).filter(o => o && o.status === 'pending');
     const fatonDebt = calcTotalOwedToFaton();
@@ -10856,7 +10856,7 @@ function generateSmartNotifications() {
     });
 
     // Client debt alerts
-    state.clients.filter(c => c.debt > 0).forEach(c => {
+    (state.clients || []).filter(c => c.debt > 0).forEach(c => {
         if (c.debt > 5000) notifs.push({ type: 'danger', icon: 'fa-user-clock', text: `${c.name} ka borxh ${c.debt} ден - shumë i lartë!`, action: `openClient360('${c.id}')` });
     });
 
@@ -10905,7 +10905,7 @@ function showSmartSuggestions() {
     }
 
     // Client suggestions
-    state.clients.forEach(c => {
+    (state.clients || []).forEach(c => {
         const sales = (state.sales || []).filter(s => s && s.clientId === c.id);
         if (sales.length >= 3) {
             const dates = sales.map(s => new Date(s.date)).sort((a,b) => b-a);
@@ -11028,7 +11028,7 @@ function updateFABBadge() {
     const badge = document.getElementById('fab-badge');
     if (!badge) return;
     const pendingOrders = (state.orders || []).filter(o => o && o.status === 'pending').length;
-    const debtClients = state.clients.filter(c => c.debt > 0).length;
+    const debtClients = (state.clients || []).filter(c => c.debt > 0).length;
     const total = pendingOrders + debtClients;
     if (total > 0) {
         badge.textContent = total;
@@ -11042,7 +11042,7 @@ function updateFABBadge() {
 function openGlobalTimeline() {
     const events = [];
 
-    state.sales.forEach(s => {
+    (state.sales || []).forEach(s => {
         const p = getProduct(s.productId);
         const c = state.clients.find(cl => cl.id === s.clientId);
         events.push({ date: s.date, time: s.time || '00:00', type: 'sale', icon: 'fa-cash-register', cls: 'sale', title: `Shitje: ${p ? p.name : 'N/A'} x${s.quantity}`, detail: `${c ? c.name : 'Pa klient'} | ${s.sellTotal} ден | Fitim: ${s.profit} ден` });
@@ -11056,7 +11056,7 @@ function openGlobalTimeline() {
         events.push({ date: r.date, time: '12:00', type: 'return', icon: 'fa-undo', cls: 'return', title: `Kthim: ${r.productId}`, detail: `${r.quantity} copë | ${r.refundAmount || 0} ден` });
     });
 
-    state.orders.forEach(o => {
+    (state.orders || []).forEach(o => {
         events.push({ date: o.date, time: '12:00', type: 'order', icon: 'fa-clipboard-list', cls: 'order', title: `Porosi: ${o.productId}`, detail: `${o.quantity} copë | ${o.status}` });
     });
 
@@ -11078,12 +11078,12 @@ function openGlobalTimeline() {
 function generateDailyReport() {
     const today = new Date().toISOString().split('T')[0];
     const todaySales = state.sales.filter(s => s.date === today);
-    const todayProfit = todaySales.reduce((sum, s) => sum + s.profit, 0);
-    const todayRevenue = todaySales.reduce((sum, s) => sum + s.sellTotal, 0);
-    const todayCash = todaySales.filter(s => (s.paymentType || 'cash') === 'cash').reduce((sum, s) => sum + s.sellTotal, 0);
-    const todayInvoice = todaySales.filter(s => s.paymentType === 'invoice_60').reduce((sum, s) => sum + s.sellTotal, 0);
+    const todayProfit = todaySales.reduce((sum, s) => sum + ((s && s.profit) || 0), 0);
+    const todayRevenue = todaySales.reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0);
+    const todayCash = todaySales.filter(s => (s.paymentType || 'cash') === 'cash').reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0);
+    const todayInvoice = todaySales.filter(s => s.paymentType === 'invoice_60').reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0);
     const todayPayments = (state.fatonPayments || []).filter(p => p.date === today);
-    const todayFatonPaid = todayPayments.reduce((sum, p) => sum + p.amount, 0);
+    const todayFatonPaid = todayPayments.reduce((sum, p) => sum + ((p && p.amount) || 0), 0);
     const totalDebtClients = state.clients.reduce((sum, c) => sum + (c.debt || 0), 0);
     const fatonDebt = calcTotalOwedToFaton();
     const ownerShare = calcOwnerShare(todayProfit);
@@ -11158,8 +11158,8 @@ function openProduct360(productId) {
     const stock = state.stock[productId] || 0;
     const sales = (state.sales || []).filter(s => s && s.productId === productId);
     const totalSold = sales.reduce((sum, s) => sum + s.quantity, 0);
-    const totalRevenue = sales.reduce((sum, s) => sum + s.sellTotal, 0);
-    const totalProfit = sales.reduce((sum, s) => sum + s.profit, 0);
+    const totalRevenue = sales.reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0);
+    const totalProfit = sales.reduce((sum, s) => sum + ((s && s.profit) || 0), 0);
     const totalBought = sales.reduce((sum, s) => sum + s.buyTotal, 0);
     const uniqueClients = [...new Set(sales.map(s => s.clientId).filter(Boolean))];
 
@@ -11190,11 +11190,11 @@ function openClient360(clientId) {
     if (!client) return;
 
     const sales = (state.sales || []).filter(s => s && s.clientId === clientId);
-    const totalPurchases = sales.reduce((sum, s) => sum + s.sellTotal, 0);
-    const totalProfit = sales.reduce((sum, s) => sum + s.profit, 0);
-    const cashPaid = sales.filter(s => (s.paymentType || 'cash') === 'cash').reduce((sum, s) => sum + s.sellTotal, 0);
+    const totalPurchases = sales.reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0);
+    const totalProfit = sales.reduce((sum, s) => sum + ((s && s.profit) || 0), 0);
+    const cashPaid = sales.filter(s => (s.paymentType || 'cash') === 'cash').reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0);
     const payments = (state.clientPayments || []).filter(p => p.clientId === clientId);
-    const totalClientPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+    const totalClientPaid = payments.reduce((sum, p) => sum + ((p && p.amount) || 0), 0);
     const openInvoices = sales.filter(s => s.paymentType === 'invoice_60' && !s.invoicePaid);
     const notes = state.notes.filter(n => n.linkedClient === clientId);
     const orders = (state.orders || []).filter(o => o && o.clientId === clientId);
@@ -12475,7 +12475,7 @@ function updateLiveProfitTracker() {
         if (topbarRight) topbarRight.insertBefore(tracker, topbarRight.firstChild);
     }
     const today = new Date().toISOString().split('T')[0];
-    const todayProfit = state.sales.filter(s => s.date === today).reduce((sum, s) => sum + s.profit, 0);
+    const todayProfit = state.sales.filter(s => s.date === today).reduce((sum, s) => sum + ((s && s.profit) || 0), 0);
     tracker.innerHTML = '<i class="fas fa-coins"></i> ' + todayProfit + ' ден';
 }
 
@@ -12500,7 +12500,7 @@ function showClientOfDay() {
 // FIX-10: Comparison Chart
 function showComparisonChart() {
     const last7 = []; const now = new Date();
-    for (let i = 6; i >= 0; i--) { const d = new Date(now); d.setDate(d.getDate() - i); const dateStr = d.toISOString().split('T')[0]; last7.push({ date: dateStr.slice(5), sales: state.sales.filter(s => s.date === dateStr).reduce((s, x) => s + x.sellTotal, 0), fatonPay: (state.fatonPayments || []).filter(p => p.date === dateStr).reduce((s, p) => s + p.amount, 0), clientPay: (state.clientPayments || []).filter(p => p.date === dateStr).reduce((s, p) => s + p.amount, 0) }); }
+    for (let i = 6; i >= 0; i--) { const d = new Date(now); d.setDate(d.getDate() - i); const dateStr = d.toISOString().split('T')[0]; last7.push({ date: dateStr.slice(5), sales: state.sales.filter(s => s.date === dateStr).reduce((s, x) => s + x.sellTotal, 0), fatonPay: (state.fatonPayments || []).filter(p => p.date === dateStr).reduce((s, p) => s + ((p && p.amount) || 0), 0), clientPay: (state.clientPayments || []).filter(p => p.date === dateStr).reduce((s, p) => s + ((p && p.amount) || 0), 0) }); }
     const maxVal = Math.max(...last7.map(d => Math.max(d.sales, d.fatonPay, d.clientPay)), 1);
     let html = '<h3><i class="fas fa-chart-bar"></i> Krahasim: Shitje vs Pagesa</h3><div style="display:flex;gap:6px;margin-bottom:10px;font-size:0.8rem;"><span><span style="display:inline-block;width:12px;height:12px;background:var(--success);border-radius:2px;"></span> Shitje</span><span><span style="display:inline-block;width:12px;height:12px;background:var(--primary);border-radius:2px;"></span> Fatoni</span><span><span style="display:inline-block;width:12px;height:12px;background:var(--warning);border-radius:2px;"></span> Klientë</span></div>';
     html += '<div style="display:flex;gap:8px;align-items:flex-end;height:150px;">';
@@ -12762,7 +12762,7 @@ function initFatonDesignFeatures() {
 
     // Render progress bar
     const totalPurchased = (state.fatonPurchases || []).reduce((s, p) => s + p.total, 0);
-    const totalPaid = state.fatonPayments.reduce((s, p) => s + p.amount, 0);
+    const totalPaid = (state.fatonPayments || []).reduce((s, p) => s + ((p && p.amount) || 0), 0);
     const deducted = (state.fatonProfitCollections || []).filter(c => c.type === 'deduct_from_debt' || c.type === 'combination').reduce((s, c) => s + (c.deductAmount || 0), 0);
     renderDebtProgressBar('faton-progress-bar', totalPaid + deducted, totalPurchased);
 
@@ -12833,7 +12833,7 @@ function showPartnerProfitChart() {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
         const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
         const mSales = state.sales.filter(s => s.date && s.date.startsWith(key));
-        const profit = mSales.reduce((sum, s) => sum + s.profit, 0);
+        const profit = mSales.reduce((sum, s) => sum + ((s && s.profit) || 0), 0);
         const elezShare = calcOwnerShare(profit);
         const orhanShare = calcPartnerShare(profit);
         months.push(monthNames[d.getMonth()]);
@@ -12886,7 +12886,7 @@ function showSleepingClients() {
     threshold.setDate(threshold.getDate() - 30);
     const thresholdStr = threshold.toISOString().split('T')[0];
 
-    const sleeping = state.clients.map(c => {
+    const sleeping = (state.clients || []).map(c => {
         const clientSales = (state.sales || []).filter(s => s && s.clientId === c.id);
         if (clientSales.length === 0) return null;
         const lastSale = clientSales.reduce((a, b) => a.date > b.date ? a : b);
@@ -12922,8 +12922,8 @@ function showSleepingClients() {
 // FEATURE 4: Totali ditor i pagesave
 function getTodayPaymentsTotal() {
     const today = new Date().toISOString().split('T')[0];
-    const clientPay = (state.clientPayments || []).filter(p => p.date === today).reduce((s, p) => s + p.amount, 0);
-    const fatonPay = (state.fatonPayments || []).filter(p => p.date === today).reduce((s, p) => s + p.amount, 0);
+    const clientPay = (state.clientPayments || []).filter(p => p.date === today).reduce((s, p) => s + ((p && p.amount) || 0), 0);
+    const fatonPay = (state.fatonPayments || []).filter(p => p.date === today).reduce((s, p) => s + ((p && p.amount) || 0), 0);
     return clientPay + fatonPay;
 }
 
@@ -12932,8 +12932,8 @@ function showTodayPaymentsSummary() {
     const clientPayments = (state.clientPayments || []).filter(p => p.date === today);
     const fatonPayments = (state.fatonPayments || []).filter(p => p.date === today);
 
-    const totalClient = clientPayments.reduce((s, p) => s + p.amount, 0);
-    const totalFaton = fatonPayments.reduce((s, p) => s + p.amount, 0);
+    const totalClient = clientPayments.reduce((s, p) => s + ((p && p.amount) || 0), 0);
+    const totalFaton = fatonPayments.reduce((s, p) => s + ((p && p.amount) || 0), 0);
     const grandTotal = totalClient + totalFaton;
 
     let html = `<h3><i class="fas fa-hand-holding-usd"></i> Pagesat e Sotme (${today})</h3>`;
@@ -12999,7 +12999,7 @@ function duplicateSale(saleIndex) {
             <label>${t('client')} (${t('optional')}):</label>
             <select id="sale-client">
                 <option value="">-- ${t('select_client')} --</option>
-                ${state.clients.map(c => `<option value="${c.id}" ${c.id === sale.clientId ? 'selected' : ''}>${c.name}</option>`).join('')}
+                ${(state.clients || []).map(c => `<option value="${c.id}" ${c.id === sale.clientId ? 'selected' : ''}>${c.name}</option>`).join('')}
             </select>
         </div>
         <div class="form-group">
@@ -13070,7 +13070,7 @@ function confirmDuplicateSale() {
 // FEATURE 6: Shitje të shpejta (Quick sales) — butonë në Dashboard
 function showQuickSaleButtons() {
     const productCounts = {};
-    state.sales.forEach(s => {
+    (state.sales || []).forEach(s => {
         productCounts[s.productId] = (productCounts[s.productId] || 0) + s.quantity;
     });
 
@@ -13108,7 +13108,7 @@ function openQuickSaleForProduct(productId) {
             <label>${t('client')} (${t('optional')}):</label>
             <select id="sale-client">
                 <option value="">-- ${t('select_client')} --</option>
-                ${state.clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+                ${(state.clients || []).map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
             </select>
         </div>
         <div class="form-group">
@@ -13171,7 +13171,7 @@ function saveDailyTarget() {
 function getDailyTargetProgress() {
     if (!state.dailyTarget) state.dailyTarget = 0;
     const today = new Date().toISOString().split('T')[0];
-    const current = state.sales.filter(s => s.date === today).reduce((sum, s) => sum + s.profit, 0);
+    const current = state.sales.filter(s => s.date === today).reduce((sum, s) => sum + ((s && s.profit) || 0), 0);
     const target = state.dailyTarget;
     const percent = target > 0 ? Math.round((current / target) * 100) : 0;
     return { target, current, percent };
@@ -13202,8 +13202,8 @@ function showWeeklyComparison() {
     const thisProfit = thisWeekSales.reduce((s, x) => s + x.profit, 0);
     const lastProfit = lastWeekSales.reduce((s, x) => s + x.profit, 0);
 
-    const thisPayments = (state.clientPayments || []).filter(p => p.date >= thisWeekStartStr && p.date <= todayStr).reduce((s, p) => s + p.amount, 0);
-    const lastPayments = (state.clientPayments || []).filter(p => p.date >= lastWeekStartStr && p.date <= lastWeekEndStr).reduce((s, p) => s + p.amount, 0);
+    const thisPayments = (state.clientPayments || []).filter(p => p.date >= thisWeekStartStr && p.date <= todayStr).reduce((s, p) => s + ((p && p.amount) || 0), 0);
+    const lastPayments = (state.clientPayments || []).filter(p => p.date >= lastWeekStartStr && p.date <= lastWeekEndStr).reduce((s, p) => s + ((p && p.amount) || 0), 0);
 
     function pctChange(curr, prev) {
         if (prev === 0) return curr > 0 ? 100 : 0;
@@ -13298,7 +13298,7 @@ function deleteClientNote(noteId, clientId) {
 function updateSidebarStats() {
     const today = new Date().toISOString().split('T')[0];
     const todaySales = state.sales.filter(s => s.date === today);
-    const todayProfit = todaySales.reduce((sum, s) => sum + s.profit, 0);
+    const todayProfit = todaySales.reduce((sum, s) => sum + ((s && s.profit) || 0), 0);
     const totalClientDebt = state.clients.reduce((sum, c) => sum + (c.debt || 0), 0);
 
     // Remove legacy duplicate sales badge if exists
@@ -17010,7 +17010,7 @@ function showAutoSaveIndicator() {
 
 // Missing function: Client debt chart
 function showClientDebtChart() {
-    const clients = state.clients.filter(c => c.debt > 0).sort((a, b) => b.debt - a.debt);
+    const clients = (state.clients || []).filter(c => c.debt > 0).sort((a, b) => b.debt - a.debt);
     let html = '<canvas id="client-debt-chart" width="400" height="300"></canvas>';
     if (clients.length === 0) {
         html = '<div style="text-align:center;padding:30px;color:var(--text-secondary);"><i class="fas fa-check-circle" style="font-size:3em;color:var(--success);"></i><p style="margin-top:10px;">Asnje klient nuk ka borxh!</p></div>';
@@ -17270,7 +17270,7 @@ function showVersionPreview(n) {
                         <tr><td style="padding:8px;">Klientë</td><td style="padding:8px;text-align:right;">${clientsCount}</td><td style="padding:8px;text-align:right;">${curClients}</td><td style="padding:8px;text-align:right;font-weight:bold;color:${curClients >= clientsCount ? 'var(--success)' : 'var(--danger)'};">${diff(curClients, clientsCount)}</td></tr>
                         <tr><td style="padding:8px;">Pagesa</td><td style="padding:8px;text-align:right;">${paymentsCount}</td><td style="padding:8px;text-align:right;">${(state.clientPayments||[]).length}</td><td style="padding:8px;text-align:right;">${diff((state.clientPayments||[]).length, paymentsCount)}</td></tr>
                         <tr><td style="padding:8px;">Shpenzime</td><td style="padding:8px;text-align:right;">${expensesCount}</td><td style="padding:8px;text-align:right;">${state.expenses.length}</td><td style="padding:8px;text-align:right;">${diff(state.expenses.length, expensesCount)}</td></tr>
-                        <tr style="background:var(--bg-secondary);"><td style="padding:8px;font-weight:bold;">Qarkullim</td><td style="padding:8px;text-align:right;font-weight:bold;">${totalRevenue} den</td><td style="padding:8px;text-align:right;font-weight:bold;">${state.sales.reduce((s,x)=>s+(x.sellTotal||0),0)} den</td><td></td></tr>
+                        <tr style="background:var(--bg-secondary);"><td style="padding:8px;font-weight:bold;">Qarkullim</td><td style="padding:8px;text-align:right;font-weight:bold;">${totalRevenue} den</td><td style="padding:8px;text-align:right;font-weight:bold;">${(state.sales || []).reduce((s,x)=>s+(x.sellTotal||0),0)} den</td><td></td></tr>
                         <tr><td style="padding:8px;font-weight:bold;">Borxh total</td><td style="padding:8px;text-align:right;color:var(--danger);font-weight:bold;">${totalDebt} den</td><td style="padding:8px;text-align:right;color:var(--danger);font-weight:bold;">${state.clients.reduce((s,c)=>s+(c.debt||0),0)} den</td><td></td></tr>
                     </tbody>
                 </table>
@@ -17459,7 +17459,7 @@ function saveHourlySnapshot() {
         clients: state.clients.length,
         payments: (state.clientPayments || []).length,
         totalDebt: state.clients.reduce((s, c) => s + (c.debt || 0), 0),
-        totalRevenue: state.sales.reduce((s, x) => s + (x.sellTotal || 0), 0),
+        totalRevenue: (state.sales || []).reduce((s, x) => s + (x.sellTotal || 0), 0),
         // Full state for last 24h only
         stateJson: JSON.stringify(state)
     };

@@ -6175,3 +6175,38 @@ select {
     .btn:hover, .stat-card:hover, .stock-card:hover, .contact-card:hover { transform: none !important; }
     .modal, .modal-overlay, .page, .badge.badge-new, .skeleton { animation: none !important; }
 }
+
+/* ===================== DESIGN POLISH BATCH 2 ===================== */
+/* D34: Dashboard cards with subtle gradient background */
+.stat-card {
+    background-image: linear-gradient(145deg, var(--bg-primary, #fff) 0%, rgba(225, 112, 85, 0.03) 100%);
+    border: 1px solid rgba(0,0,0,0.04);
+}
+[data-theme="dark"] .stat-card {
+    background-image: linear-gradient(145deg, var(--bg-primary, #1e1e1e) 0%, rgba(225, 112, 85, 0.08) 100%);
+    border-color: rgba(255,255,255,0.06);
+}
+
+/* D35: Nicer tooltip */
+[title]:hover { position: relative; }
+
+/* D36: KPI number styling */
+.stat-card p, .stat-card h3 + p, .stock-count {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+}
+
+/* D37: Clearer danger/warning/success text */
+.text-danger, [style*="color:var(--danger)"] { font-weight: 600; }
+
+/* D38: Better backdrop blur on modal */
+.modal-overlay:not(.hidden) {
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+}
+
+/* D39: Search box polish harmonized with new search-box */
+.search-box:focus-within { box-shadow: 0 0 0 3px rgba(225, 112, 85, 0.22); }
+
+/* D40: Softer borders everywhere */
+.data-table, .stat-card, .stock-card { border-color: rgba(0,0,0,0.06); }
