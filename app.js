@@ -1250,7 +1250,7 @@ function confirmMarkInvoicePaid(index) {
             deductAmount: profitType === 'deduct_from_debt' ? amount : 0,
             cashAmount: profitType === 'faton_returns_cash' ? amount : 0,
             date: payDate,
-            note: (payNote ? payNote + ' | ' : '') + 'Fatura e paguar - ' + getProduct(sale.productId).name
+            note: (payNote ? payNote + ' | ' : '') + 'Fatura e paguar - ' + ((getProduct(sale.productId) || {}).name || '-')
         });
         showToast('Fitimi i mbledhur: ' + amount + ' ден', 'success');
     }
@@ -1600,7 +1600,7 @@ function _doPartialPayment(index) {
         showToast('Pagesë e regjistruar: ' + payAmount + ' ден (mbeten ' + (sale.sellTotal - newTotal) + ' ден)', 'info');
     }
 
-    logActivity('partial_payment', 'Pagesë ' + payAmount + ' ден për faturën: ' + getProduct(sale.productId).name + ' (' + _payMethodLabel(payMethod) + ')');
+    if (typeof logActivity === 'function') logActivity('partial_payment', 'Pagesë ' + payAmount + ' ден për faturën: ' + ((getProduct(sale.productId) || {}).name || '-') + ' (' + _payMethodLabel(payMethod) + ')');
     saveState();
     closeModal();
     refreshAll();
@@ -1897,25 +1897,30 @@ function checkClientDebtAlerts() {
 
 // Feature 12: Generate invoice with payment status
 function generateInvoiceWithStatus(saleIndex) {
+    // Bug #159: DOM null-checks
     const model = buildInvoiceModel(saleIndex);
     if (!model) return;
     currentInvoiceSaleIndex = saleIndex;
     const content = document.getElementById('invoice-content');
-    content.innerHTML = renderInvoiceHtml(model);
-    document.getElementById('invoice-modal').classList.remove('hidden');
-    document.getElementById('modal-overlay').classList.remove('hidden');
+    if (content) content.innerHTML = renderInvoiceHtml(model);
+    const modal = document.getElementById('invoice-modal');
+    const overlay = document.getElementById('modal-overlay');
+    if (modal) modal.classList.remove('hidden');
+    if (overlay) overlay.classList.remove('hidden');
 }
 
 // Feature 15: Auto-notify client on status change
 function autoNotifyClientOnStatusChange(saleIndex, oldStatus, newStatus) {
+    // Bug #160: sale + clients null-guard
+    if (!state.sales || !state.sales[saleIndex]) return;
     const sale = state.sales[saleIndex];
     if (!sale.clientId) return;
-    const client = state.clients.find(c => c.id === sale.clientId);
+    const client = (state.clients || []).find(c => c && c.id === sale.clientId);
     if (!client || !client.phone) return;
 
     let msg = '';
     if (newStatus === 'paid' && oldStatus !== 'paid') {
-        msg = 'Përshëndetje ' + client.name + ', pagesa juaj prej ' + sale.sellTotal + ' ден për ' + getProduct(sale.productId).name + ' u konfirmua. Faleminderit! — Hurma App';
+        msg = 'Përshëndetje ' + (client.name || '') + ', pagesa juaj prej ' + (sale.sellTotal || 0) + ' ден për ' + ((getProduct(sale.productId) || {}).name || '-') + ' u konfirmua. Faleminderit! — Hurma App';
     } else if (newStatus === 'unpaid' && oldStatus === 'paid') {
         msg = 'Përshëndetje ' + client.name + ', statusi i pagesës suaj prej ' + sale.sellTotal + ' ден u ndryshua. Ju lutem na kontaktoni. — Hurma App';
     }
@@ -3272,31 +3277,35 @@ function refreshFaton() {
         .reduce((sum, c) => sum + (c.deductAmount || 0), 0);
     const cashDebt = totalPurchased - totalPaid - deductedFromDebt;
 
-    document.getElementById('faton-total-purchased').textContent = totalPurchased + ' den';
-    document.getElementById('faton-total-paid').textContent = totalPaid + ' den';
-    document.getElementById('faton-remaining').textContent = cashDebt + ' den';
+    // Bug #161: DOM null-checks për Faton totalet
+    const _setFaton = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    _setFaton('faton-total-purchased', totalPurchased + ' den');
+    _setFaton('faton-total-paid', totalPaid + ' den');
+    _setFaton('faton-remaining', cashDebt + ' den');
 
     // Profit from invoice sales
     const profitOwed = calcFatonProfitOwed();
     const profitCollected = calcFatonProfitCollected();
     const profitRemaining = profitOwed - profitCollected;
 
-    document.getElementById('faton-invoice-profit-total').textContent = profitOwed + ' den';
-    document.getElementById('faton-profit-collected').textContent = profitCollected + ' den';
-    document.getElementById('faton-profit-remaining').textContent = profitRemaining + ' den';
+    _setFaton('faton-invoice-profit-total', profitOwed + ' den');
+    _setFaton('faton-profit-collected', profitCollected + ' den');
+    _setFaton('faton-profit-remaining', profitRemaining + ' den');
 
-    // Feature 1: Net total balance
+    // Feature 1: Net total balance (Bug #162: null-safe netBalance/netBreakdown)
     const netTotal = cashDebt + profitRemaining;
     const netEl = document.getElementById('faton-net-total');
     const netBalance = document.getElementById('faton-net-balance');
     const netBreakdown = document.getElementById('faton-net-breakdown');
     if (netEl) {
         netEl.textContent = netTotal + ' den';
-        netBreakdown.textContent = 'Cash borxh: ' + cashDebt + ' den | Fitim pa mbledhur: ' + profitRemaining + ' den';
-        if (netTotal <= 0) netBalance.className = 'faton-net-balance faton-debt-clear';
-        else if (netTotal > (state.fatonDebtLimit || 999999)) netBalance.className = 'faton-net-balance faton-debt-danger';
-        else if (netTotal > (state.fatonDebtLimit || 999999) * 0.7) netBalance.className = 'faton-net-balance faton-debt-warning';
-        else netBalance.className = 'faton-net-balance';
+        if (netBreakdown) netBreakdown.textContent = 'Cash borxh: ' + cashDebt + ' den | Fitim pa mbledhur: ' + profitRemaining + ' den';
+        if (netBalance) {
+            if (netTotal <= 0) netBalance.className = 'faton-net-balance faton-debt-clear';
+            else if (netTotal > (state.fatonDebtLimit || 999999)) netBalance.className = 'faton-net-balance faton-debt-danger';
+            else if (netTotal > (state.fatonDebtLimit || 999999) * 0.7) netBalance.className = 'faton-net-balance faton-debt-warning';
+            else netBalance.className = 'faton-net-balance';
+        }
     }
 
     // Feature 2: Color coding on debt cards
@@ -4572,12 +4581,16 @@ function processReferencePayment() {
     const refs = [];
     checks.forEach(c => {
         const idx = parseInt(c.value);
-        total += purchases[idx].total;
-        refs.push(purchases[idx].date + ' - ' + getProduct(purchases[idx].productId).name);
+        const p = purchases[idx];
+        if (!p) return;
+        total += (p.total || 0);
+        refs.push((p.date || '-') + ' - ' + ((getProduct(p.productId) || {}).name || '-'));
     });
+    if (!state.fatonPayments) state.fatonPayments = [];
+    const _refDateEl = document.getElementById('ref-date');
     state.fatonPayments.push({
         id: Date.now(), amount: total,
-        date: document.getElementById('ref-date').value,
+        date: _refDateEl ? (_refDateEl.value || '') : '',
         note: 'Pagese per: ' + refs.join(', '),
         category: 'cash'
     });
