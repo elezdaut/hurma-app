@@ -858,6 +858,8 @@ function addSale() {
 }
 
 function updateSale(index) {
+    // Bug #383: sale null-guard
+    if (!state.sales || !state.sales[index]) return;
     const old = state.sales[index];
     const productId = document.getElementById('sale-product').value;
     const quantity = parseInt(document.getElementById('sale-quantity').value) || 0;
@@ -1345,6 +1347,8 @@ function _payMethodLabel(method) {
 
 // Feature 1: Quick toggle paid (with double confirmation)
 function quickMarkPaid(index) {
+    // Bug #384: sale null-guard
+    if (!state.sales || !state.sales[index]) return;
     const sale = state.sales[index];
     const product = getProduct(sale.productId);
     const client = sale.clientId ? (state.clients || []).find(c => c && c.id === sale.clientId) : null;
@@ -2038,10 +2042,12 @@ function deleteStockBatch(batchId) {
                 'Sasia do të zbritet nga stoku dhe blerjet e Fatonit.';
     if (!confirm(msg)) return;
 
-    // 1) Zbrit sasinë nga stoku aktual (nuk shkon nën 0)
-    state.stock[batch.productId] = Math.max(0, (state.stock[batch.productId] || 0) - batch.quantity);
+    // 1) Zbrit sasinë nga stoku aktual (Bug #381: state.stock + stockBatches guards)
+    if (!state.stock) state.stock = {};
+    state.stock[batch.productId] = Math.max(0, (state.stock[batch.productId] || 0) - (batch.quantity || 0));
 
-    // 2) Hiq batch-in
+    // 2) Hiq batch-in (Bug #382)
+    if (!state.stockBatches) state.stockBatches = [];
     state.stockBatches.splice(idx, 1);
 
     // 3) Gjej blerjen e Fatonit me të njëjtat fusha dhe hiqe (nëse ekziston)
