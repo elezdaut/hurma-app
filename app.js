@@ -985,31 +985,43 @@ function deleteSale(index) {
 }
 
 function refreshSales() {
+    // Bug #130: tbody null + state.sales guard + product null + DOM null-checks + date null
     const tbody = document.getElementById('sales-body');
-    let sales = [...state.sales].reverse();
+    if (!tbody) return;
+    let sales = [...(state.sales || [])].reverse();
     tbody.innerHTML = '';
 
     // Feature 10: Monthly tabs
     renderSalesMonthTabs();
 
-    // Apply filters
-    const search = (document.getElementById('sales-search').value || '').toLowerCase();
-    const dateFrom = document.getElementById('sales-date-from').value;
-    const dateTo = document.getElementById('sales-date-to').value;
-    const productFilter = document.getElementById('sales-product-filter').value;
-    const locationFilter = document.getElementById('sales-location-filter').value;
-    const paymentTypeFilter = document.getElementById('sales-payment-filter') ? document.getElementById('sales-payment-filter').value : '';
+    // Apply filters — të gjithë DOM element null-safe
+    const get = (id) => { const el = document.getElementById(id); return el ? (el.value || '') : ''; };
+    const search = get('sales-search').toLowerCase();
+    const dateFrom = get('sales-date-from');
+    const dateTo = get('sales-date-to');
+    const productFilter = get('sales-product-filter');
+    const locationFilter = get('sales-location-filter');
+    const paymentTypeFilter = get('sales-payment-filter');
     const monthFilter = state.salesMonthFilter || '';
 
     sales = sales.filter(s => {
+        if (!s) return false;
         const product = getProduct(s.productId);
-        if (search && !product.name.toLowerCase().includes(search)) return false;
-        if (dateFrom && s.date < dateFrom) return false;
-        if (dateTo && s.date > dateTo) return false;
+        // Bug #131: shmang crash kur produkti është fshirë — kërko edhe në client name + note
+        if (search) {
+            const pname = (product && product.name) ? product.name.toLowerCase() : '';
+            const client = s.clientId ? (state.clients || []).find(c => c.id === s.clientId) : null;
+            const cname = (client && client.name) ? client.name.toLowerCase() : '';
+            const note = (s.note || '').toLowerCase();
+            const dateStr = (s.date || '').toLowerCase();
+            if (!pname.includes(search) && !cname.includes(search) && !note.includes(search) && !dateStr.includes(search)) return false;
+        }
+        if (dateFrom && (s.date || '') < dateFrom) return false;
+        if (dateTo && (s.date || '') > dateTo) return false;
         if (productFilter && s.productId !== productFilter) return false;
         if (locationFilter && s.location !== locationFilter) return false;
         if (paymentTypeFilter && (s.paymentType || 'cash') !== paymentTypeFilter) return false;
-        if (monthFilter && !s.date.startsWith(monthFilter)) return false;
+        if (monthFilter && !(s.date || '').startsWith(monthFilter)) return false;
         return true;
     });
 
@@ -1234,6 +1246,28 @@ function confirmMarkInvoicePaid(index) {
 
 function filterSales() {
     refreshSales();
+}
+
+// ===================== SEARCH-BOX HELPERS (Bug #130+) =====================
+// Toggle `.has-value` class on parent .search-box kur input ka tekst
+function _sbToggle(input) {
+    if (!input) return;
+    const box = input.closest('.search-box');
+    if (!box) return;
+    if (input.value && input.value.length > 0) box.classList.add('has-value');
+    else box.classList.remove('has-value');
+}
+
+// Pastro inputin dhe ripërtëri listën
+function _sbClear(inputId, refreshFn) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    input.value = '';
+    _sbToggle(input);
+    input.focus();
+    if (typeof refreshFn === 'function') { refreshFn(); return; }
+    // Thirri handler-in oninput nëse ka — për kompatibilitet
+    try { input.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
 }
 
 // ===================== MODAL CONFIRM (replaces browser confirm()) =====================
@@ -2440,18 +2474,28 @@ function processDebtPayment(id) {
 }
 
 function refreshClients() {
+    // Bug #132: tbody null-guard + search input null-guard + state.clients guard + c.name null-safe search (name+phone+note)
     const tbody = document.getElementById('clients-body');
+    if (!tbody) return;
     tbody.innerHTML = '';
-    const search = (document.getElementById('clients-search').value || '').toLowerCase();
+    const searchEl = document.getElementById('clients-search');
+    const search = (searchEl && searchEl.value ? searchEl.value : '').toLowerCase();
 
     // Feature 8: Category filter
     const categoryFilter = document.getElementById('clients-category-filter');
     const selectedCategory = categoryFilter ? categoryFilter.value : '';
 
-    let clients = state.clients.filter(c => {
-        const matchesSearch = !search || c.name.toLowerCase().includes(search);
+    let clients = (state.clients || []).filter(c => {
+        if (!c) return false;
+        if (search) {
+            const name = (c.name || '').toLowerCase();
+            const phone = (c.phone || '').toLowerCase();
+            const note = (c.note || '').toLowerCase();
+            const category = (c.category || '').toLowerCase();
+            if (!name.includes(search) && !phone.includes(search) && !note.includes(search) && !category.includes(search)) return false;
+        }
         const matchesCategory = !selectedCategory || c.category === selectedCategory;
-        return matchesSearch && matchesCategory;
+        return matchesCategory;
     });
 
     // Feature 24: Pin/favorite clients - pinned first
@@ -18573,10 +18617,11 @@ function refreshInvoicesPage() {
     // Populate client filter
     var clientSelect = document.getElementById('inv-filter-client');
     if (clientSelect && clientSelect.options.length <= 1) {
-        state.clients.forEach(function(c) {
+        (state.clients || []).forEach(function(c) {
+            if (!c) return;
             var opt = document.createElement('option');
             opt.value = c.id;
-            opt.textContent = c.name;
+            opt.textContent = c.name || '-';
             clientSelect.appendChild(opt);
         });
     }
@@ -18585,10 +18630,10 @@ function refreshInvoicesPage() {
     var clientFilter = document.getElementById('inv-filter-client') ? document.getElementById('inv-filter-client').value : '';
     var dateFrom = document.getElementById('inv-filter-from') ? document.getElementById('inv-filter-from').value : '';
     var dateTo = document.getElementById('inv-filter-to') ? document.getElementById('inv-filter-to').value : '';
-    var searchVal = document.getElementById('inv-filter-search') ? document.getElementById('inv-filter-search').value.toLowerCase() : '';
+    var searchVal = document.getElementById('inv-filter-search') ? (document.getElementById('inv-filter-search').value || '').toLowerCase() : '';
 
-    // Build invoices from all sales
-    var invoices = state.sales.map(function(s, idx) {
+    // Build invoices from all sales (Bug #133: null-safe)
+    var invoices = (state.sales || []).map(function(s, idx) {
         var product = getProduct(s.productId);
         var client = s.clientId ? state.clients.find(function(c) { return c.id === s.clientId; }) : null;
         var status = _getInvoiceStatus(s);
@@ -18610,12 +18655,17 @@ function refreshInvoicesPage() {
 
     // Apply filters
     invoices = invoices.filter(function(inv) {
-        if (statusFilter && inv.status.key !== statusFilter) return false;
+        if (!inv || !inv.sale) return false;
+        if (statusFilter && (!inv.status || inv.status.key !== statusFilter)) return false;
         if (clientFilter && (!inv.sale.clientId || inv.sale.clientId !== clientFilter)) return false;
-        if (dateFrom && inv.sale.date < dateFrom) return false;
-        if (dateTo && inv.sale.date > dateTo) return false;
+        if (dateFrom && (inv.sale.date || '') < dateFrom) return false;
+        if (dateTo && (inv.sale.date || '') > dateTo) return false;
         if (searchVal) {
-            var haystack = (inv.invNum + ' ' + (inv.product ? inv.product.name : '') + ' ' + (inv.client ? inv.client.name : '')).toLowerCase();
+            var pname = (inv.product && inv.product.name) ? inv.product.name : '';
+            var cname = (inv.client && inv.client.name) ? inv.client.name : '';
+            var note = inv.sale.note || '';
+            var dateStr = inv.sale.date || '';
+            var haystack = ((inv.invNum || '') + ' ' + pname + ' ' + cname + ' ' + note + ' ' + dateStr).toLowerCase();
             if (haystack.indexOf(searchVal) === -1) return false;
         }
         return true;

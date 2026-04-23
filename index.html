@@ -26,7 +26,7 @@
     <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.svg">
     <link rel="mask-icon" href="icons/icon-192.svg" color="#E29A2B">
 
-    <link rel="stylesheet" href="style.css?v=9">
+    <link rel="stylesheet" href="style.css?v=10">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -336,9 +336,10 @@
             </div>
             <div class="page-actions">
                 <button class="btn btn-primary" onclick="openSaleModal()"><i class="fas fa-plus"></i> <span data-i18n="new_sale">Shitje e re</span></button>
-                <div class="search-box">
-                    <input type="text" id="sales-search" placeholder="Kërko shitje..." data-i18n-placeholder="search_sales" oninput="filterSales()">
+                <div class="search-box" id="sales-search-box">
                     <i class="fas fa-search"></i>
+                    <input type="text" id="sales-search" placeholder="Kërko shitje..." data-i18n-placeholder="search_sales" oninput="filterSales();_sbToggle(this)">
+                    <button type="button" class="sb-clear" onclick="_sbClear('sales-search')" title="Pastro"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="filter-group">
                     <input type="date" id="sales-date-from" onchange="filterSales()">
@@ -433,9 +434,10 @@
             </div>
             <div class="page-actions">
                 <button class="btn btn-primary" onclick="openClientModal()"><i class="fas fa-plus"></i> <span data-i18n="add_client">Shto klient</span></button>
-                <div class="search-box">
-                    <input type="text" id="clients-search" placeholder="Kërko klient..." data-i18n-placeholder="search_client" oninput="filterClients()">
+                <div class="search-box" id="clients-search-box">
                     <i class="fas fa-search"></i>
+                    <input type="text" id="clients-search" placeholder="Kërko klient..." data-i18n-placeholder="search_client" oninput="filterClients();_sbToggle(this)">
+                    <button type="button" class="sb-clear" onclick="_sbClear('clients-search')" title="Pastro"><i class="fas fa-times"></i></button>
                 </div>
                 <select id="clients-category-filter" onchange="refreshClients()" style="padding:8px; border-radius:5px; border:1px solid #ddd;">
                     <option value="">All Categories</option>
@@ -1101,7 +1103,11 @@
                 </select>
                 <input type="date" id="inv-filter-from" onchange="refreshInvoicesPage()" style="padding:8px 12px;border-radius:8px;border:1px solid #ddd;font-size:0.9em;">
                 <input type="date" id="inv-filter-to" onchange="refreshInvoicesPage()" style="padding:8px 12px;border-radius:8px;border:1px solid #ddd;font-size:0.9em;">
-                <input type="text" id="inv-filter-search" oninput="refreshInvoicesPage()" placeholder="Kërko faturë..." style="padding:8px 12px;border-radius:8px;border:1px solid #ddd;font-size:0.9em;flex:1;min-width:120px;">
+                <div class="search-box" id="inv-search-box" style="flex:1;min-width:160px;">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="inv-filter-search" oninput="refreshInvoicesPage();_sbToggle(this)" placeholder="Kërko faturë...">
+                    <button type="button" class="sb-clear" onclick="_sbClear('inv-filter-search', refreshInvoicesPage)" title="Pastro"><i class="fas fa-times"></i></button>
+                </div>
             </div>
 
             <!-- Invoices List -->
@@ -1211,7 +1217,7 @@
     </nav>
 
     <script src="i18n.js"></script>
-    <script src="app.js?v=62"></script>
+    <script src="app.js?v=63"></script>
     <script src="hurma-polish.js?v=5" defer></script>
 
     <!-- ==========================================================================
