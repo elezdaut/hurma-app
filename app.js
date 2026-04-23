@@ -746,9 +746,9 @@ function addSale() {
     const buyTotal = product.buyPrice * quantity;
     const profit = sellTotal - buyTotal;
 
-    // Feature 6: Credit limit check
+    // Feature 6: Credit limit check (Bug #171: state.clients guard)
     if (paymentType.indexOf('invoice') !== -1 && clientId) {
-        const client = state.clients.find(c => c.id === clientId);
+        const client = (state.clients || []).find(c => c && c.id === clientId);
         if (client && client.creditLimit && client.creditLimit > 0) {
             const currentDebt = client.debt || 0;
             const totalAfterSale = currentDebt + Math.round(sellTotal);
@@ -761,6 +761,11 @@ function addSale() {
 
     // Save undo state BEFORE mutation
     if (typeof saveUndoState === 'function') saveUndoState('Shitje: ' + product.name + ' x' + quantity);
+
+    // Bug #172: state.sales/stock/clients guards para push
+    if (!state.sales) state.sales = [];
+    if (!state.stock) state.stock = {};
+    if (!state.clients) state.clients = [];
 
     const saleId = Date.now();
     state.sales.push({
@@ -784,9 +789,9 @@ function addSale() {
     // Update stock
     state.stock[productId] = Math.max(0, (state.stock[productId] || 0) - quantity);
 
-    // Update client debt
+    // Update client debt (Bug #173: null-safe find)
     if (isDebt && clientId) {
-        const client = state.clients.find(c => c.id === clientId);
+        const client = (state.clients || []).find(c => c && c.id === clientId);
         if (client) {
             client.debt = (client.debt || 0) + Math.round(sellTotal);
         }
@@ -830,7 +835,7 @@ function addSale() {
 
     // Log activity
     if (typeof logActivity === 'function') {
-        const clientName = clientId ? (state.clients.find(c => c.id === clientId) || {}).name || '' : '';
+        const clientName = clientId ? ((state.clients || []).find(c => c && c.id === clientId) || {}).name || '' : '';
         logActivity('sale', 'Shitje: ' + product.name + ' x' + quantity + (clientName ? ' - ' + clientName : '') + ' = ' + Math.round(sellTotal) + ' ден');
     }
 
@@ -875,13 +880,14 @@ function updateSale(index) {
         }
     }
 
-    // Restore old stock
-    state.stock[old.productId] = (state.stock[old.productId] || 0) + old.quantity;
+    // Restore old stock (Bug #174: state.stock + clients guards)
+    if (!state.stock) state.stock = {};
+    state.stock[old.productId] = (state.stock[old.productId] || 0) + (old.quantity || 0);
 
     // Reverse old client debt if it was a debt sale
     if (old.isDebt && old.clientId) {
-        const oldClient = state.clients.find(c => c.id === old.clientId);
-        if (oldClient) oldClient.debt = Math.max(0, oldClient.debt - old.sellTotal);
+        const oldClient = (state.clients || []).find(c => c && c.id === old.clientId);
+        if (oldClient) oldClient.debt = Math.max(0, (oldClient.debt || 0) - (old.sellTotal || 0));
     }
 
     // Feature 2: Custom sell price
@@ -958,13 +964,14 @@ function updateSale(index) {
         paymentHistory
     };
 
-    // Deduct new stock
+    // Deduct new stock (Bug #175: guards)
+    if (!state.stock) state.stock = {};
     state.stock[productId] = Math.max(0, (state.stock[productId] || 0) - quantity);
 
     // Apply new client debt if this is a debt sale
     if (isDebt && clientId) {
-        const newClient = state.clients.find(c => c.id === clientId);
-        if (newClient) newClient.debt += Math.round(sellTotal);
+        const newClient = (state.clients || []).find(c => c && c.id === clientId);
+        if (newClient) newClient.debt = (newClient.debt || 0) + Math.round(sellTotal);
     }
 
     saveState();
@@ -973,25 +980,26 @@ function updateSale(index) {
 }
 
 function deleteSale(index) {
+    // Bug #176: sale + product null-guard + state guards
+    if (!state.sales || !state.sales[index]) return;
     const sale = state.sales[index];
     const product = getProduct(sale.productId);
-    modalConfirm('A jeni i sigurt që dëshironi ta fshini shitjen?<br><strong>' + product.name + ' x' + sale.quantity + ' — ' + sale.sellTotal + ' ден</strong>', function() {
-        // Restore stock
-        state.stock[sale.productId] = (state.stock[sale.productId] || 0) + sale.quantity;
+    const pname = (product && product.name) ? product.name : '-';
+    modalConfirm('A jeni i sigurt që dëshironi ta fshini shitjen?<br><strong>' + pname + ' x' + (sale.quantity || 0) + ' — ' + (sale.sellTotal || 0) + ' ден</strong>', function() {
+        if (!state.stock) state.stock = {};
+        state.stock[sale.productId] = (state.stock[sale.productId] || 0) + (sale.quantity || 0);
 
-        // Reverse client debt if this was a debt sale
         if (sale.isDebt && sale.clientId) {
-            const client = state.clients.find(c => c.id === sale.clientId);
-            if (client) client.debt = Math.max(0, client.debt - sale.sellTotal);
+            const client = (state.clients || []).find(c => c && c.id === sale.clientId);
+            if (client) client.debt = Math.max(0, (client.debt || 0) - (sale.sellTotal || 0));
         }
 
         state.sales.splice(index, 1);
 
-        // Feature 19: Activity log
-        logActivity('Sale Deleted', sale.quantity + 'x ' + product.name + ' - ' + sale.sellTotal + ' den');
+        if (typeof logActivity === 'function') logActivity('Sale Deleted', (sale.quantity || 0) + 'x ' + pname + ' - ' + (sale.sellTotal || 0) + ' den');
         saveState();
         refreshAll();
-        showToast('Shitja u fshi!', 'success');
+        if (typeof showToast === 'function') showToast('Shitja u fshi!', 'success');
     });
 }
 
