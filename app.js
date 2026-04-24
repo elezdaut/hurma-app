@@ -63,6 +63,17 @@
         var el = document.getElementById(id);
         return !!(el && el.checked);
     };
+
+    // Chart.js wrapper defensive: kur Chart.js nuk ka ngarkuar (offline, CDN i bllokuar),
+    // kthe null në vend që të hedhë "Chart is not defined" gabim fatal që ndalon çdo render.
+    window._safeChart = function(ctx, cfg) {
+        if (typeof Chart === 'undefined') {
+            try { console.warn('Chart.js nuk është i ngarkuar — grafiku u anashkalua.'); } catch(e) {}
+            return null;
+        }
+        try { return new Chart(ctx, cfg); }
+        catch(e) { try { console.warn('Gabim në Chart:', e); } catch(_){} return null; }
+    };
 })();
 
 // ===================== DATA =====================
@@ -3625,7 +3636,7 @@ function renderFatonPurchasesVsPaymentsChart() {
     const paymentData = months.map(m => (state.fatonPayments || []).filter(p => p.date && p.date.startsWith(m)).reduce((s, p) => s + ((p && p.amount) || 0), 0));
     const labels = months.map(m => { const d = new Date(m + '-01'); return d.toLocaleDateString('sq-AL', { month: 'short', year: '2-digit' }); });
 
-    window.fatonPvPChart = new Chart(ctx, {
+    window.fatonPvPChart = _safeChart(ctx, {
         type: 'bar',
         data: {
             labels: labels,
@@ -4473,7 +4484,7 @@ function showProfitPerPersonChart() {
 
         const labels = months.map(m => { const d = new Date(m + '-01'); return d.toLocaleDateString('sq-AL', { month: 'short' }); });
 
-        new Chart(canvas, {
+        _safeChart(canvas, {
             type: 'line',
             data: {
                 labels: labels,
@@ -4668,7 +4679,7 @@ function showPaymentMethodChart() {
         const canvas = document.getElementById('payment-method-chart');
         if (!canvas) return;
         const colors = ['#27ae60', '#2980b9', '#e67e22', '#8e44ad', '#e74c3c'];
-        new Chart(canvas, {
+        _safeChart(canvas, {
             type: 'doughnut',
             data: {
                 labels: Object.keys(methods).map(getCategoryLabel),
@@ -5050,7 +5061,7 @@ function renderFatonMiniDashboard() {
     setTimeout(() => {
         const canvas = document.getElementById('faton-mini-debt-chart');
         if (!canvas) return;
-        new Chart(canvas, {
+        _safeChart(canvas, {
             type: 'line',
             data: {
                 labels: last7.map(d => d.date.slice(5)),
@@ -5810,7 +5821,7 @@ function updateReportCharts(sales) {
     if (!compEl) return;
     const compCtx = compEl.getContext('2d');
     if (window.compChart) window.compChart.destroy();
-    window.compChart = new Chart(compCtx, {
+    window.compChart = _safeChart(compCtx, {
         type: 'bar',
         data: {
             labels: Object.keys(months),
@@ -5835,7 +5846,7 @@ function updateReportCharts(sales) {
     if (!locEl) return;
     const locCtx = locEl.getContext('2d');
     if (window.locChart) window.locChart.destroy();
-    window.locChart = new Chart(locCtx, {
+    window.locChart = _safeChart(locCtx, {
         type: 'doughnut',
         data: {
             labels: Object.keys(locationData),
@@ -6549,21 +6560,21 @@ let salesChart, profitChart, productChart;
 
 function initCharts() {
     const salesCtx = document.getElementById('salesChart').getContext('2d');
-    salesChart = new Chart(salesCtx, {
+    salesChart = _safeChart(salesCtx, {
         type: 'line',
         data: { labels: [], datasets: [{ label: t('sales'), data: [], borderColor: '#e17055', backgroundColor: 'rgba(225,112,85,0.1)', fill: true, tension: 0.3 }] },
         options: { responsive: true, plugins: { legend: { display: false } } }
     });
 
     const profitCtx = document.getElementById('profitChart').getContext('2d');
-    profitChart = new Chart(profitCtx, {
+    profitChart = _safeChart(profitCtx, {
         type: 'bar',
         data: { labels: [], datasets: [{ label: t('profit'), data: [], backgroundColor: '#00b894' }] },
         options: { responsive: true, plugins: { legend: { display: false } } }
     });
 
     const productCtx = document.getElementById('productChart').getContext('2d');
-    productChart = new Chart(productCtx, {
+    productChart = _safeChart(productCtx, {
         type: 'doughnut',
         data: { labels: [], datasets: [{ data: [], backgroundColor: ['#e17055', '#00b894', '#fdcb6e', '#6c5ce7'] }] },
         options: { responsive: true }
@@ -6877,7 +6888,7 @@ function showProductHistory(productId) {
     setTimeout(() => {
         const ctx = document.getElementById('product-history-chart');
         if (ctx) {
-            new Chart(ctx.getContext('2d'), {
+            _safeChart(ctx.getContext('2d'), {
                 type: 'bar',
                 data: {
                     labels: sortedMonths,
@@ -6929,7 +6940,7 @@ function renderFatonDebtChart() {
     if (!ctx) return;
     const history = state.fatonDebtHistory || [];
     if (window.fatonDebtChartInstance) window.fatonDebtChartInstance.destroy();
-    window.fatonDebtChartInstance = new Chart(ctx.getContext('2d'), {
+    window.fatonDebtChartInstance = _safeChart(ctx.getContext('2d'), {
         type: 'line',
         data: {
             labels: history.map(h => h.date.substring(5)),
@@ -10385,7 +10396,7 @@ function showClientPaymentChart(clientId) {
         const buyData = months.map(m => (state.sales || []).filter(s => s && s.clientId === clientId && s.date && s.date.startsWith(m)).reduce((s, x) => s + x.sellTotal, 0));
         const payData = months.map(m => (state.clientPayments || []).filter(p => p.clientId === clientId && p.date && p.date.startsWith(m)).reduce((s, p) => s + ((p && p.amount) || 0), 0));
         const labels = months.map(m => new Date(m + '-01').toLocaleDateString('sq-AL', { month: 'short' }));
-        new Chart(canvas, {
+        _safeChart(canvas, {
             type: 'bar',
             data: { labels, datasets: [{ label: 'Blerje', data: buyData, backgroundColor: 'rgba(231,76,60,0.7)' }, { label: 'Pagesa', data: payData, backgroundColor: 'rgba(39,174,96,0.7)' }] },
             options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
@@ -12980,7 +12991,7 @@ function showPartnerProfitChart() {
             canvas.parentElement.innerHTML += '<p style="color:var(--danger);text-align:center;">Chart.js nuk është i ngarkuar.</p>';
             return;
         }
-        new Chart(canvas.getContext('2d'), {
+        _safeChart(canvas.getContext('2d'), {
             type: 'bar',
             data: {
                 labels: months,
@@ -14067,7 +14078,7 @@ function showWeeklyComparisonChart() {
             canvas.insertAdjacentHTML('afterend', '<p style="text-align:center;color:#888;font-size:0.85rem;">Chart.js nuk eshte i ngarkuar.</p>');
             return;
         }
-        new Chart(canvas, {
+        _safeChart(canvas, {
             type: 'line',
             data: {
                 labels: dayLabels,
@@ -14285,7 +14296,7 @@ function showProfitByHour() {
         const canvas = document.getElementById(canvasId);
         if (!canvas) return;
         const labels = Array.from({ length: 24 }, (_, i) => i + ':00');
-        new Chart(canvas.getContext('2d'), {
+        _safeChart(canvas.getContext('2d'), {
             type: 'bar',
             data: {
                 labels,
@@ -16898,7 +16909,7 @@ function showStorageAnalytics() {
         const canvas = document.getElementById('storage-chart');
         if (!canvas) return;
         if (typeof Chart !== 'undefined') {
-            new Chart(canvas, {
+            _safeChart(canvas, {
                 type: 'doughnut',
                 data: {
                     labels: labels,
@@ -17146,7 +17157,7 @@ function showClientDebtChart() {
         const labels = clients.slice(0, 10).map(c => c.name);
         const data = clients.slice(0, 10).map(c => c.debt);
         const colors = data.map((_, i) => `hsl(${0 + i * 15}, 70%, 55%)`);
-        new Chart(canvas, {
+        _safeChart(canvas, {
             type: 'bar',
             data: {
                 labels,
@@ -18560,7 +18571,7 @@ function _renderTrendChart(periodSales, days) {
         profitData.push(daySales.reduce(function(s, x) { return s + (x.profit || 0); }, 0));
     }
 
-    _analyticsCharts.trend = new Chart(ctx, {
+    _analyticsCharts.trend = _safeChart(ctx, {
         type: 'line',
         data: {
             labels: labels,
@@ -18613,7 +18624,7 @@ function _renderProductChart(periodSales) {
     var sortedProds = Object.keys(prodData).sort(function(a, b) { return prodData[b] - prodData[a]; });
     var colors = ['#667eea', '#f093fb', '#43e97b', '#4facfe', '#fa709a', '#f5af19', '#a18cd1', '#ff6b35', '#00d2ff', '#e55a2b'];
 
-    _analyticsCharts.product = new Chart(ctx, {
+    _analyticsCharts.product = _safeChart(ctx, {
         type: 'doughnut',
         data: {
             labels: sortedProds,
@@ -18657,7 +18668,7 @@ function _renderWeeklyChart() {
         weeks.push({ label: label, revenue: revenue, profit: profit });
     }
 
-    _analyticsCharts.weekly = new Chart(ctx, {
+    _analyticsCharts.weekly = _safeChart(ctx, {
         type: 'bar',
         data: {
             labels: weeks.map(function(w) { return w.label; }),
@@ -22314,7 +22325,7 @@ function showDistFatonMonthlyChart() {
     setTimeout(function() {
         var canvas = document.getElementById('dist-faton-monthly-chart');
         if (!canvas || typeof Chart === 'undefined') return;
-        new Chart(canvas, {
+        _safeChart(canvas, {
             type: 'bar',
             data: {
                 labels: months,
@@ -22367,7 +22378,7 @@ function showDistFatonCashFlowChart() {
     setTimeout(function() {
         var canvas = document.getElementById('dist-faton-cashflow-chart');
         if (!canvas || typeof Chart === 'undefined') return;
-        new Chart(canvas, {
+        _safeChart(canvas, {
             type: 'line',
             data: {
                 labels: labels,
@@ -22402,7 +22413,7 @@ function showDistFatonMethodChart() {
     setTimeout(function() {
         var canvas = document.getElementById('dist-faton-method-chart');
         if (!canvas || typeof Chart === 'undefined') return;
-        new Chart(canvas, {
+        _safeChart(canvas, {
             type: 'doughnut',
             data: {
                 labels: ['Cash', 'Bankë'],
@@ -23036,7 +23047,7 @@ function distRenderAnalyticsCharts() {
     var el1 = document.getElementById('dist-chart-monthly');
     if (el1) {
         if (el1._chart) el1._chart.destroy();
-        el1._chart = new Chart(el1.getContext('2d'), {
+        el1._chart = _safeChart(el1.getContext('2d'), {
             type: 'line',
             data: { labels: monthsData.map(function(x){ return x.label; }),
                 datasets: [{ label: 'Të ardhurat (den)', data: monthsData.map(function(x){ return x.value; }),
@@ -23058,7 +23069,7 @@ function distRenderAnalyticsCharts() {
     var el2 = document.getElementById('dist-chart-topshops');
     if (el2 && topShops.length) {
         if (el2._chart) el2._chart.destroy();
-        el2._chart = new Chart(el2.getContext('2d'), {
+        el2._chart = _safeChart(el2.getContext('2d'), {
             type: 'bar',
             data: { labels: topShops.map(function(x){ return x.name; }),
                 datasets: [{ label: 'den', data: topShops.map(function(x){ return x.value; }),
@@ -23079,7 +23090,7 @@ function distRenderAnalyticsCharts() {
     var el3 = document.getElementById('dist-chart-topproducts');
     if (el3 && topProd.length) {
         if (el3._chart) el3._chart.destroy();
-        el3._chart = new Chart(el3.getContext('2d'), {
+        el3._chart = _safeChart(el3.getContext('2d'), {
             type: 'bar',
             data: { labels: topProd.map(function(x){ return x.name; }),
                 datasets: [{ label: 'Njësi', data: topProd.map(function(x){ return x.value; }),
@@ -23099,7 +23110,7 @@ function distRenderAnalyticsCharts() {
     var el4 = document.getElementById('dist-chart-payment');
     if (el4 && payKeys.length) {
         if (el4._chart) el4._chart.destroy();
-        el4._chart = new Chart(el4.getContext('2d'), {
+        el4._chart = _safeChart(el4.getContext('2d'), {
             type: 'doughnut',
             data: { labels: payKeys.map(function(k){ return payLabels[k]; }),
                 datasets: [{ data: payKeys.map(function(k){ return payBreakdown[k]; }),
