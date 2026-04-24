@@ -696,13 +696,13 @@ function togglePartialPayment() {
 }
 
 function toggleInvoiceDueDate() {
-    const paymentType = document.getElementById('sale-payment-type').value;
+    const paymentType = (document.getElementById('sale-payment-type') || {}).value;
     const dueDateGroup = document.getElementById('invoice-due-date-group');
     var invoiceDaysMap = { 'invoice_30': 30, 'invoice_60': 60, 'invoice_90': 90 };
     if (invoiceDaysMap[paymentType]) {
         dueDateGroup.classList.remove('hidden');
-        const saleDate = document.getElementById('sale-date').value;
-        if (saleDate && !document.getElementById('sale-due-date').value) {
+        const saleDate = (document.getElementById('sale-date') || {}).value;
+        if (saleDate && !(document.getElementById('sale-due-date') || {}).value) {
             const due = new Date(saleDate);
             due.setDate(due.getDate() + invoiceDaysMap[paymentType]);
             document.getElementById('sale-due-date').value = due.toISOString().split('T')[0];
@@ -713,15 +713,15 @@ function toggleInvoiceDueDate() {
 }
 
 function addSale() {
-    const productId = document.getElementById('sale-product').value;
-    const quantity = parseInt(document.getElementById('sale-quantity').value) || 0;
-    const discount = parseFloat(document.getElementById('sale-discount').value) || 0;
-    const clientId = document.getElementById('sale-client').value;
-    const location = document.getElementById('sale-location').value;
-    const date = document.getElementById('sale-date').value;
-    const note = document.getElementById('sale-note').value;
-    const isDebt = document.getElementById('sale-is-debt').checked;
-    const paymentType = document.getElementById('sale-payment-type').value;
+    const productId = (document.getElementById('sale-product') || {}).value;
+    const quantity = parseInt((document.getElementById('sale-quantity') || {}).value) || 0;
+    const discount = parseFloat((document.getElementById('sale-discount') || {}).value) || 0;
+    const clientId = (document.getElementById('sale-client') || {}).value;
+    const location = (document.getElementById('sale-location') || {}).value;
+    const date = (document.getElementById('sale-date') || {}).value;
+    const note = (document.getElementById('sale-note') || {}).value;
+    const isDebt = (document.getElementById('sale-is-debt') || {}).checked;
+    const paymentType = (document.getElementById('sale-payment-type') || {}).value;
     let dueDate = '';
     var _invDaysMap = { 'invoice_30': 30, 'invoice_60': 60, 'invoice_90': 90 };
     if (_invDaysMap[paymentType]) {
@@ -861,15 +861,15 @@ function updateSale(index) {
     // Bug #383: sale null-guard
     if (!state.sales || !state.sales[index]) return;
     const old = state.sales[index];
-    const productId = document.getElementById('sale-product').value;
-    const quantity = parseInt(document.getElementById('sale-quantity').value) || 0;
-    const discount = parseFloat(document.getElementById('sale-discount').value) || 0;
-    const clientId = document.getElementById('sale-client').value;
-    const location = document.getElementById('sale-location').value;
-    const date = document.getElementById('sale-date').value;
-    const note = document.getElementById('sale-note').value;
-    const isDebt = document.getElementById('sale-is-debt').checked;
-    const paymentType = document.getElementById('sale-payment-type').value;
+    const productId = (document.getElementById('sale-product') || {}).value;
+    const quantity = parseInt((document.getElementById('sale-quantity') || {}).value) || 0;
+    const discount = parseFloat((document.getElementById('sale-discount') || {}).value) || 0;
+    const clientId = (document.getElementById('sale-client') || {}).value;
+    const location = (document.getElementById('sale-location') || {}).value;
+    const date = (document.getElementById('sale-date') || {}).value;
+    const note = (document.getElementById('sale-note') || {}).value;
+    const isDebt = (document.getElementById('sale-is-debt') || {}).checked;
+    const paymentType = (document.getElementById('sale-payment-type') || {}).value;
     let dueDate = '';
     var _invDaysMap = { 'invoice_30': 30, 'invoice_60': 60, 'invoice_90': 90 };
     if (_invDaysMap[paymentType]) {
@@ -3225,7 +3225,7 @@ function openFatonDebtLimitModal() {
 }
 
 function saveFatonDebtLimit() {
-    state.fatonDebtLimit = parseInt(document.getElementById('faton-debt-limit').value) || 0;
+    state.fatonDebtLimit = parseInt((document.getElementById('faton-debt-limit') || {}).value) || 0;
     saveState();
     closeModal();
     refreshFaton();
@@ -3351,9 +3351,9 @@ function refreshFaton() {
     // Feature 6: Unified timeline
     const timelineBody = document.getElementById('faton-timeline-body');
     if (timelineBody) {
-        const filterFrom = document.getElementById('faton-timeline-from') ? document.getElementById('faton-timeline-from').value : '';
-        const filterTo = document.getElementById('faton-timeline-to') ? document.getElementById('faton-timeline-to').value : '';
-        const filterType = document.getElementById('faton-timeline-type') ? document.getElementById('faton-timeline-type').value : '';
+        const filterFrom = document.getElementById('faton-timeline-from') ? (document.getElementById('faton-timeline-from') || {}).value : '';
+        const filterTo = document.getElementById('faton-timeline-to') ? (document.getElementById('faton-timeline-to') || {}).value : '';
+        const filterType = document.getElementById('faton-timeline-type') ? (document.getElementById('faton-timeline-type') || {}).value : '';
 
         let events = [];
 
@@ -4049,7 +4049,7 @@ function verifyPinForPayment(callback) {
 }
 
 function checkPaymentPin() {
-    const pin = document.getElementById('payment-pin-input').value;
+    const pin = (document.getElementById('payment-pin-input') || {}).value;
     if (pin === state.pinCode) {
         closeModal();
         if (window._paymentPinCallback) window._paymentPinCallback();
@@ -4116,16 +4116,16 @@ function openPaymentTemplateModal() {
 }
 
 function savePaymentTemplate() {
-    const name = document.getElementById('template-name').value;
-    const amount = parseInt(document.getElementById('template-amount').value) || 0;
+    const name = (document.getElementById('template-name') || {}).value;
+    const amount = parseInt((document.getElementById('template-amount') || {}).value) || 0;
     if (!name || amount <= 0) { showToast('Plotesoni emrin dhe shumen', 'error'); return; }
 
     if (!state.paymentTemplates) state.paymentTemplates = [];
     (state.paymentTemplates = state.paymentTemplates || []).push({
         name: name,
         amount: amount,
-        category: document.getElementById('template-category').value,
-        note: document.getElementById('template-note').value
+        category: (document.getElementById('template-category') || {}).value,
+        note: (document.getElementById('template-note') || {}).value
     });
     saveState();
     showToast('Shablloni u ruajt', 'success');
@@ -4168,8 +4168,8 @@ function openCurrencyModal() {
 
 function convertCurrency() {
     const rates = state.currencyRates || { EUR: 61.5, USD: 56.0, MKD: 1 };
-    const amount = parseFloat(document.getElementById('convert-amount').value) || 0;
-    const from = document.getElementById('convert-from').value;
+    const amount = parseFloat((document.getElementById('convert-amount') || {}).value) || 0;
+    const from = (document.getElementById('convert-from') || {}).value;
     const resultDiv = document.getElementById('convert-result');
     if (!resultDiv || amount <= 0) { if (resultDiv) resultDiv.innerHTML = ''; return; }
 
@@ -4183,8 +4183,8 @@ function convertCurrency() {
 
 function saveCurrencyRates() {
     state.currencyRates = {
-        EUR: parseFloat(document.getElementById('rate-eur').value) || 61.5,
-        USD: parseFloat(document.getElementById('rate-usd').value) || 56.0,
+        EUR: parseFloat((document.getElementById('rate-eur') || {}).value) || 61.5,
+        USD: parseFloat((document.getElementById('rate-usd') || {}).value) || 56.0,
         MKD: 1
     };
     saveState();
@@ -4452,8 +4452,8 @@ function updateSplitTotal() {
 function processSplitPayment() {
     const amounts = document.querySelectorAll('.split-amount');
     const categories = document.querySelectorAll('.split-category');
-    const date = document.getElementById('split-date').value;
-    const note = document.getElementById('split-note').value;
+    const date = (document.getElementById('split-date') || {}).value;
+    const note = (document.getElementById('split-note') || {}).value;
     let totalAmount = 0;
     const parts = [];
     amounts.forEach((a, i) => {
@@ -4487,8 +4487,8 @@ function openDiscountPaymentModal() {
 }
 
 function calcPaymentDiscount() {
-    const amount = parseInt(document.getElementById('discount-amount').value) || 0;
-    const pct = parseInt(document.getElementById('discount-pct').value) || 0;
+    const amount = parseInt((document.getElementById('discount-amount') || {}).value) || 0;
+    const pct = parseInt((document.getElementById('discount-pct') || {}).value) || 0;
     const discount = Math.round(amount * pct / 100);
     const effectivePayment = amount + discount;
     const el = document.getElementById('discount-preview');
@@ -4500,14 +4500,14 @@ function calcPaymentDiscount() {
 }
 
 function processDiscountPayment() {
-    const amount = parseInt(document.getElementById('discount-amount').value) || 0;
-    const pct = parseInt(document.getElementById('discount-pct').value) || 0;
+    const amount = parseInt((document.getElementById('discount-amount') || {}).value) || 0;
+    const pct = parseInt((document.getElementById('discount-pct') || {}).value) || 0;
     if (amount <= 0) return;
     const discount = Math.round(amount * pct / 100);
     const effectivePayment = amount + discount;
     (state.fatonPayments = state.fatonPayments || []).push({
         id: Date.now(), amount: effectivePayment,
-        date: document.getElementById('discount-date').value,
+        date: (document.getElementById('discount-date') || {}).value,
         note: 'Pagese me zbritje ' + pct + '% (Paguar: ' + amount + ', Zbritje: ' + discount + ')',
         category: 'cash'
     });
@@ -4819,23 +4819,23 @@ function openScheduledPaymentModal() {
 }
 
 function saveScheduledPayment() {
-    const amount = parseInt(document.getElementById('sched-amount').value) || 0;
+    const amount = parseInt((document.getElementById('sched-amount') || {}).value) || 0;
     if (amount <= 0) { showToast('Vendosni shumen', 'error'); return; }
     if (!state.scheduledPayments) state.scheduledPayments = [];
     (state.scheduledPayments = state.scheduledPayments || []).push({
         id: Date.now(),
         amount: amount,
-        category: document.getElementById('sched-category').value,
-        startDate: document.getElementById('sched-start').value,
-        interval: parseInt(document.getElementById('sched-interval').value),
-        count: parseInt(document.getElementById('sched-count').value),
+        category: (document.getElementById('sched-category') || {}).value,
+        startDate: (document.getElementById('sched-start') || {}).value,
+        interval: parseInt((document.getElementById('sched-interval') || {}).value),
+        count: parseInt((document.getElementById('sched-count') || {}).value),
         executed: 0,
-        note: document.getElementById('sched-note').value,
+        note: (document.getElementById('sched-note') || {}).value,
         active: true
     });
     saveState(); closeModal();
     showToast('Pagesa u programua', 'success');
-    logActivity('Scheduled Payment', amount + ' den x ' + document.getElementById('sched-count').value);
+    logActivity('Scheduled Payment', amount + ' den x ' + (document.getElementById('sched-count') || {}).value);
 }
 
 function checkScheduledPayments() {
@@ -4869,8 +4869,8 @@ function requirePaymentGuarantee(amount, callback) {
 }
 
 function verifyGuarantee() {
-    const photo = document.getElementById('guarantee-photo').checked;
-    const confirm = document.getElementById('guarantee-confirm').checked;
+    const photo = (document.getElementById('guarantee-photo') || {}).checked;
+    const confirm = (document.getElementById('guarantee-confirm') || {}).checked;
     if (!photo || !confirm) { showToast('Duhet te konfirmoni te dyja pikat', 'error'); return; }
     closeModal();
     if (window._guaranteeCallback) window._guaranteeCallback();
@@ -5137,11 +5137,11 @@ function addContact() {
 function updateContact(id) {
     const contact = (state.contacts || []).find(c => c.id === id);
     if (!contact) return;
-    contact.name = document.getElementById('contact-name').value.trim();
-    contact.phone = document.getElementById('contact-phone').value;
-    contact.email = document.getElementById('contact-email').value;
-    contact.role = document.getElementById('contact-role').value;
-    contact.note = document.getElementById('contact-note').value;
+    contact.name = (document.getElementById('contact-name') || {}).value.trim();
+    contact.phone = (document.getElementById('contact-phone') || {}).value;
+    contact.email = (document.getElementById('contact-email') || {}).value;
+    contact.role = (document.getElementById('contact-role') || {}).value;
+    contact.note = (document.getElementById('contact-note') || {}).value;
     saveState();
     closeModal();
     refreshContacts();
@@ -5412,9 +5412,9 @@ function calculateQuick() {
 
 // Feature 15: Markup calculator
 function calculateMarkup() {
-    const productId = document.getElementById('markup-product') ? document.getElementById('markup-product').value : '';
-    const newSellPrice = parseInt(document.getElementById('markup-sell-price') ? document.getElementById('markup-sell-price').value : 0) || 0;
-    const quantity = parseInt(document.getElementById('markup-quantity') ? document.getElementById('markup-quantity').value : 1) || 1;
+    const productId = document.getElementById('markup-product') ? (document.getElementById('markup-product') || {}).value : '';
+    const newSellPrice = parseInt(document.getElementById('markup-sell-price') ? (document.getElementById('markup-sell-price') || {}).value : 0) || 0;
+    const quantity = parseInt(document.getElementById('markup-quantity') ? (document.getElementById('markup-quantity') || {}).value : 1) || 1;
     const markupResult = document.getElementById('markup-result');
     if (!markupResult || !productId) return;
 
@@ -6414,14 +6414,14 @@ function openInvoiceBrandingSettings() {
 
 function saveInvoiceBrandingSettings() {
     state.invoiceProfile = {
-        businessName: document.getElementById('invoice-business-name').value,
-        legalName: document.getElementById('invoice-legal-name').value,
-        phone: document.getElementById('invoice-phone').value,
-        email: document.getElementById('invoice-email').value,
-        address: document.getElementById('invoice-address').value,
-        accentColor: document.getElementById('invoice-accent').value,
-        paymentTerms: document.getElementById('invoice-payment-terms').value,
-        footerNote: document.getElementById('invoice-footer-note').value
+        businessName: (document.getElementById('invoice-business-name') || {}).value,
+        legalName: (document.getElementById('invoice-legal-name') || {}).value,
+        phone: (document.getElementById('invoice-phone') || {}).value,
+        email: (document.getElementById('invoice-email') || {}).value,
+        address: (document.getElementById('invoice-address') || {}).value,
+        accentColor: (document.getElementById('invoice-accent') || {}).value,
+        paymentTerms: (document.getElementById('invoice-payment-terms') || {}).value,
+        footerNote: (document.getElementById('invoice-footer-note') || {}).value
     };
     saveState();
     closeModal();
@@ -6891,9 +6891,9 @@ function exportFatonReport() {
 
 // ===================== FEATURE 20: ADVANCED FATON FILTERING =====================
 function filterFatonPurchases() {
-    const dateFrom = document.getElementById('faton-filter-date-from') ? document.getElementById('faton-filter-date-from').value : '';
-    const dateTo = document.getElementById('faton-filter-date-to') ? document.getElementById('faton-filter-date-to').value : '';
-    const productFilter = document.getElementById('faton-filter-product') ? document.getElementById('faton-filter-product').value : '';
+    const dateFrom = document.getElementById('faton-filter-date-from') ? (document.getElementById('faton-filter-date-from') || {}).value : '';
+    const dateTo = document.getElementById('faton-filter-date-to') ? (document.getElementById('faton-filter-date-to') || {}).value : '';
+    const productFilter = document.getElementById('faton-filter-product') ? (document.getElementById('faton-filter-product') || {}).value : '';
 
     const purchasesBody = document.getElementById('faton-purchases-body');
     if (!purchasesBody) return;
@@ -7185,8 +7185,8 @@ function updateOnlineStatus() {
 
 // ===================== FEATURE 25: ORHAN REPORT =====================
 function generateOrhanReport() {
-    const dateFrom = document.getElementById('orhan-date-from') ? document.getElementById('orhan-date-from').value : '';
-    const dateTo = document.getElementById('orhan-date-to') ? document.getElementById('orhan-date-to').value : '';
+    const dateFrom = document.getElementById('orhan-date-from') ? (document.getElementById('orhan-date-from') || {}).value : '';
+    const dateTo = document.getElementById('orhan-date-to') ? (document.getElementById('orhan-date-to') || {}).value : '';
 
     // Bug #99: state.sales/expenses guards + NaN fallbacks
     let sales = (state.sales || []);
@@ -7452,9 +7452,9 @@ function openProfitSplitModal() {
 }
 
 function saveProfitSplit() {
-    const partnerName = document.getElementById('profit-partner-name').value.trim();
-    const ownerPct = parseFloat(document.getElementById('profit-owner-pct').value) || 50;
-    const partnerPct = parseFloat(document.getElementById('profit-partner-pct').value) || 50;
+    const partnerName = (document.getElementById('profit-partner-name') || {}).value.trim();
+    const ownerPct = parseFloat((document.getElementById('profit-owner-pct') || {}).value) || 50;
+    const partnerPct = parseFloat((document.getElementById('profit-partner-pct') || {}).value) || 50;
 
     if (ownerPct + partnerPct !== 100) {
         showToast('Percentages must add up to 100%', 'error');
@@ -7560,9 +7560,9 @@ function openCashDrawerModal() {
 }
 
 function saveCashDrawer() {
-    const date = document.getElementById('drawer-date').value;
-    const amount = parseFloat(document.getElementById('drawer-amount').value) || 0;
-    const note = document.getElementById('drawer-note').value.trim();
+    const date = (document.getElementById('drawer-date') || {}).value;
+    const amount = parseFloat((document.getElementById('drawer-amount') || {}).value) || 0;
+    const note = (document.getElementById('drawer-note') || {}).value.trim();
 
     const existingIndex = (state.cashDrawer || []).findIndex(d => d.date === date);
     const drawer = { date, startingCash: amount, note };
@@ -7785,16 +7785,16 @@ function showPinLockScreen() {
     overlay.appendChild(box);
     document.body.appendChild(overlay);
 
-    document.getElementById('pin-input').focus();
-    document.getElementById('pin-input').addEventListener('keyup', (e) => {
+    document.getElementById('pin-input')?.focus();
+    document.getElementById('pin-input')?.addEventListener('keyup', (e) => {
         if (e.key === 'Enter') verifyPin();
     });
 }
 
 function verifyPin() {
-    const input = document.getElementById('pin-input').value;
+    const input = (document.getElementById('pin-input') || {}).value;
     if (input === state.pinCode) {
-        document.getElementById('pin-lock-overlay').remove();
+        document.getElementById('pin-lock-overlay')?.remove();
         initAfterAuth();
     } else {
         document.getElementById('pin-error').textContent = 'Incorrect PIN';
@@ -7819,8 +7819,8 @@ function openPinSettingsModal() {
 }
 
 function savePinSettings() {
-    const enabled = document.getElementById('pin-enabled').checked;
-    const code = document.getElementById('pin-code').value;
+    const enabled = (document.getElementById('pin-enabled') || {}).checked;
+    const code = (document.getElementById('pin-code') || {}).value;
 
     if (enabled && (!code || code.length < 4)) {
         showToast('PIN must be at least 4 characters', 'error');
@@ -7979,11 +7979,11 @@ function addPreset() {
 }
 
 function updatePreset(id) {
-    const name = document.getElementById('preset-name').value.trim();
-    const productId = document.getElementById('preset-product').value;
-    const quantity = parseInt(document.getElementById('preset-quantity').value) || 1;
-    const discount = parseFloat(document.getElementById('preset-discount').value) || 0;
-    const location = document.getElementById('preset-location').value;
+    const name = (document.getElementById('preset-name') || {}).value.trim();
+    const productId = (document.getElementById('preset-product') || {}).value;
+    const quantity = parseInt((document.getElementById('preset-quantity') || {}).value) || 1;
+    const discount = parseFloat((document.getElementById('preset-discount') || {}).value) || 0;
+    const location = (document.getElementById('preset-location') || {}).value;
 
     if (!name) {
         showToast('Preset name is required', 'error');
@@ -8148,7 +8148,7 @@ function openExpenseCategoryModal() {
 }
 
 function saveExpenseCategories() {
-    const text = document.getElementById('expense-categories').value;
+    const text = (document.getElementById('expense-categories') || {}).value;
     const categories = text.split('\n').map(c => c.trim()).filter(c => c);
 
     if (categories.length === 0) {
@@ -8536,7 +8536,7 @@ function openResetCenter() {
             </button>
             <button class="btn btn-reset" onclick="resetStock()">
                 <i class="fas fa-boxes-stacked"></i> Reset Stoku
-                <span class="reset-desc">${Object.values(state.stock).reduce((s,v)=>s+v,0)} cope</span>
+                <span class="reset-desc">${Object.values(state.stock || {}).reduce((s,v)=>s+v,0)} cope</span>
             </button>
             <button class="btn btn-reset" onclick="resetExpenses()">
                 <i class="fas fa-receipt"></i> Reset Shpenzimet
@@ -9476,7 +9476,7 @@ function buildCollectPreview(clientId, amount, totalProfit) {
 function updateCollectPreview(clientId) {
     const el = document.getElementById('collect-preview');
     if (!el) return;
-    const amount = parseInt(document.getElementById('collect-amount').value) || 0;
+    const amount = parseInt((document.getElementById('collect-amount') || {}).value) || 0;
     const totalProfit = (state.sales || []).filter(s => s && s.clientId === clientId).reduce((s, x) => s + x.profit, 0);
     el.innerHTML = buildCollectPreview(clientId, amount, totalProfit);
 }
@@ -9485,17 +9485,17 @@ function updateCollectPreview(clientId) {
 function collectClientPayment(clientId) {
     const client = (state.clients || []).find(c => c && c.id === clientId);
     if (!client) return;
-    const amount = parseInt(document.getElementById('collect-amount').value) || 0;
+    const amount = parseInt((document.getElementById('collect-amount') || {}).value) || 0;
     if (amount <= 0) { showToast('Vendosni shumen', 'error'); return; }
 
-    const method = document.getElementById('collect-method').value;
-    const note = document.getElementById('collect-note').value;
-    const payDate = document.getElementById('collect-date') ? document.getElementById('collect-date').value : new Date().toISOString().split('T')[0];
-    const category = document.getElementById('collect-category') ? document.getElementById('collect-category').value : 'borxh';
-    const payer = document.getElementById('collect-payer') ? document.getElementById('collect-payer').value : client.name;
-    const autoReceipt = document.getElementById('collect-auto-receipt') ? document.getElementById('collect-auto-receipt').checked : false;
-    const autoWhatsApp = document.getElementById('collect-auto-whatsapp') ? document.getElementById('collect-auto-whatsapp').checked : false;
-    const autoProfitWA = document.getElementById('collect-auto-profit-wa') ? document.getElementById('collect-auto-profit-wa').checked : false;
+    const method = (document.getElementById('collect-method') || {}).value;
+    const note = (document.getElementById('collect-note') || {}).value;
+    const payDate = document.getElementById('collect-date') ? (document.getElementById('collect-date') || {}).value : new Date().toISOString().split('T')[0];
+    const category = document.getElementById('collect-category') ? (document.getElementById('collect-category') || {}).value : 'borxh';
+    const payer = document.getElementById('collect-payer') ? (document.getElementById('collect-payer') || {}).value : client.name;
+    const autoReceipt = document.getElementById('collect-auto-receipt') ? (document.getElementById('collect-auto-receipt') || {}).checked : false;
+    const autoWhatsApp = document.getElementById('collect-auto-whatsapp') ? (document.getElementById('collect-auto-whatsapp') || {}).checked : false;
+    const autoProfitWA = document.getElementById('collect-auto-profit-wa') ? (document.getElementById('collect-auto-profit-wa') || {}).checked : false;
 
     // Update debt
     const oldDebt = client.debt;
@@ -9715,7 +9715,7 @@ function saveEditedPayment(clientId, paymentId) {
     const payment = (state.clientPayments || []).find(p => p.id === paymentId);
     if (!payment) return;
 
-    const newAmount = parseInt(document.getElementById('edit-pay-amount').value) || 0;
+    const newAmount = parseInt((document.getElementById('edit-pay-amount') || {}).value) || 0;
     if (newAmount <= 0) { showToast('Shuma duhet te jete me e madhe se 0', 'error'); return; }
 
     const oldAmount = payment.amount;
@@ -9726,8 +9726,8 @@ function saveEditedPayment(clientId, paymentId) {
 
     // Update payment
     payment.amount = newAmount;
-    payment.method = document.getElementById('edit-pay-method').value;
-    payment.note = document.getElementById('edit-pay-note').value;
+    payment.method = (document.getElementById('edit-pay-method') || {}).value;
+    payment.note = (document.getElementById('edit-pay-note') || {}).value;
     payment.editedAt = new Date().toISOString();
     payment.editHistory = payment.editHistory || [];
     payment.editHistory.push({ oldAmount, newAmount, date: new Date().toISOString() });
@@ -9770,7 +9770,7 @@ function confirmCancelPayment(clientId, paymentId) {
     const payment = (state.clientPayments || []).find(p => p.id === paymentId);
     if (!payment || payment.status === 'cancelled') return;
 
-    const reason = document.getElementById('cancel-pay-reason') ? document.getElementById('cancel-pay-reason').value : '';
+    const reason = document.getElementById('cancel-pay-reason') ? (document.getElementById('cancel-pay-reason') || {}).value : '';
 
     // Return debt
     client.debt += payment.amount;
@@ -10192,8 +10192,8 @@ function openClientInstallmentModal(clientId) {
 function saveClientInstallments(clientId) {
     const client = (state.clients || []).find(c => c && c.id === clientId);
     if (!client) return;
-    const count = parseInt(document.getElementById('cl-inst-count').value) || 3;
-    const interval = parseInt(document.getElementById('cl-inst-interval').value) || 30;
+    const count = parseInt((document.getElementById('cl-inst-count') || {}).value) || 3;
+    const interval = parseInt((document.getElementById('cl-inst-interval') || {}).value) || 30;
     const perInst = Math.ceil(client.debt / count);
     if (!state.clientInstallments) state.clientInstallments = {};
     const installments = [];
@@ -10454,8 +10454,8 @@ function openMarketHistoryReportSelector() {
             <input type="date" id="market-history-date-to">
         </div>
         <div class="market-history-actions">
-            <button class="btn btn-primary" onclick="openClientHistoryReport(document.getElementById('market-history-client').value, readMarketHistoryFilters())"><i class="fas fa-eye"></i> Shiko raportin</button>
-            <button class="btn btn-secondary" onclick="downloadClientHistoryPdf(document.getElementById('market-history-client').value, readMarketHistoryFilters())"><i class="fas fa-file-pdf"></i> PDF</button>
+            <button class="btn btn-primary" onclick="openClientHistoryReport((document.getElementById('market-history-client') || {}).value, readMarketHistoryFilters())"><i class="fas fa-eye"></i> Shiko raportin</button>
+            <button class="btn btn-secondary" onclick="downloadClientHistoryPdf((document.getElementById('market-history-client') || {}).value, readMarketHistoryFilters())"><i class="fas fa-file-pdf"></i> PDF</button>
         </div>
     `);
 }
@@ -11344,7 +11344,7 @@ function setBadge(id, count, alwaysShow) {
 function openSidePanel(title, contentHtml) {
     document.getElementById('side-panel-title').textContent = title;
     document.getElementById('side-panel-body').innerHTML = contentHtml;
-    document.getElementById('side-panel-overlay').classList.remove('hidden');
+    document.getElementById('side-panel-overlay')?.classList?.remove('hidden');
     const panel = document.getElementById('side-panel');
     panel.classList.remove('hidden');
     setTimeout(() => panel.classList.add('open'), 10);
@@ -11355,7 +11355,7 @@ function closeSidePanel() {
     panel.classList.remove('open');
     setTimeout(() => {
         panel.classList.add('hidden');
-        document.getElementById('side-panel-overlay').classList.add('hidden');
+        document.getElementById('side-panel-overlay')?.classList?.add('hidden');
     }, 300);
 }
 
@@ -11385,8 +11385,8 @@ function saveNoteWithLink() {
 
 // Feature 12: Global Date Filter
 function applyGlobalDateFilter() {
-    const from = document.getElementById('global-date-from').value;
-    const to = document.getElementById('global-date-to').value;
+    const from = (document.getElementById('global-date-from') || {}).value;
+    const to = (document.getElementById('global-date-to') || {}).value;
     window._globalDateFilter = { from, to };
     refreshAll();
     showToast(`Filtri: ${from || '...'} deri ${to || '...'}`);
@@ -13033,14 +13033,14 @@ function duplicateSale(saleIndex) {
 }
 
 function confirmDuplicateSale() {
-    const productId = document.getElementById('sale-product').value;
-    const quantity = parseInt(document.getElementById('sale-quantity').value) || 1;
-    const discount = parseFloat(document.getElementById('sale-discount').value) || 0;
-    const customPrice = parseFloat(document.getElementById('sale-custom-price').value) || 0;
-    const clientId = document.getElementById('sale-client').value;
-    const date = document.getElementById('sale-date').value || new Date().toISOString().split('T')[0];
-    const paymentType = document.getElementById('sale-payment-type').value;
-    const location = document.getElementById('sale-location').value;
+    const productId = (document.getElementById('sale-product') || {}).value;
+    const quantity = parseInt((document.getElementById('sale-quantity') || {}).value) || 1;
+    const discount = parseFloat((document.getElementById('sale-discount') || {}).value) || 0;
+    const customPrice = parseFloat((document.getElementById('sale-custom-price') || {}).value) || 0;
+    const clientId = (document.getElementById('sale-client') || {}).value;
+    const date = (document.getElementById('sale-date') || {}).value || new Date().toISOString().split('T')[0];
+    const paymentType = (document.getElementById('sale-payment-type') || {}).value;
+    const location = (document.getElementById('sale-location') || {}).value;
 
     const product = getProduct(productId);
     if (!product) { showToast('Produkti nuk u gjet!', 'error'); return; }
@@ -13167,7 +13167,7 @@ function openDailyTargetModal() {
 }
 
 function saveDailyTarget() {
-    const val = parseInt(document.getElementById('daily-target-input').value) || 0;
+    const val = parseInt((document.getElementById('daily-target-input') || {}).value) || 0;
     state.dailyTarget = val;
     saveState();
     closeModal();
@@ -13279,7 +13279,7 @@ function openClientNotesModal(clientId) {
 }
 
 function addClientNote(clientId) {
-    const text = (document.getElementById('client-note-text').value || '').trim();
+    const text = ((document.getElementById('client-note-text') || {}).value || '').trim();
     if (!text) { showToast('Shkruaj një shënim!', 'error'); return; }
     if (!state.clientNotes) state.clientNotes = [];
     (state.clientNotes = state.clientNotes || []).push({
@@ -14325,8 +14325,8 @@ function openVolumeDiscountSettings() {
                     <input type="number" id="vd-pct" class="form-input" placeholder="p.sh. 5" min="0.1" max="100" step="0.1" style="width:100%;">
                 </div>
                 <button class="btn btn-primary" onclick="(function(){
-                    const qty = parseInt(document.getElementById('vd-minqty').value);
-                    const pct = parseFloat(document.getElementById('vd-pct').value);
+                    const qty = parseInt((document.getElementById('vd-minqty') || {}).value);
+                    const pct = parseFloat((document.getElementById('vd-pct') || {}).value);
                     if (!qty || !pct || qty < 1 || pct <= 0) { showToast('Vendos vlera valide','error'); return; }
                     if (!state.volumeDiscounts) state.volumeDiscounts = [];
                     (state.volumeDiscounts = state.volumeDiscounts || []).push({minQty:qty, discountPct:pct});
@@ -14757,14 +14757,14 @@ function requestPinForDelete(callback) {
         confirmBtn.style.cssText = 'margin-top:12px;width:100%;';
         confirmBtn.textContent = 'Konfirmo Fshirjen';
         confirmBtn.onclick = function() {
-            const entered = document.getElementById('delete-pin-input').value;
+            const entered = (document.getElementById('delete-pin-input') || {}).value;
             if (entered === String(state.deletePin)) {
                 document.querySelector('.modal-overlay')?.remove();
                 callback();
             } else {
                 document.getElementById('delete-pin-error').textContent = 'PIN i gabuar! Provo sërish.';
                 document.getElementById('delete-pin-input').value = '';
-                document.getElementById('delete-pin-input').focus();
+                document.getElementById('delete-pin-input')?.focus();
             }
         };
         const modalBody = document.querySelector('.modal-body');
@@ -14806,9 +14806,9 @@ function openChangePinModal() {
 }
 
 function submitChangePinModal() {
-    const current = document.getElementById('current-pin').value;
-    const newPin = document.getElementById('new-pin').value;
-    const confirm = document.getElementById('confirm-new-pin').value;
+    const current = (document.getElementById('current-pin') || {}).value;
+    const newPin = (document.getElementById('new-pin') || {}).value;
+    const confirm = (document.getElementById('confirm-new-pin') || {}).value;
     const errEl = document.getElementById('change-pin-error');
     if (current !== String(state.deletePin)) {
         errEl.textContent = 'PIN aktual është i gabuar!';
@@ -15032,7 +15032,7 @@ function openCommissionSettings() {
 }
 
 function saveCommissionSettings() {
-    const val = parseFloat(document.getElementById('commission-pct').value);
+    const val = parseFloat((document.getElementById('commission-pct') || {}).value);
     if (isNaN(val) || val < 0 || val > 100) {
         showToast('Përqindja duhet të jetë 0-100!', 'error');
         return;
@@ -15117,7 +15117,7 @@ function addWarranty(saleIndex) {
 }
 
 function saveWarranty(saleIndex) {
-    const days = parseInt(document.getElementById('warranty-days-input').value);
+    const days = parseInt((document.getElementById('warranty-days-input') || {}).value);
     if (isNaN(days) || days < 0) { showToast('Numri i ditëve është i pavlefshëm!', 'error'); return; }
     state.sales[saleIndex].warrantyDays = days;
     state.sales[saleIndex].warrantyStart = state.sales[saleIndex].date;
@@ -17803,7 +17803,7 @@ function _verifyRestorePin() {
     } else {
         showToast('PIN i gabuar!', 'error');
         document.getElementById('restore-pin-input').value = '';
-        document.getElementById('restore-pin-input').focus();
+        document.getElementById('restore-pin-input')?.focus();
     }
 }
 
@@ -18061,13 +18061,13 @@ function _setupInstallPrompt() {
 
         // Mos shfaq nëse përdoruesi e ka fshehur këtë sesion
         if (!sessionStorage.getItem('pwa-install-dismissed')) {
-            document.getElementById('pwa-install-banner').style.display = 'block';
+            (document.getElementById('pwa-install-banner') || {style:{}}).style.display = 'block';
         }
     });
 
     // Kur instalohet me sukses, fshih bannerin
     window.addEventListener('appinstalled', () => {
-        document.getElementById('pwa-install-banner').style.display = 'none';
+        (document.getElementById('pwa-install-banner') || {style:{}}).style.display = 'none';
         _pwaInstallPrompt = null;
         showToast('🌴 Hurma App u instalua me sukses!', 'success');
     });
@@ -18084,14 +18084,14 @@ function pwaTriggerInstall() {
         if (choice.outcome === 'accepted') {
             showToast('Po instalohet Hurma App...', 'success');
         }
-        document.getElementById('pwa-install-banner').style.display = 'none';
+        (document.getElementById('pwa-install-banner') || {style:{}}).style.display = 'none';
         _pwaInstallPrompt = null;
     });
 }
 
 // ---- Butoni "Jo tani" ----
 function pwaDismissInstall() {
-    document.getElementById('pwa-install-banner').style.display = 'none';
+    (document.getElementById('pwa-install-banner') || {style:{}}).style.display = 'none';
     sessionStorage.setItem('pwa-install-dismissed', '1');
 }
 
@@ -18260,7 +18260,7 @@ if (_origToggleTheme) {
         if (meta) meta.setAttribute('content', isDark ? '#1a1a2e' : '#2c7a4b');
     };
     document.getElementById('dark-mode-toggle') &&
-        document.getElementById('dark-mode-toggle').addEventListener('change', _themeMetaSync);
+        document.getElementById('dark-mode-toggle')?.addEventListener('change', _themeMetaSync);
 }
 
 // ---- Butoni "Njoftime" i ekspozuar për Settings ----
@@ -18728,11 +18728,11 @@ function refreshInvoicesPage() {
         });
     }
 
-    var statusFilter = document.getElementById('inv-filter-status') ? document.getElementById('inv-filter-status').value : '';
-    var clientFilter = document.getElementById('inv-filter-client') ? document.getElementById('inv-filter-client').value : '';
-    var dateFrom = document.getElementById('inv-filter-from') ? document.getElementById('inv-filter-from').value : '';
-    var dateTo = document.getElementById('inv-filter-to') ? document.getElementById('inv-filter-to').value : '';
-    var searchVal = document.getElementById('inv-filter-search') ? (document.getElementById('inv-filter-search').value || '').toLowerCase() : '';
+    var statusFilter = document.getElementById('inv-filter-status') ? (document.getElementById('inv-filter-status') || {}).value : '';
+    var clientFilter = document.getElementById('inv-filter-client') ? (document.getElementById('inv-filter-client') || {}).value : '';
+    var dateFrom = document.getElementById('inv-filter-from') ? (document.getElementById('inv-filter-from') || {}).value : '';
+    var dateTo = document.getElementById('inv-filter-to') ? (document.getElementById('inv-filter-to') || {}).value : '';
+    var searchVal = document.getElementById('inv-filter-search') ? ((document.getElementById('inv-filter-search') || {}).value || '').toLowerCase() : '';
 
     // Build invoices from all sales (Bug #133: null-safe)
     var invoices = (state.sales || []).map(function(s, idx) {
@@ -19505,7 +19505,7 @@ function calcDistTotalCashCollected() {
     var total = 0;
     (state.distDeliveries || []).forEach(function(d) {
         if (d.paymentType === 'cash' && d.paid) {
-            total += d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+            total += (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
         } else if (d.paymentType !== 'cash') {
             total += (d.paidAmount || 0);
         }
@@ -19517,7 +19517,7 @@ function calcDistShopDebts() {
     var total = 0;
     (state.distDeliveries || []).forEach(function(d) {
         if (!d.paid) {
-            var deliveryTotal = d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+            var deliveryTotal = (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
             total += deliveryTotal - (d.paidAmount || 0);
         }
     });
@@ -19545,7 +19545,7 @@ function calcDistOverdueDebts() {
         var dueDate = new Date(d.date);
         dueDate.setDate(dueDate.getDate() + days);
         if (today > dueDate) {
-            var deliveryTotal = d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+            var deliveryTotal = (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
             total += deliveryTotal - (d.paidAmount || 0);
         }
     });
@@ -19742,9 +19742,9 @@ function renderDistDeliveriesTab() {
 
     deliveries.forEach(function(d) {
         var shop = getDistShop(d.shopId);
-        var total = d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+        var total = (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
         var remaining = total - (d.paidAmount || 0);
-        var itemsStr = d.items.map(function(i) { return getDistProduct(i.productId).name + ' x' + i.quantity; }).join(', ');
+        var itemsStr = (d.items || []).map(function(i) { return getDistProduct(i.productId).name + ' x' + i.quantity; }).join(', ');
         var payLabel = d.paymentType === 'cash' ? 'Cash' : d.paymentType === 'invoice_30' ? 'Faturë 30' : d.paymentType === 'invoice_60' ? 'Faturë 60' : 'Faturë 90';
         var statusClass = d.paid ? 'dist-badge-paid' : (d.paidAmount > 0 ? 'dist-badge-partial' : 'dist-badge-unpaid');
         var statusText = d.paid ? 'Paguar' : (d.paidAmount > 0 ? 'Pjesërisht (' + d.paidAmount + ')' : 'Papaguar');
@@ -19799,7 +19799,7 @@ function renderDistShopsTab() {
         var debt = 0;
         (state.distDeliveries || []).forEach(function(d) {
             if (d.shopId === s.id && !d.paid) {
-                var total = d.items.reduce(function(sum, i) { return sum + i.quantity * i.price; }, 0);
+                var total = (d.items || []).reduce(function(sum, i) { return sum + i.quantity * i.price; }, 0);
                 debt += total - (d.paidAmount || 0);
             }
         });
@@ -19895,7 +19895,7 @@ function renderDistDebtsTab() {
     (state.distDeliveries || []).forEach(function(d) {
         if (d.paid) return;
         if (!shopDebts[d.shopId]) shopDebts[d.shopId] = { total: 0, deliveries: [], overdue: 0 };
-        var total = d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+        var total = (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
         var remaining = total - (d.paidAmount || 0);
         shopDebts[d.shopId].total += remaining;
         shopDebts[d.shopId].deliveries.push(d);
@@ -20084,7 +20084,7 @@ function renderDistReportsTab() {
     var givenToFaton = calcDistGivenToFaton();
     var shopDebts = calcDistShopDebts();
     var totalReceived = (state.distReceived || []).reduce(function(s, r) { return s + r.quantity * r.price; }, 0);
-    var totalDelivered = (state.distDeliveries || []).reduce(function(s, d) { return s + d.items.reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
+    var totalDelivered = (state.distDeliveries || []).reduce(function(s, d) { return s + (d.items || []).reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
 
     h += '<div class="dist-report-summary">';
     h += '<h4>Permbledhje Financiare</h4>';
@@ -20131,17 +20131,17 @@ function openDistReceiveModal() {
 
 function saveDistReceived(e) {
     e.preventDefault();
-    var qty = parseInt(document.getElementById('dist-recv-qty').value);
-    var price = parseFloat(document.getElementById('dist-recv-price').value);
+    var qty = parseInt((document.getElementById('dist-recv-qty') || {}).value);
+    var price = parseFloat((document.getElementById('dist-recv-price') || {}).value);
     if (isNaN(qty) || qty <= 0) { showToast('Sasia duhet të jetë numër pozitiv!', 'error'); return; }
     if (isNaN(price) || price < 0) { showToast('Çmimi duhet të jetë numër i vlefshëm!', 'error'); return; }
     var rec = {
         id: 'dr_' + Date.now(),
-        date: document.getElementById('dist-recv-date').value,
-        productId: document.getElementById('dist-recv-product').value,
+        date: (document.getElementById('dist-recv-date') || {}).value,
+        productId: (document.getElementById('dist-recv-product') || {}).value,
         quantity: qty,
         price: price,
-        note: document.getElementById('dist-recv-note').value
+        note: (document.getElementById('dist-recv-note') || {}).value
     };
     if (!state.distReceived) state.distReceived = [];
     (state.distReceived = state.distReceived || []).push(rec);
@@ -20333,7 +20333,7 @@ function saveDistDelivery(e) {
     // Siguro që _distPendingPODPhotos ekziston edhe kur modal-i mbyllet/rihap
     if (!Array.isArray(window._distPendingPODPhotos)) window._distPendingPODPhotos = [];
 
-    var paymentType = document.getElementById('dist-del-payment').value;
+    var paymentType = (document.getElementById('dist-del-payment') || {}).value;
     var isCash = paymentType === 'cash';
     var invoiceNum = distNextInvoiceNum();
 
@@ -20362,8 +20362,8 @@ function saveDistDelivery(e) {
 
     var delivery = {
         id: 'dd_' + Date.now(),
-        date: document.getElementById('dist-del-date').value,
-        shopId: document.getElementById('dist-del-shop').value,
+        date: (document.getElementById('dist-del-date') || {}).value,
+        shopId: (document.getElementById('dist-del-shop') || {}).value,
         items: items,
         paymentType: paymentType,
         invoiceNum: invoiceNum,
@@ -20371,7 +20371,7 @@ function saveDistDelivery(e) {
         paidAmount: isCash ? items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0) : 0,
         paidDate: isCash ? new Date().toISOString().split('T')[0] : null,
         paymentHistory: isCash ? [{ date: new Date().toISOString().split('T')[0], amount: items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0), method: 'cash' }] : [],
-        note: document.getElementById('dist-del-note').value,
+        note: (document.getElementById('dist-del-note') || {}).value,
         pod: pod
     };
 
@@ -20407,7 +20407,7 @@ function openDistCollectPaymentModal(deliveryId, shopId) {
     if (deliveryId) {
         var del = (state.distDeliveries || []).find(function(d) { return d.id === deliveryId; });
         if (!del) return;
-        var total = del.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+        var total = (del.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
         var remaining = total - (del.paidAmount || 0);
         h += '<input type="hidden" id="dist-pay-delivery-id" value="' + deliveryId + '">';
         h += '<p style="margin-bottom:10px;"><strong>Fatura:</strong> ' + del.invoiceNum + ' | <strong>Dyqani:</strong> ' + getDistShop(del.shopId).name + '</p>';
@@ -20422,7 +20422,7 @@ function openDistCollectPaymentModal(deliveryId, shopId) {
         }
         h += '<div class="form-group"><label>Zgjedh Faturën</label><select id="dist-pay-delivery-id" required onchange="distUpdatePaymentMax()">';
         unpaid.forEach(function(d) {
-            var total = d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+            var total = (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
             var remaining = total - (d.paidAmount || 0);
             h += '<option value="' + d.id + '">' + d.invoiceNum + ' - ' + getDistShop(d.shopId).name + ' (' + remaining + ' den mbetur)</option>';
         });
@@ -20448,7 +20448,7 @@ function distUpdatePaymentMax() {
     if (!sel) return;
     var del = (state.distDeliveries || []).find(function(d) { return d.id === sel.value; });
     if (del) {
-        var total = del.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+        var total = (del.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
         var remaining = total - (del.paidAmount || 0);
         var amountInput = document.getElementById('dist-pay-amount');
         amountInput.max = remaining;
@@ -20458,15 +20458,15 @@ function distUpdatePaymentMax() {
 
 function saveDistCollectPayment(e) {
     e.preventDefault();
-    var deliveryId = document.getElementById('dist-pay-delivery-id').value;
-    var amount = parseFloat(document.getElementById('dist-pay-amount').value);
-    var date = document.getElementById('dist-pay-date').value;
-    var method = document.getElementById('dist-pay-method').value;
+    var deliveryId = (document.getElementById('dist-pay-delivery-id') || {}).value;
+    var amount = parseFloat((document.getElementById('dist-pay-amount') || {}).value);
+    var date = (document.getElementById('dist-pay-date') || {}).value;
+    var method = (document.getElementById('dist-pay-method') || {}).value;
 
     var del = (state.distDeliveries || []).find(function(d) { return d.id === deliveryId; });
     if (!del) { showToast('Dërgesa nuk u gjet!', 'error'); return; }
 
-    var total = del.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+    var total = (del.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
     del.paidAmount = (del.paidAmount || 0) + amount;
     if (!del.paymentHistory) del.paymentHistory = [];
     del.paymentHistory.push({ date: date, amount: amount, method: method });
@@ -20516,10 +20516,10 @@ function saveDistPayToFaton(e) {
     }
     var payment = {
         id: 'df_' + Date.now(),
-        date: document.getElementById('dist-faton-date').value,
-        amount: parseFloat(document.getElementById('dist-faton-amount').value),
-        method: document.getElementById('dist-faton-method').value,
-        note: document.getElementById('dist-faton-note').value,
+        date: (document.getElementById('dist-faton-date') || {}).value,
+        amount: parseFloat((document.getElementById('dist-faton-amount') || {}).value),
+        method: (document.getElementById('dist-faton-method') || {}).value,
+        note: (document.getElementById('dist-faton-note') || {}).value,
         signature: signature
     };
     if (!state.distPayToFaton) state.distPayToFaton = [];
@@ -20576,12 +20576,12 @@ function saveDistShop(e, existingId) {
     e.preventDefault();
     var shop = {
         id: existingId || 'ds_' + Date.now(),
-        name: document.getElementById('dist-shop-name').value,
-        address: document.getElementById('dist-shop-address').value,
-        phone: document.getElementById('dist-shop-phone').value,
-        contact: document.getElementById('dist-shop-contact').value,
-        category: document.getElementById('dist-shop-category').value,
-        notes: document.getElementById('dist-shop-notes').value,
+        name: (document.getElementById('dist-shop-name') || {}).value,
+        address: (document.getElementById('dist-shop-address') || {}).value,
+        phone: (document.getElementById('dist-shop-phone') || {}).value,
+        contact: (document.getElementById('dist-shop-contact') || {}).value,
+        category: (document.getElementById('dist-shop-category') || {}).value,
+        notes: (document.getElementById('dist-shop-notes') || {}).value,
         dateAdded: new Date().toISOString().split('T')[0]
     };
 
@@ -20622,7 +20622,7 @@ function viewDistDeliveryInvoice(deliveryId) {
     var del = (state.distDeliveries || []).find(function(d) { return d.id === deliveryId; });
     if (!del) return;
     var shop = getDistShop(del.shopId);
-    var total = del.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+    var total = (del.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
     var payLabel = del.paymentType === 'cash' ? 'Cash' : del.paymentType === 'invoice_30' ? 'Faturë 30 ditë' : del.paymentType === 'invoice_60' ? 'Faturë 60 ditë' : 'Faturë 90 ditë';
 
     var h = '<div class="dist-invoice">';
@@ -20638,7 +20638,7 @@ function viewDistDeliveryInvoice(deliveryId) {
     h += '</div>';
 
     h += '<table class="dist-invoice-table"><thead><tr><th>#</th><th>Produkti</th><th>Sasia</th><th>Cmimi</th><th>Totali</th></tr></thead><tbody>';
-    del.items.forEach(function(item, i) {
+    (del.items || []).forEach(function(item, i) {
         var p = getDistProduct(item.productId);
         h += '<tr><td>' + (i + 1) + '</td><td>' + p.name + '</td><td>' + item.quantity + '</td><td>' + item.price + ' den</td><td>' + (item.quantity * item.price) + ' den</td></tr>';
     });
@@ -20762,7 +20762,7 @@ function distSendDebtReminder(shopId) {
     var invoices = [];
     (state.distDeliveries || []).forEach(function(d) {
         if (d.shopId === shopId && !d.paid) {
-            var total = d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+            var total = (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
             var remaining = total - (d.paidAmount || 0);
             debt += remaining;
             invoices.push(d.invoiceNum + ': ' + remaining + ' den');
@@ -20787,9 +20787,9 @@ function distReportDaily() {
     var h = '<h3>Raporti Ditor - ' + today + '</h3>';
     h += '<div class="dist-report-summary">';
     h += '<div class="dist-report-row"><span>Dërgesa sot:</span><strong>' + deliveries.length + '</strong></div>';
-    var todayTotal = deliveries.reduce(function(s, d) { return s + d.items.reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
+    var todayTotal = deliveries.reduce(function(s, d) { return s + (d.items || []).reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
     h += '<div class="dist-report-row"><span>Vlera e dërgesave:</span><strong>' + todayTotal + ' den</strong></div>';
-    var todayCash = deliveries.filter(function(d) { return d.paymentType === 'cash'; }).reduce(function(s, d) { return s + d.items.reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
+    var todayCash = deliveries.filter(function(d) { return d.paymentType === 'cash'; }).reduce(function(s, d) { return s + (d.items || []).reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
     h += '<div class="dist-report-row"><span>Cash i mbledhur sot:</span><strong>' + todayCash + ' den</strong></div>';
     h += '<div class="dist-report-row"><span>Pranim malli sot:</span><strong>' + received.length + ' artikuj</strong></div>';
     h += '<div class="dist-report-row"><span>Dorezuar Fatonit sot:</span><strong>' + payments.reduce(function(s, p) { return s + p.amount; }, 0) + ' den</strong></div>';
@@ -20812,8 +20812,8 @@ function distReportWeekly() {
     var toDate = today.toISOString().split('T')[0];
 
     var deliveries = (state.distDeliveries || []).filter(function(d) { return d.date >= fromDate && d.date <= toDate; });
-    var totalDelivered = deliveries.reduce(function(s, d) { return s + d.items.reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
-    var cashCollected = deliveries.filter(function(d) { return d.paid; }).reduce(function(s, d) { return s + d.items.reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
+    var totalDelivered = deliveries.reduce(function(s, d) { return s + (d.items || []).reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
+    var cashCollected = deliveries.filter(function(d) { return d.paid; }).reduce(function(s, d) { return s + (d.items || []).reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
 
     var h = '<h3>Raporti Javor (' + fromDate + ' - ' + toDate + ')</h3>';
     h += '<div class="dist-report-summary">';
@@ -20838,7 +20838,7 @@ function distReportMonthly() {
 
     var deliveries = (state.distDeliveries || []).filter(function(d) { return d.date >= monthStart && d.date <= toDate; });
     var received = (state.distReceived || []).filter(function(r) { return r.date >= monthStart && r.date <= toDate; });
-    var totalDelivered = deliveries.reduce(function(s, d) { return s + d.items.reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
+    var totalDelivered = deliveries.reduce(function(s, d) { return s + (d.items || []).reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
     var totalReceived = received.reduce(function(s, r) { return s + r.quantity * r.price; }, 0);
 
     var h = '<h3>Raporti Mujor (' + monthStart + ' - ' + toDate + ')</h3>';
@@ -20864,10 +20864,10 @@ function distReportPerShop() {
     var h = '<h3>Raporti sipas Dyqanit</h3>';
     (state.distShops || []).forEach(function(shop) {
         var deliveries = (state.distDeliveries || []).filter(function(d) { return d.shopId === shop.id; });
-        var total = deliveries.reduce(function(s, d) { return s + d.items.reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
-        var paid = deliveries.filter(function(d) { return d.paid; }).reduce(function(s, d) { return s + d.items.reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
+        var total = deliveries.reduce(function(s, d) { return s + (d.items || []).reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
+        var paid = deliveries.filter(function(d) { return d.paid; }).reduce(function(s, d) { return s + (d.items || []).reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
         var debt = 0;
-        deliveries.forEach(function(d) { if (!d.paid) { var t = d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0); debt += t - (d.paidAmount || 0); } });
+        deliveries.forEach(function(d) { if (!d.paid) { var t = (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0); debt += t - (d.paidAmount || 0); } });
 
         h += '<div class="dist-report-summary" style="margin-bottom:10px;">';
         h += '<h4>' + shop.name + '</h4>';
@@ -20893,7 +20893,7 @@ function distReportPerProduct() {
         var totalReceived = (state.distReceived || []).filter(function(r) { return r.productId === p.id; }).reduce(function(s, r) { return s + r.quantity; }, 0);
         var totalDelivered = 0;
         (state.distDeliveries || []).forEach(function(d) {
-            d.items.forEach(function(item) { if (item.productId === p.id) totalDelivered += item.quantity; });
+            (d.items || []).forEach(function(item) { if (item.productId === p.id) totalDelivered += item.quantity; });
         });
         var inStock = (calcDistStock()[p.id] || 0);
 
@@ -20919,7 +20919,7 @@ function distReportFinancial() {
     var shopDebts = calcDistShopDebts();
     var overdueDebts = calcDistOverdueDebts();
     var totalReceived = (state.distReceived || []).reduce(function(s, r) { return s + r.quantity * r.price; }, 0);
-    var totalDelivered = (state.distDeliveries || []).reduce(function(s, d) { return s + d.items.reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
+    var totalDelivered = (state.distDeliveries || []).reduce(function(s, d) { return s + (d.items || []).reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
 
     var h = '<h3>Permbledhje Financiare</h3>';
     h += '<div class="dist-report-summary">';
@@ -21151,7 +21151,7 @@ function openDistShop360(shopId) {
     var purchaseHistory = {};
 
     deliveries.forEach(function(d) {
-        var total = d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+        var total = (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
         totalBought += total;
         totalPaid += (d.paidAmount || 0);
         var month = d.date.substring(0, 7);
@@ -21199,8 +21199,8 @@ function openDistShop360(shopId) {
     h += '<th>Nr.</th><th>Data</th><th>Produkte</th><th>Totali</th><th>Statusi</th>';
     h += '</tr></thead><tbody>';
     deliveries.sort(function(a, b) { return b.date.localeCompare(a.date); }).forEach(function(d) {
-        var total = d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
-        var itemsStr = d.items.map(function(i) { return getDistProduct(i.productId).name + ' x' + i.quantity; }).join(', ');
+        var total = (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+        var itemsStr = (d.items || []).map(function(i) { return getDistProduct(i.productId).name + ' x' + i.quantity; }).join(', ');
         var statusClass = d.paid ? 'dist-badge-paid' : (d.paidAmount > 0 ? 'dist-badge-partial' : 'dist-badge-unpaid');
         var statusText = d.paid ? 'Paguar' : (d.paidAmount > 0 ? 'Pjesërisht (' + d.paidAmount + '/' + total + ')' : 'Papaguar');
         h += '<tr class="' + (d.paid ? 'dist-row-paid' : (d.paidAmount > 0 ? 'dist-row-partial' : 'dist-row-unpaid')) + '">';
@@ -21237,7 +21237,7 @@ function openDistShop360(shopId) {
 function openDistPaymentHistory(deliveryId) {
     var del = (state.distDeliveries || []).find(function(d) { return d.id === deliveryId; });
     if (!del) return;
-    var total = del.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+    var total = (del.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
     var h = '<h4>Fatura: ' + del.invoiceNum + '</h4>';
     h += '<p>Totali: <strong>' + total + ' den</strong> | Paguar: <strong>' + (del.paidAmount || 0) + ' den</strong> | Mbetur: <strong>' + (total - (del.paidAmount || 0)) + ' den</strong></p>';
 
@@ -21288,8 +21288,8 @@ function openDistDailyRoute() {
             if (shop.address) h += ' <small>(' + shop.address + ')</small>';
             h += '<div style="margin-top:5px;">';
             deliveries.forEach(function(d) {
-                var total = d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
-                var itemsStr = d.items.map(function(i) { return getDistProduct(i.productId).name + ' x' + i.quantity; }).join(', ');
+                var total = (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+                var itemsStr = (d.items || []).map(function(i) { return getDistProduct(i.productId).name + ' x' + i.quantity; }).join(', ');
                 h += '<div style="font-size:0.9em;margin:3px 0;"><span class="dist-badge ' + (d.paid ? 'dist-badge-paid' : 'dist-badge-unpaid') + '">' + d.invoiceNum + '</span> ' + itemsStr + ' = ' + total + ' den</div>';
             });
             h += '</div></div>';
@@ -21415,8 +21415,8 @@ function distReportComparison() {
     var thisDeliveries = (state.distDeliveries || []).filter(function(d) { return d.date >= thisMonthStart && d.date <= thisMonthEnd; });
     var lastDeliveries = (state.distDeliveries || []).filter(function(d) { return d.date >= lastMonthStart && d.date <= lastMonthEnd; });
 
-    var thisTotal = thisDeliveries.reduce(function(s, d) { return s + d.items.reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
-    var lastTotal = lastDeliveries.reduce(function(s, d) { return s + d.items.reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
+    var thisTotal = thisDeliveries.reduce(function(s, d) { return s + (d.items || []).reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
+    var lastTotal = lastDeliveries.reduce(function(s, d) { return s + (d.items || []).reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
 
     var thisCash = thisDeliveries.filter(function(d) { return d.paid; }).reduce(function(s, d) { return s + (d.paidAmount || 0); }, 0);
     var lastCash = lastDeliveries.filter(function(d) { return d.paid; }).reduce(function(s, d) { return s + (d.paidAmount || 0); }, 0);
@@ -21455,7 +21455,7 @@ function distReportComparison() {
 function distReportTopShops() {
     var shopTotals = {};
     (state.distDeliveries || []).forEach(function(d) {
-        var total = d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+        var total = (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
         shopTotals[d.shopId] = (shopTotals[d.shopId] || 0) + total;
     });
 
@@ -21501,7 +21501,7 @@ function distReportCashFlow() {
         var cashOut = 0;
         (state.distDeliveries || []).forEach(function(d) {
             if (d.date === day && d.paymentType === 'cash' && d.paid) {
-                cashIn += d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+                cashIn += (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
             }
             (d.paymentHistory || []).forEach(function(ph) {
                 if (ph.date === day) cashIn += ph.amount;
@@ -21543,7 +21543,7 @@ function distReportDetailedPDF() {
     var shopDebts = calcDistShopDebts();
     var overdueDebts = calcDistOverdueDebts();
     var totalReceived = (state.distReceived || []).reduce(function(s, r) { return s + r.quantity * r.price; }, 0);
-    var totalDelivered = (state.distDeliveries || []).reduce(function(s, d) { return s + d.items.reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
+    var totalDelivered = (state.distDeliveries || []).reduce(function(s, d) { return s + (d.items || []).reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
 
     var headers = ['Zëri', 'Vlera'];
     var rows = [
@@ -21572,7 +21572,7 @@ function distReportDetailedPDF() {
         var debt = 0;
         (state.distDeliveries || []).forEach(function(d) {
             if (d.shopId === shop.id && !d.paid) {
-                var t = d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+                var t = (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
                 debt += t - (d.paidAmount || 0);
             }
         });
@@ -21586,7 +21586,7 @@ function distReportDetailedPDF() {
 // #20 Average Statistics
 function distReportAverages() {
     var deliveries = state.distDeliveries || [];
-    var totalValue = deliveries.reduce(function(s, d) { return s + d.items.reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
+    var totalValue = deliveries.reduce(function(s, d) { return s + (d.items || []).reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
     var avgDeliverySize = deliveries.length > 0 ? Math.round(totalValue / deliveries.length) : 0;
 
     // Average debt duration
@@ -21633,7 +21633,7 @@ function distSendDailyReportWhatsApp() {
     msg += 'Dërgesa sot: ' + deliveries.length + '\n';
     deliveries.forEach(function(d) {
         var shop = getDistShop(d.shopId);
-        var total = d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+        var total = (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
         msg += '- ' + shop.name + ': ' + total + ' den (' + (d.paid ? 'Paguar' : 'Papaguar') + ')\n';
     });
     msg += '\nCash total: ' + cashCollected + ' den\n';
@@ -22347,11 +22347,11 @@ function distFatonReminderTypeUI(type) {
 function saveDistFatonReminder(e) {
     if (e) e.preventDefault();
     state.distFatonReminder = {
-        enabled: document.getElementById('dfr-enabled').checked,
-        type: document.getElementById('dfr-type').value,
-        days: parseInt(document.getElementById('dfr-days').value) || 7,
-        weekday: parseInt(document.getElementById('dfr-weekday').value) || 1,
-        threshold: parseFloat(document.getElementById('dfr-threshold').value) || 5000,
+        enabled: (document.getElementById('dfr-enabled') || {}).checked,
+        type: (document.getElementById('dfr-type') || {}).value,
+        days: parseInt((document.getElementById('dfr-days') || {}).value) || 7,
+        weekday: parseInt((document.getElementById('dfr-weekday') || {}).value) || 1,
+        threshold: parseFloat((document.getElementById('dfr-threshold') || {}).value) || 5000,
         lastDismissed: (state.distFatonReminder || {}).lastDismissed || null
     };
     saveState();
@@ -22680,7 +22680,7 @@ function distPODWhatsApp(deliveryId) {
     if (!del) return;
     var shop = getDistShop(del.shopId);
     var pod = del.pod || {};
-    var total = del.items.reduce(function(s,i){ return s + i.quantity * i.price; }, 0);
+    var total = (del.items || []).reduce(function(s,i){ return s + i.quantity * i.price; }, 0);
     var condLabels = { complete: 'I plotë', partial: 'Pjesërisht', damaged: 'I dëmtuar' };
     var msg = '📋 PROVË DORËZIMI\n\n';
     msg += 'Faturë: ' + (del.invoiceNum || '-') + '\n';
@@ -22695,7 +22695,7 @@ function distPODWhatsApp(deliveryId) {
         msg += '📍 Vendndodhja: ' + distGPSMapsURL(pod.gps) + '\n';
     }
     msg += '\nProdukte:\n';
-    del.items.forEach(function(it) {
+    (del.items || []).forEach(function(it) {
         msg += '- ' + getDistProduct(it.productId).name + ' x' + it.quantity + ' = ' + (it.quantity*it.price) + ' den\n';
     });
     var phone = (shop.phone || '').replace(/[^0-9]/g, '');
@@ -22837,7 +22837,7 @@ function renderDistAnalyticsTab() {
 
     var thisMonth = deliveries.filter(function(d){ return new Date(d.date) >= thisMonthStart; });
     var lastMonth = deliveries.filter(function(d){ var dt = new Date(d.date); return dt >= lastMonthStart && dt <= lastMonthEnd; });
-    var sumTotal = function(arr){ return arr.reduce(function(s,d){ return s + d.items.reduce(function(a,i){ return a + i.quantity * i.price; }, 0); }, 0); };
+    var sumTotal = function(arr){ return arr.reduce(function(s,d){ return s + (d.items || []).reduce(function(a,i){ return a + i.quantity * i.price; }, 0); }, 0); };
     var thisRev = sumTotal(thisMonth);
     var lastRev = sumTotal(lastMonth);
     var pctChange = lastRev === 0 ? (thisRev > 0 ? 100 : 0) : Math.round(((thisRev - lastRev) / lastRev) * 100);
@@ -22899,7 +22899,7 @@ function distRenderAnalyticsCharts() {
         var m = new Date(now.getFullYear(), now.getMonth() - i, 1);
         var mEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
         var rev = deliveries.filter(function(d){ var dt = new Date(d.date); return dt >= m && dt <= mEnd; })
-            .reduce(function(s,d){ return s + d.items.reduce(function(a,i){ return a + i.quantity * i.price; }, 0); }, 0);
+            .reduce(function(s,d){ return s + (d.items || []).reduce(function(a,i){ return a + i.quantity * i.price; }, 0); }, 0);
         monthsData.push({ label: m.toLocaleDateString('sq-AL', { month: 'short', year: '2-digit' }), value: rev });
     }
     var el1 = document.getElementById('dist-chart-monthly');
@@ -22919,7 +22919,7 @@ function distRenderAnalyticsCharts() {
     var thisMonthDel = deliveries.filter(function(d){ return new Date(d.date) >= thisMonthStart; });
     var shopRev = {};
     thisMonthDel.forEach(function(d){
-        var tot = d.items.reduce(function(a,i){ return a + i.quantity * i.price; }, 0);
+        var tot = (d.items || []).reduce(function(a,i){ return a + i.quantity * i.price; }, 0);
         shopRev[d.shopId] = (shopRev[d.shopId] || 0) + tot;
     });
     var topShops = Object.keys(shopRev).map(function(k){ return { name: (getDistShop(k) || {}).name || '—', value: shopRev[k] }; })
@@ -22939,7 +22939,7 @@ function distRenderAnalyticsCharts() {
     // ===== Top products this month =====
     var prodQty = {};
     thisMonthDel.forEach(function(d){
-        d.items.forEach(function(it){
+        (d.items || []).forEach(function(it){
             prodQty[it.productId] = (prodQty[it.productId] || 0) + it.quantity;
         });
     });
@@ -22960,7 +22960,7 @@ function distRenderAnalyticsCharts() {
     // ===== Payment breakdown =====
     var payBreakdown = { cash: 0, invoice_30: 0, invoice_60: 0, invoice_90: 0 };
     thisMonthDel.forEach(function(d){
-        var tot = d.items.reduce(function(a,i){ return a + i.quantity * i.price; }, 0);
+        var tot = (d.items || []).reduce(function(a,i){ return a + i.quantity * i.price; }, 0);
         if (payBreakdown.hasOwnProperty(d.paymentType)) payBreakdown[d.paymentType] += tot;
     });
     var payLabels = { cash: 'Cash', invoice_30: 'Faturë 30', invoice_60: 'Faturë 60', invoice_90: 'Faturë 90' };
@@ -23037,7 +23037,7 @@ function showDistPODMap() {
         items.forEach(function(it) {
             var shop = it.shop || {};
             var d = it.delivery;
-            var total = d.items.reduce(function(s,i){ return s + i.quantity * i.price; }, 0);
+            var total = (d.items || []).reduce(function(s,i){ return s + i.quantity * i.price; }, 0);
             // Ngjyra sipas statusit të pagesës
             var color = d.paid ? '#27ae60' : (d.paidAmount > 0 ? '#f39c12' : '#c0392b');
             var marker = L.circleMarker([it.gps.lat, it.gps.lng], {
@@ -23089,7 +23089,7 @@ function distExportDeliveriesExcel(scope) {
 
     var rows = deliveries.map(function(d){
         var shop = getDistShop(d.shopId) || {};
-        var total = d.items.reduce(function(s,i){ return s + i.quantity * i.price; }, 0);
+        var total = (d.items || []).reduce(function(s,i){ return s + i.quantity * i.price; }, 0);
         var paid = d.paidAmount || 0;
         var days = d.paymentType === 'invoice_30' ? 30 : d.paymentType === 'invoice_60' ? 60 : d.paymentType === 'invoice_90' ? 90 : 0;
         var due = days ? new Date(new Date(d.date).getTime() + days * 86400000).toISOString().split('T')[0] : '';
@@ -23100,7 +23100,7 @@ function distExportDeliveriesExcel(scope) {
             'Dyqani': shop.name || '',
             'Telefon': shop.phone || '',
             'Adresa': shop.address || '',
-            'Produkte': d.items.map(function(i){ return (getDistProduct(i.productId) || {}).name + ' x' + i.quantity; }).join('; '),
+            'Produkte': (d.items || []).map(function(i){ return (getDistProduct(i.productId) || {}).name + ' x' + i.quantity; }).join('; '),
             'Totali (den)': total,
             'Paguar (den)': paid,
             'Borxhi (den)': total - paid,
@@ -23141,7 +23141,7 @@ function computeOverdueDeliveries() {
         var delDate = new Date(d.date); delDate.setHours(0,0,0,0);
         var due = new Date(delDate.getTime() + days * 86400000);
         if (due < today) {
-            var total = d.items.reduce(function(s,i){ return s + i.quantity * i.price; }, 0);
+            var total = (d.items || []).reduce(function(s,i){ return s + i.quantity * i.price; }, 0);
             var remaining = total - (d.paidAmount || 0);
             var daysOverdue = Math.floor((today - due) / 86400000);
             overdue.push({
@@ -23197,7 +23197,7 @@ function sendOverdueReminderWhatsApp(deliveryId) {
     var del = (state.distDeliveries || []).find(function(d){ return d.id === deliveryId; });
     if (!del) return;
     var shop = getDistShop(del.shopId);
-    var total = del.items.reduce(function(s,i){ return s + i.quantity * i.price; }, 0);
+    var total = (del.items || []).reduce(function(s,i){ return s + i.quantity * i.price; }, 0);
     var remaining = total - (del.paidAmount || 0);
     var days = del.paymentType === 'invoice_30' ? 30 : del.paymentType === 'invoice_60' ? 60 : 90;
     var due = new Date(new Date(del.date).getTime() + days * 86400000);
@@ -23229,7 +23229,7 @@ function distPODGeneratePDF(deliveryId) {
     try {
         var shop = getDistShop(del.shopId);
         var pod = del.pod || {};
-        var total = del.items.reduce(function(s,i){ return s + i.quantity * i.price; }, 0);
+        var total = (del.items || []).reduce(function(s,i){ return s + i.quantity * i.price; }, 0);
         var condLabels = { complete: 'I plote / OK', partial: 'Pjeserisht', damaged: 'I demtuar' };
 
         var jsPDF = window.jspdf.jsPDF;
@@ -23285,7 +23285,7 @@ function distPODGeneratePDF(deliveryId) {
         doc.setTextColor(0, 0, 0);
         y += 7;
         doc.setFont(undefined, 'normal');
-        del.items.forEach(function(it, i) {
+        (del.items || []).forEach(function(it, i) {
             if (i % 2 === 0) { doc.setFillColor(245, 247, 250); doc.rect(15, y, pageW - 30, 6, 'F'); }
             var p = getDistProduct(it.productId);
             doc.text((p.name || '').substring(0, 50), 17, y + 4);
@@ -23403,7 +23403,7 @@ function showMissingPODDeliveries() {
         h += '</tr></thead><tbody>';
         missing.forEach(function(d) {
             var shop = getDistShop(d.shopId);
-            var total = d.items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+            var total = (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
             h += '<tr>';
             h += '<td><strong>' + (d.invoiceNum || '-') + '</strong></td>';
             h += '<td>' + d.date + '</td>';
