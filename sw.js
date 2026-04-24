@@ -1,6 +1,6 @@
 // ===================== HURMA APP — SERVICE WORKER =====================
 // Versioni i cache-it. Ndrysho këtë vlerë kur publikon update të ri.
-const CACHE_VERSION = 'hurma-v64';
+const CACHE_VERSION = 'hurma-v65';
 
 // Skedarët lokalë që kachojmë për punë offline
 const CORE_ASSETS = [
@@ -67,9 +67,19 @@ self.addEventListener('fetch', event => {
                            pathname.endsWith('.css');
 
     if (isCriticalFile) {
-        // Network-first: provo rrjetin, vetëm në rast dështimi kthe nga cache
+        // Network-first me cache-busting për HTML/JS/CSS: shto timestamp në kërkesë
+        // që të mos marrim kurrë versionin e cache-uar të browserit vetë.
+        const bustUrl = event.request.url + (event.request.url.includes('?') ? '&' : '?') + '__sw=' + Date.now();
+        const bustReq = new Request(bustUrl, {
+            method: event.request.method,
+            headers: event.request.headers,
+            mode: 'same-origin',
+            credentials: event.request.credentials,
+            redirect: event.request.redirect,
+            cache: 'no-store'
+        });
         event.respondWith(
-            fetch(event.request)
+            fetch(bustReq)
                 .then(response => {
                     if (response && response.ok) {
                         const clone = response.clone();

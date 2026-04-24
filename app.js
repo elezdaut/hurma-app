@@ -17980,7 +17980,11 @@ function initPWA() {
 function _registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
 
-    navigator.serviceWorker.register('/sw.js')
+    // updateViaCache:'none' => browseri NUK e cache-on kurrë sw.js (fiks kritik për
+    // problemin e "aplikacioni nuk përditësohet"). Pa këtë, browserët e cache-ojnë
+    // sw.js për 24h si default — ndaj edhe pas deploy-it të ri, përdoruesi vazhdon
+    // të shohë versionin e vjetër.
+    navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
         .then(reg => {
             _swRegistration = reg;
 
@@ -17989,7 +17993,7 @@ function _registerServiceWorker() {
             navigator.serviceWorker.addEventListener('controllerchange', () => {
                 if (reloading) return;
                 reloading = true;
-                showToast('Aplikacioni u përditësua — duke rifreskuar...', 'info');
+                try { showToast('Aplikacioni u përditësua — duke rifreskuar...', 'info'); } catch(e){}
                 setTimeout(() => window.location.reload(), 400);
             });
 
@@ -18000,7 +18004,7 @@ function _registerServiceWorker() {
                 newWorker.addEventListener('statechange', () => {
                     if (newWorker.state === 'installed') {
                         if (navigator.serviceWorker.controller) {
-                            // Update i ri gati — shty atë të marrë kontrollin
+                            // Update i ri gati — shty atë të marrë kontrollin automatikisht
                             try { newWorker.postMessage({ type: 'SKIP_WAITING' }); } catch(e) {}
                             var banner = document.getElementById('pwa-update-banner');
                             if (banner) banner.style.display = 'block';
@@ -18009,12 +18013,23 @@ function _registerServiceWorker() {
                 });
             });
 
-            // Kontrollo update menjëherë
-            reg.update();
-            // Kontrollo periodikisht (çdo 30 min) për versione të reja
-            setInterval(() => { try { reg.update(); } catch(e) {} }, 30 * 60 * 1000);
+            // Kontrollo update menjëherë pas regjistrimit
+            try { reg.update(); } catch(e) {}
+
+            // Kontrollo periodikisht (çdo 5 min) për versione të reja
+            setInterval(() => { try { reg.update(); } catch(e) {} }, 5 * 60 * 1000);
+
+            // Kontrollo çdo herë që tab-i kthehet në fokus (përdoruesi riaktivizon aplikacionin)
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    try { reg.update(); } catch(e) {}
+                }
+            });
+
+            // Kontrollo edhe kur network-u rikthehet online
+            window.addEventListener('online', () => { try { reg.update(); } catch(e) {} });
         })
-        .catch(err => console.warn('SW regjistrim dështoi:', err));
+        .catch(err => { try { console.warn('SW regjistrim dështoi:', err); } catch(e){} });
 }
 
 // ---- Pastrim total i cache-s + rifreskim (recovery manual nga përdoruesi) ----
