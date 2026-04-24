@@ -197,7 +197,7 @@ function loadState() {
         if (!state.distInvoiceCounter) state.distInvoiceCounter = 0;
         if (!state.distFatonReminder) state.distFatonReminder = { enabled: false, type: 'days', days: 7, weekday: 1, threshold: 5000, lastDismissed: null };
         // Feature 1: Load custom products
-        if (state.customProducts && state.customProducts.length > 0) {
+        if (state.customProducts && (state.customProducts || []).length > 0) {
             PRODUCTS = state.customProducts;
         }
     }
@@ -434,8 +434,8 @@ function refreshDashboard() {
 
     // Feature 3: Show last weekly report
     const lastReportEl = document.getElementById('last-weekly-report');
-    if (lastReportEl && state.weeklyReports.length > 0) {
-        const lastReport = state.weeklyReports[state.weeklyReports.length - 1];
+    if (lastReportEl && (state.weeklyReports || []).length > 0) {
+        const lastReport = state.weeklyReports[(state.weeklyReports || []).length - 1];
         lastReportEl.innerHTML = `
             <h4>Raporti javor (${lastReport.weekStart} - ${lastReport.weekEnd})</h4>
             <p>Shitje: ${lastReport.totalSales} | Fitimi: ${lastReport.totalProfit} den | Cash: ${lastReport.cashRevenue} den | Fatura: ${lastReport.invoiceRevenue} den</p>
@@ -446,9 +446,9 @@ function refreshDashboard() {
     const presetsEl = document.getElementById('quick-sale-presets');
     const dashboardCards = state.dashboardCards || {};
     if (presetsEl && dashboardCards.presets !== false) {
-        if (state.salePresets && state.salePresets.length > 0) {
+        if (state.salePresets && (state.salePresets || []).length > 0) {
             let html = '<h3>Quick Sale Presets</h3><div style="display:flex; flex-wrap:wrap; gap:10px;">';
-            state.salePresets.forEach(preset => {
+            (state.salePresets || []).forEach(preset => {
                 const product = getProduct(preset.productId);
                 html += `
                     <button class="btn btn-primary" onclick="executePreset(${preset.id})" style="min-width:150px;">
@@ -1030,9 +1030,9 @@ function refreshSales() {
         const product = getProduct(s.productId);
         // Bug #131: shmang crash kur produkti është fshirë — kërko edhe në client name + note
         if (search) {
-            const pname = (product && product.name) ? product.name.toLowerCase() : '';
+            const pname = (product && product.name) ? (product.name || '').toLowerCase() : '';
             const client = s.clientId ? (state.clients || []).find(c => c.id === s.clientId) : null;
-            const cname = (client && client.name) ? client.name.toLowerCase() : '';
+            const cname = (client && client.name) ? (client.name || '').toLowerCase() : '';
             const note = (s.note || '').toLowerCase();
             const dateStr = (s.date || '').toLowerCase();
             if (!pname.includes(search) && !cname.includes(search) && !note.includes(search) && !dateStr.includes(search)) return false;
@@ -1253,7 +1253,7 @@ function confirmMarkInvoicePaid(index) {
     // Auto-collect profit if not "collect later"
     if (profitType !== 'collect_later' && amount > 0) {
         if (!state.fatonProfitCollections) state.fatonProfitCollections = [];
-        state.fatonProfitCollections.push({
+        (state.fatonProfitCollections = state.fatonProfitCollections || []).push({
             id: Date.now(),
             type: profitType,
             amount: amount,
@@ -1855,12 +1855,12 @@ function showPaymentReport() {
 function checkPaymentReminders() {
     const today = new Date().toISOString().split('T')[0];
     const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
-    const overdue = state.sales.filter(s =>
+    const overdue = (state.sales || []).filter(s =>
         (s.paymentType || 'cash') === 'invoice_60' &&
         !s.invoicePaid &&
         s.dueDate && s.dueDate <= today
     );
-    const dueSoon = state.sales.filter(s =>
+    const dueSoon = (state.sales || []).filter(s =>
         (s.paymentType || 'cash') === 'invoice_60' &&
         !s.invoicePaid &&
         s.dueDate && s.dueDate > today && s.dueDate <= tomorrow
@@ -2048,7 +2048,7 @@ function deleteStockBatch(batchId) {
 
     // 2) Hiq batch-in (Bug #382)
     if (!state.stockBatches) state.stockBatches = [];
-    state.stockBatches.splice(idx, 1);
+    (state.stockBatches = state.stockBatches || []).splice(idx, 1);
 
     // 3) Gjej blerjen e Fatonit me të njëjtat fusha dhe hiqe (nëse ekziston)
     const purchIdx = (state.fatonPurchases || []).findIndex(p =>
@@ -2090,7 +2090,7 @@ function deleteFatonPurchase(purchaseId) {
         b.quantity === p.quantity &&
         b.date === p.date
     );
-    if (batchIdx !== -1) state.stockBatches.splice(batchIdx, 1);
+    if (batchIdx !== -1) (state.stockBatches = state.stockBatches || []).splice(batchIdx, 1);
 
     saveState();
     refreshAll();
@@ -2233,7 +2233,7 @@ function openClientModal(editId) {
         <div class="form-group">
             <label>Category:</label>
             <select id="client-category">
-                ${state.clientCategories.map(cat => `<option value="${cat}" ${client && client.category === cat ? 'selected' : ''}>${cat}</option>`).join('')}
+                ${(state.clientCategories || []).map(cat => `<option value="${cat}" ${client && client.category === cat ? 'selected' : ''}>${cat}</option>`).join('')}
             </select>
         </div>
         <button class="btn btn-primary" onclick="${isEdit ? `updateClient('${editId}')` : 'addClient()'}" style="width:100%;">
@@ -3091,7 +3091,7 @@ function addProfitCollection() {
 
     if (amount <= 0 || amount > profitRemaining) return;
 
-    state.fatonProfitCollections.push({
+    (state.fatonProfitCollections = state.fatonProfitCollections || []).push({
         id: Date.now(),
         type,
         amount,
@@ -3111,7 +3111,7 @@ function addProfitCollection() {
 function deleteProfitCollection(index) {
     modalConfirm('Fshi këtë mbledhje fitimi?', function() {
         if (!state.fatonProfitCollections) return;
-        state.fatonProfitCollections.splice(index, 1);
+        (state.fatonProfitCollections = state.fatonProfitCollections || []).splice(index, 1);
         saveState();
         refreshFaton();
     });
@@ -3574,7 +3574,7 @@ function createReceipt(payment, paymentIndex) {
         createdAt: new Date().toISOString()
     };
 
-    state.paymentReceipts.push(receipt);
+    (state.paymentReceipts = state.paymentReceipts || []).push(receipt);
     saveState();
     return receipt;
 }
@@ -3915,7 +3915,7 @@ function _onProofImageSelected(input, receiptIndex) {
 
 // Receipt history page
 function showReceiptHistory() {
-    if (!state.paymentReceipts || state.paymentReceipts.length === 0) {
+    if (!state.paymentReceipts || (state.paymentReceipts || []).length === 0) {
         openModal('Historiku i faturave', '<p>Nuk ka fatura ende.</p>');
         return;
     }
@@ -3926,7 +3926,7 @@ function showReceiptHistory() {
     html += '<table class="data-table"><thead><tr><th>#</th><th>Data</th><th>Shuma</th><th>Metoda</th><th>Statusi</th><th>Veprime</th></tr></thead><tbody>';
 
     [...state.paymentReceipts].reverse().forEach((r, i) => {
-        const realIndex = state.paymentReceipts.length - 1 - i;
+        const realIndex = (state.paymentReceipts || []).length - 1 - i;
         html += '<tr>';
         html += '<td><strong>' + r.receiptNumber + '</strong></td>';
         html += '<td>' + r.date + '</td>';
@@ -3941,12 +3941,12 @@ function showReceiptHistory() {
     });
     html += '</tbody></table>';
 
-    openModal('Historiku i faturave (' + state.paymentReceipts.length + ')', html);
+    openModal('Historiku i faturave (' + (state.paymentReceipts || []).length + ')', html);
 }
 
 // Export all receipts to single PDF
 function exportAllReceiptsPDF() {
-    if (!state.paymentReceipts || state.paymentReceipts.length === 0) return;
+    if (!state.paymentReceipts || (state.paymentReceipts || []).length === 0) return;
 
     // Bug #15 guard: jsPDF mund të mos jetë ngarkuar
     if (!window.jspdf || !window.jspdf.jsPDF) {
@@ -4022,9 +4022,9 @@ function showPaymentConfirmation(payment, receipt) {
     html += '</div>';
 
     html += '<div style="display:flex;gap:8px;margin-top:20px;justify-content:center;flex-wrap:wrap;">';
-    html += '<button class="btn btn-primary" onclick="viewReceipt(' + (state.paymentReceipts.length - 1) + ')"><i class="fas fa-receipt"></i> Shiko faturen</button>';
-    html += '<button class="btn btn-success" onclick="shareReceiptWhatsApp(' + (state.paymentReceipts.length - 1) + ')"><i class="fab fa-whatsapp"></i> Dergo WhatsApp</button>';
-    html += '<button class="btn btn-secondary" onclick="downloadReceiptPDF(' + (state.paymentReceipts.length - 1) + ')"><i class="fas fa-file-pdf"></i> Shkarko PDF</button>';
+    html += '<button class="btn btn-primary" onclick="viewReceipt(' + ((state.paymentReceipts || []).length - 1) + ')"><i class="fas fa-receipt"></i> Shiko faturen</button>';
+    html += '<button class="btn btn-success" onclick="shareReceiptWhatsApp(' + ((state.paymentReceipts || []).length - 1) + ')"><i class="fab fa-whatsapp"></i> Dergo WhatsApp</button>';
+    html += '<button class="btn btn-secondary" onclick="downloadReceiptPDF(' + ((state.paymentReceipts || []).length - 1) + ')"><i class="fas fa-file-pdf"></i> Shkarko PDF</button>';
     html += '<button class="btn btn-secondary" onclick="closeModal()"><i class="fas fa-times"></i> Mbyll</button>';
     html += '</div></div>';
 
@@ -4061,7 +4061,7 @@ function checkPaymentPin() {
 // ===================== PAYMENT AUDIT TRAIL =====================
 function addPaymentAudit(action, details) {
     if (!state.paymentAuditTrail) state.paymentAuditTrail = [];
-    state.paymentAuditTrail.push({
+    (state.paymentAuditTrail = state.paymentAuditTrail || []).push({
         date: new Date().toISOString(),
         action: action,
         details: details,
@@ -4071,7 +4071,7 @@ function addPaymentAudit(action, details) {
 }
 
 function showPaymentAuditTrail() {
-    if (!state.paymentAuditTrail || state.paymentAuditTrail.length === 0) {
+    if (!state.paymentAuditTrail || (state.paymentAuditTrail || []).length === 0) {
         openModal('Audit Trail', '<p>Nuk ka histori ende.</p>');
         return;
     }
@@ -4083,7 +4083,7 @@ function showPaymentAuditTrail() {
         html += '<td>' + a.user + '</td></tr>';
     });
     html += '</tbody></table>';
-    openModal('Audit Trail - Historiku i ndryshimeve (' + state.paymentAuditTrail.length + ')', html);
+    openModal('Audit Trail - Historiku i ndryshimeve (' + (state.paymentAuditTrail || []).length + ')', html);
 }
 
 // ===================== PAYMENT TEMPLATES =====================
@@ -4121,7 +4121,7 @@ function savePaymentTemplate() {
     if (!name || amount <= 0) { showToast('Plotesoni emrin dhe shumen', 'error'); return; }
 
     if (!state.paymentTemplates) state.paymentTemplates = [];
-    state.paymentTemplates.push({
+    (state.paymentTemplates = state.paymentTemplates || []).push({
         name: name,
         amount: amount,
         category: document.getElementById('template-category').value,
@@ -4342,14 +4342,14 @@ function showProfitPerPersonChart() {
         }
 
         const elezData = months.map(m => {
-            const monthSales = state.sales.filter(s => s.date && s.date.startsWith(m));
+            const monthSales = (state.sales || []).filter(s => s.date && s.date.startsWith(m));
             const profit = monthSales.reduce((s, x) => s + x.profit, 0);
             const expenses = (state.expenses || []).filter(e => e.date && e.date.startsWith(m)).reduce((s, x) => s + ((x && x.amount) || 0), 0);
             return calcOwnerShare(profit - expenses);
         });
 
         const orhanData = months.map(m => {
-            const monthSales = state.sales.filter(s => s.date && s.date.startsWith(m));
+            const monthSales = (state.sales || []).filter(s => s.date && s.date.startsWith(m));
             const profit = monthSales.reduce((s, x) => s + x.profit, 0);
             const expenses = (state.expenses || []).filter(e => e.date && e.date.startsWith(m)).reduce((s, x) => s + ((x && x.amount) || 0), 0);
             return calcPartnerShare(profit - expenses);
@@ -4378,7 +4378,7 @@ function showDetailedPaymentReport(paymentIndex) {
 
     // Find sales around this payment date (same day or nearby)
     const paymentDate = payment.date;
-    const daySales = state.sales.filter(s => s.date === paymentDate);
+    const daySales = (state.sales || []).filter(s => s.date === paymentDate);
 
     let html = '<div style="background:var(--bg-secondary);padding:12px;border-radius:8px;margin-bottom:15px;">';
     html += '<p><strong>Pagesa:</strong> ' + payment.amount + ' den</p>';
@@ -4822,7 +4822,7 @@ function saveScheduledPayment() {
     const amount = parseInt(document.getElementById('sched-amount').value) || 0;
     if (amount <= 0) { showToast('Vendosni shumen', 'error'); return; }
     if (!state.scheduledPayments) state.scheduledPayments = [];
-    state.scheduledPayments.push({
+    (state.scheduledPayments = state.scheduledPayments || []).push({
         id: Date.now(),
         amount: amount,
         category: document.getElementById('sched-category').value,
@@ -4841,7 +4841,7 @@ function saveScheduledPayment() {
 function checkScheduledPayments() {
     if (!state.scheduledPayments) return;
     const today = new Date().toISOString().split('T')[0];
-    state.scheduledPayments.forEach(sp => {
+    (state.scheduledPayments || []).forEach(sp => {
         if (!sp.active || sp.executed >= sp.count) return;
         let nextDate = new Date(sp.startDate);
         nextDate.setDate(nextDate.getDate() + (sp.interval * sp.executed));
@@ -5455,7 +5455,7 @@ function openExpenseModal() {
         <div class="form-group">
             <label>Category:</label>
             <select id="expense-category">
-                ${state.expenseCategories.map(cat => `<option value="${cat}">${cat}</option>`).join('')}
+                ${(state.expenseCategories || []).map(cat => `<option value="${cat}">${cat}</option>`).join('')}
             </select>
         </div>
         <div class="form-group">
@@ -5995,7 +5995,7 @@ function checkNotifications() {
     // Low stock
     (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).forEach(p => {
         if ((state.stock[p.id] || 0) < 10) {
-            state.notifications.push({
+            (state.notifications = state.notifications || []).push({
                 type: 'warning',
                 text: `${p.name}: ${t('low_stock')} (${state.stock[p.id] || 0} ${t('pieces')})`
             });
@@ -6007,12 +6007,12 @@ function checkNotifications() {
         const daysLeft = Math.ceil((new Date(batch.expiry) - new Date()) / (1000 * 60 * 60 * 24));
         const product = getProduct(batch.productId);
         if (daysLeft < 0) {
-            state.notifications.push({
+            (state.notifications = state.notifications || []).push({
                 type: 'danger',
                 text: `${product.name}: ${t('expired')}! (${batch.expiry})`
             });
         } else if (daysLeft < 14) {
-            state.notifications.push({
+            (state.notifications = state.notifications || []).push({
                 type: 'warning',
                 text: `${product.name}: ${t('expiring_soon')} (${daysLeft} ${t('days_left')})`
             });
@@ -6022,7 +6022,7 @@ function checkNotifications() {
     // Faton debt
     const fatonDebt = calcFatonDebt();
     if (fatonDebt > 5000) {
-        state.notifications.push({
+        (state.notifications = state.notifications || []).push({
             type: 'danger',
             text: `${t('faton_debt')}: ${fatonDebt} ден`
         });
@@ -6030,7 +6030,7 @@ function checkNotifications() {
 
     // Feature 6: Alert when Faton debt exceeds 10,000
     if (fatonDebt > 10000) {
-        state.notifications.push({
+        (state.notifications = state.notifications || []).push({
             type: 'danger',
             text: `KUJDES: Borxhi i Fatonit ka kaluar 10,000 den! (${fatonDebt} den)`
         });
@@ -6040,7 +6040,7 @@ function checkNotifications() {
     (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).forEach(p => {
         const days = calcStockDepletionDays(p.id);
         if (days !== null && days <= 7) {
-            state.notifications.push({
+            (state.notifications = state.notifications || []).push({
                 type: 'warning',
                 text: `${p.name} do te mbaroje per ~${days} dite (bazuar ne shitje)`
             });
@@ -6050,19 +6050,19 @@ function checkNotifications() {
     // Client debts
     (state.clients || []).forEach(c => {
         if (c.debt > 0) {
-            state.notifications.push({
+            (state.notifications = state.notifications || []).push({
                 type: 'info',
                 text: `${c.name}: ${t('debt')} ${c.debt} ден`
             });
         }
 
         if (c.debt >= 10000) {
-            state.notifications.push({
+            (state.notifications = state.notifications || []).push({
                 type: 'danger',
                 text: `URGJENT: ${c.name} ka borxh të lartë (${c.debt} ден)`
             });
         } else if (c.debt >= 5000) {
-            state.notifications.push({
+            (state.notifications = state.notifications || []).push({
                 type: 'warning',
                 text: `Kujdes: ${c.name} ka borxh mbi 5,000 ден (${c.debt} ден)`
             });
@@ -6077,12 +6077,12 @@ function checkNotifications() {
             if (lastActivity) {
                 const daysSince = Math.floor((Date.now() - new Date(lastActivity).getTime()) / 86400000);
                 if (daysSince >= 30) {
-                    state.notifications.push({
+                    (state.notifications = state.notifications || []).push({
                         type: 'danger',
                         text: `${c.name}: borxh ${c.debt} ден dhe ${daysSince} ditë pa aktivitet`
                     });
                 } else if (daysSince >= 15) {
-                    state.notifications.push({
+                    (state.notifications = state.notifications || []).push({
                         type: 'warning',
                         text: `${c.name}: ${daysSince} ditë pa pagesë/aktivitet`
                     });
@@ -6094,7 +6094,7 @@ function checkNotifications() {
     // Uncollected profit from Faton
     const profitToCollect = calcFatonProfitOwed() - calcFatonProfitCollected();
     if (profitToCollect > 0) {
-        state.notifications.push({
+        (state.notifications = state.notifications || []).push({
             type: 'info',
             text: `${t('profit_to_collect')}: ${profitToCollect} ден (${t('faton_profit_remaining')})`
         });
@@ -6102,27 +6102,27 @@ function checkNotifications() {
 
     // Overdue invoices + Feature 6: Smart notifications at 3, 7, 14 days
     const todayStr = new Date().toISOString().split('T')[0];
-    state.sales.filter(s => s.paymentType === 'invoice_60' && !s.invoicePaid).forEach(s => {
+    (state.sales || []).filter(s => s.paymentType === 'invoice_60' && !s.invoicePaid).forEach(s => {
         const client = s.clientId ? (state.clients || []).find(c => c && c.id === s.clientId) : null;
         const product = getProduct(s.productId);
         const daysLeft = s.dueDate ? Math.ceil((new Date(s.dueDate) - new Date()) / (1000*60*60*24)) : 0;
         if (daysLeft < 0) {
-            state.notifications.push({
+            (state.notifications = state.notifications || []).push({
                 type: 'danger',
                 text: `${t('overdue')}: ${product.name} - ${client ? client.name : ''} - ${s.sellTotal} ден (${Math.abs(daysLeft)} ${t('overdue_days')})`
             });
         } else if (daysLeft <= 3) {
-            state.notifications.push({
+            (state.notifications = state.notifications || []).push({
                 type: 'danger',
                 text: `URGJENT (3 dite): ${product.name} - ${client ? client.name : ''} - ${s.sellTotal} ден`
             });
         } else if (daysLeft <= 7) {
-            state.notifications.push({
+            (state.notifications = state.notifications || []).push({
                 type: 'warning',
                 text: `${t('invoice_60')} (7 dite): ${product.name} - ${client ? client.name : ''} - ${s.sellTotal} ден (${daysLeft} ${t('days_until_due')})`
             });
         } else if (daysLeft <= 14) {
-            state.notifications.push({
+            (state.notifications = state.notifications || []).push({
                 type: 'info',
                 text: `${t('invoice_60')} (14 dite): ${product.name} - ${client ? client.name : ''} - ${s.sellTotal} ден (${daysLeft} ${t('days_until_due')})`
             });
@@ -6465,7 +6465,7 @@ function updateCharts() {
         d.setDate(d.getDate() - i);
         const dateStr = d.toISOString().split('T')[0];
         days.push(dateStr.substring(5));
-        const daySales = state.sales.filter(s => s.date === dateStr);
+        const daySales = (state.sales || []).filter(s => s.date === dateStr);
         salesData.push(daySales.reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0));
         profitData.push(daySales.reduce((sum, s) => sum + ((s && s.profit) || 0), 0));
     }
@@ -6780,11 +6780,11 @@ function showProductHistory(productId) {
 // ===================== FEATURE 24: PIN/FAVORITE CLIENTS =====================
 function togglePinClient(clientId) {
     if (!state.pinnedClients) state.pinnedClients = [];
-    const idx = state.pinnedClients.indexOf(clientId);
+    const idx = (state.pinnedClients || []).indexOf(clientId);
     if (idx >= 0) {
-        state.pinnedClients.splice(idx, 1);
+        (state.pinnedClients = state.pinnedClients || []).splice(idx, 1);
     } else {
-        state.pinnedClients.push(clientId);
+        (state.pinnedClients = state.pinnedClients || []).push(clientId);
     }
     saveState();
     refreshClients();
@@ -6794,15 +6794,15 @@ function togglePinClient(clientId) {
 function initFatonDebtTracking() {
     if (!state.fatonDebtHistory) state.fatonDebtHistory = [];
     const today = new Date().toISOString().split('T')[0];
-    const lastEntry = state.fatonDebtHistory.length > 0 ? state.fatonDebtHistory[state.fatonDebtHistory.length - 1] : null;
+    const lastEntry = (state.fatonDebtHistory || []).length > 0 ? state.fatonDebtHistory[(state.fatonDebtHistory || []).length - 1] : null;
     if (!lastEntry || lastEntry.date !== today) {
-        state.fatonDebtHistory.push({
+        (state.fatonDebtHistory = state.fatonDebtHistory || []).push({
             date: today,
             debt: calcFatonDebt()
         });
         // Keep last 90 days
-        if (state.fatonDebtHistory.length > 90) {
-            state.fatonDebtHistory = state.fatonDebtHistory.slice(-90);
+        if ((state.fatonDebtHistory || []).length > 90) {
+            state.fatonDebtHistory = (state.fatonDebtHistory || []).slice(-90);
         }
         saveState();
     }
@@ -6911,7 +6911,7 @@ function filterFatonPurchases() {
                 <td>${p.date}</td>
                 <td>${product ? product.name : '-'}</td>
                 <td>${p.quantity}</td>
-                <td>${p.total} ден</td>
+                <td>${p.total || 0} ден</td>
                 <td>-</td>
             </tr>
         `;
@@ -6925,7 +6925,7 @@ function refreshBalance() {
 
     const fatonDebt = calcFatonDebt();
     const profitToCollect = calcFatonProfitOwed() - calcFatonProfitCollected();
-    const clientDebts = state.clients.reduce((sum, c) => sum + (c.debt || 0), 0);
+    const clientDebts = (state.clients || []).reduce((sum, c) => sum + (c.debt || 0), 0);
 
     // Stock monetary value
     let stockValue = 0;
@@ -6938,7 +6938,7 @@ function refreshBalance() {
     });
 
     // Cash from sales (approximate cash in hand)
-    const totalCashRevenue = state.sales.filter(s => (s.paymentType || 'cash') === 'cash').reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0);
+    const totalCashRevenue = (state.sales || []).filter(s => (s.paymentType || 'cash') === 'cash').reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0);
     const totalFatonPayments = (state.fatonPayments || []).reduce((sum, p) => sum + ((p && p.amount) || 0), 0);
     const totalExpenses = (state.expenses || []).reduce((sum, e) => sum + e.amount, 0);
     const cashInHand = totalCashRevenue - totalFatonPayments - totalExpenses;
@@ -6989,7 +6989,7 @@ function refreshBalance() {
             <table>
                 <thead><tr><th>Klienti</th><th>Borxhi</th><th>Faturat e hapura</th></tr></thead>
                 <tbody>
-                    ${(state.clients || []).filter(c => c.debt > 0 || state.sales.some(s => s.clientId === c.id && s.paymentType === 'invoice_60' && !s.invoicePaid)).map(c => {
+                    ${(state.clients || []).filter(c => c.debt > 0 || (state.sales || []).some(s => s.clientId === c.id && s.paymentType === 'invoice_60' && !s.invoicePaid)).map(c => {
                         const openInv = (state.sales || []).filter(s => s && s.clientId === c.id && s.paymentType === 'invoice_60' && !s.invoicePaid);
                         const invTotal = openInv.reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0);
                         return `<tr>
@@ -7014,7 +7014,7 @@ function checkWeeklyReport() {
     const weekStartStr = weekStart.toISOString().split('T')[0];
 
     // Check if we already have a report for this week
-    const existingReport = state.weeklyReports.find(r => r.weekStart === weekStartStr);
+    const existingReport = (state.weeklyReports || []).find(r => r.weekStart === weekStartStr);
     if (existingReport) return;
 
     // Generate report for last week if we are at start of new week (Sunday/Monday)
@@ -7026,10 +7026,10 @@ function checkWeeklyReport() {
     const lastWeekEndStr = lastWeekEnd.toISOString().split('T')[0];
 
     // Check if last week report already exists
-    if (state.weeklyReports.find(r => r.weekStart === lastWeekStartStr)) return;
+    if ((state.weeklyReports || []).find(r => r.weekStart === lastWeekStartStr)) return;
 
     // Generate last week's report
-    const weekSales = state.sales.filter(s => s.date >= lastWeekStartStr && s.date <= lastWeekEndStr);
+    const weekSales = (state.sales || []).filter(s => s.date >= lastWeekStartStr && s.date <= lastWeekEndStr);
     if (weekSales.length === 0) return;
 
     const report = {
@@ -7050,10 +7050,10 @@ function checkWeeklyReport() {
         generatedAt: new Date().toISOString()
     };
 
-    state.weeklyReports.push(report);
+    (state.weeklyReports = state.weeklyReports || []).push(report);
     // Keep last 52 weeks
-    if (state.weeklyReports.length > 52) {
-        state.weeklyReports = state.weeklyReports.slice(-52);
+    if ((state.weeklyReports || []).length > 52) {
+        state.weeklyReports = (state.weeklyReports || []).slice(-52);
     }
     saveState();
 }
@@ -7485,8 +7485,8 @@ function calcPartnerShare(profit) {
 // ===================== FEATURE 5: CASH DRAWER =====================
 function refreshCashDrawer() {
     const today = new Date().toISOString().split('T')[0];
-    const drawerToday = state.cashDrawer.find(d => d.date === today);
-    const todaySales = state.sales.filter(s => s.date === today && s.paymentType === 'cash');
+    const drawerToday = (state.cashDrawer || []).find(d => d.date === today);
+    const todaySales = (state.sales || []).filter(s => s.date === today && s.paymentType === 'cash');
     const todayFatonPayments = (state.fatonPayments || []).filter(f => f.date === today);
     const todayExpenses = (state.expenses || []).filter(e => e.date === today);
 
@@ -7524,7 +7524,7 @@ function refreshCashDrawer() {
         <table class="data-table">
             <thead><tr><th>Date</th><th>Starting Cash</th><th>Note</th></tr></thead>
             <tbody>
-                ${state.cashDrawer.slice().reverse().map(d => `
+                ${(state.cashDrawer || []).slice().reverse().map(d => `
                     <tr>
                         <td>${d.date}</td>
                         <td>${d.startingCash} den</td>
@@ -7539,7 +7539,7 @@ function refreshCashDrawer() {
 
 function openCashDrawerModal() {
     const today = new Date().toISOString().split('T')[0];
-    const existing = state.cashDrawer.find(d => d.date === today);
+    const existing = (state.cashDrawer || []).find(d => d.date === today);
 
     let html = `
         <div class="form-group">
@@ -7564,13 +7564,13 @@ function saveCashDrawer() {
     const amount = parseFloat(document.getElementById('drawer-amount').value) || 0;
     const note = document.getElementById('drawer-note').value.trim();
 
-    const existingIndex = state.cashDrawer.findIndex(d => d.date === date);
+    const existingIndex = (state.cashDrawer || []).findIndex(d => d.date === date);
     const drawer = { date, startingCash: amount, note };
 
     if (existingIndex >= 0) {
         state.cashDrawer[existingIndex] = drawer;
     } else {
-        state.cashDrawer.push(drawer);
+        (state.cashDrawer = state.cashDrawer || []).push(drawer);
     }
 
     saveState();
@@ -7583,7 +7583,7 @@ function saveCashDrawer() {
 // ===================== FEATURE 7: CLIENT PAYMENT HISTORY =====================
 function addClientPaymentLog(clientId, amount, method, note) {
     if (!state.clientPayments) state.clientPayments = [];
-    state.clientPayments.push({
+    (state.clientPayments = state.clientPayments || []).push({
         id: Date.now(),
         clientId,
         amount,
@@ -7600,7 +7600,7 @@ function addClientPaymentLog(clientId, amount, method, note) {
 // ===================== FEATURE 9: P&L REPORT =====================
 function generatePLReport() {
     const filterMonth = state.salesMonthFilter || '';
-    const sales = filterMonth ? state.sales.filter(s => s.date.startsWith(filterMonth)) : state.sales;
+    const sales = filterMonth ? (state.sales || []).filter(s => s.date.startsWith(filterMonth)) : state.sales;
     const expenses = filterMonth ? (state.expenses || []).filter(e => e.date.startsWith(filterMonth)) : state.expenses;
 
     const totalRevenue = sales.reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0);
@@ -7680,7 +7680,7 @@ function generateTrendTable(months) {
     let html = '<table class="data-table"><thead><tr><th>Month</th><th>Sales</th><th>Revenue</th><th>Profit</th><th>Trend</th></tr></thead><tbody>';
 
     const data = months.map(m => {
-        const sales = state.sales.filter(s => s.date.startsWith(m));
+        const sales = (state.sales || []).filter(s => s.date.startsWith(m));
         return {
             month: m,
             count: sales.length,
@@ -7908,7 +7908,7 @@ function saveAutoBackupSettings() {
 // ===================== FEATURE 15: QUICK SALE PRESETS =====================
 function openPresetModal(editId) {
     const isEdit = editId !== undefined;
-    const preset = isEdit ? state.salePresets.find(p => p.id === editId) : null;
+    const preset = isEdit ? (state.salePresets || []).find(p => p.id === editId) : null;
 
     let html = `
         <div class="form-group">
@@ -7963,7 +7963,7 @@ function addPreset() {
     }
 
     if (!state.salePresets) state.salePresets = [];
-    state.salePresets.push({
+    (state.salePresets = state.salePresets || []).push({
         id: Date.now(),
         name,
         productId,
@@ -7990,7 +7990,7 @@ function updatePreset(id) {
         return;
     }
 
-    const index = state.salePresets.findIndex(p => p.id === id);
+    const index = (state.salePresets || []).findIndex(p => p.id === id);
     if (index >= 0) {
         state.salePresets[index] = { id, name, productId, quantity, discount, location };
     }
@@ -8003,8 +8003,8 @@ function updatePreset(id) {
 
 function deletePreset(id) {
     modalConfirm('Fshi këtë preset?', function() {
-        var index = state.salePresets.findIndex(function(p) { return p.id === id; });
-        if (index >= 0) state.salePresets.splice(index, 1);
+        var index = (state.salePresets || []).findIndex(function(p) { return p.id === id; });
+        if (index >= 0) (state.salePresets = state.salePresets || []).splice(index, 1);
         saveState();
         closeModal();
         refreshDashboard();
@@ -8013,7 +8013,7 @@ function deletePreset(id) {
 }
 
 function executePreset(id) {
-    const preset = state.salePresets.find(p => p.id === id);
+    const preset = (state.salePresets || []).find(p => p.id === id);
     if (!preset) return;
 
     const product = getProduct(preset.productId);
@@ -8087,7 +8087,7 @@ function generateRestockSuggestion() {
     cutoffDate.setDate(cutoffDate.getDate() - days);
     const cutoffStr = cutoffDate.toISOString().split('T')[0];
 
-    const recentSales = state.sales.filter(s => s.date >= cutoffStr);
+    const recentSales = (state.sales || []).filter(s => s.date >= cutoffStr);
 
     const suggestions = (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).map(p => {
         const productSales = recentSales.filter(s => s.productId === p.id);
@@ -8166,7 +8166,7 @@ function saveExpenseCategories() {
 function logActivity(typeOrAction, textOrDetails, page) {
     if (!state.activityLog) state.activityLog = [];
     const now = new Date();
-    state.activityLog.push({
+    (state.activityLog = state.activityLog || []).push({
         id: Date.now(),
         type: typeOrAction,
         action: typeOrAction,
@@ -8178,7 +8178,7 @@ function logActivity(typeOrAction, textOrDetails, page) {
     });
 
     if ((state.activityLog || []).length > 500) {
-        state.activityLog = state.activityLog.slice(-500);
+        state.activityLog = (state.activityLog || []).slice(-500);
     }
 
     saveState();
@@ -8193,7 +8193,7 @@ function refreshActivityLog() {
     } else {
         html += '<table class="data-table"><thead><tr><th>Timestamp</th><th>Action</th><th>Details</th></tr></thead><tbody>';
 
-        state.activityLog.slice().reverse().slice(0, 100).forEach(log => {
+        (state.activityLog || []).slice().reverse().slice(0, 100).forEach(log => {
             const date = new Date(log.timestamp);
             html += `
                 <tr>
@@ -8540,7 +8540,7 @@ function openResetCenter() {
             </button>
             <button class="btn btn-reset" onclick="resetExpenses()">
                 <i class="fas fa-receipt"></i> Reset Shpenzimet
-                <span class="reset-desc">${state.expenses.length} shpenzime</span>
+                <span class="reset-desc">${(state.expenses || []).length} shpenzime</span>
             </button>
             <button class="btn btn-reset" onclick="resetOrders()">
                 <i class="fas fa-clipboard-list"></i> Reset Porosite
@@ -8576,7 +8576,7 @@ function openResetCenter() {
         <div class="reset-grid">
             <button class="btn btn-reset" onclick="resetContacts()">
                 <i class="fas fa-address-book"></i> Reset Kontaktet
-                <span class="reset-desc">${state.contacts.length} kontakte</span>
+                <span class="reset-desc">${(state.contacts || []).length} kontakte</span>
             </button>
             <button class="btn btn-reset" onclick="resetNotes()">
                 <i class="fas fa-sticky-note"></i> Reset Shenimet
@@ -8584,15 +8584,15 @@ function openResetCenter() {
             </button>
             <button class="btn btn-reset" onclick="resetTargets()">
                 <i class="fas fa-bullseye"></i> Reset Qellimet
-                <span class="reset-desc">${state.targets.length} qellime</span>
+                <span class="reset-desc">${(state.targets || []).length} qellime</span>
             </button>
             <button class="btn btn-reset" onclick="resetPresets()">
                 <i class="fas fa-bolt"></i> Reset Preset-et
-                <span class="reset-desc">${state.salePresets.length} presete</span>
+                <span class="reset-desc">${(state.salePresets || []).length} presete</span>
             </button>
             <button class="btn btn-reset" onclick="resetCashDrawer()">
                 <i class="fas fa-cash-register"></i> Reset Arka Ditore
-                <span class="reset-desc">${state.cashDrawer.length} dite</span>
+                <span class="reset-desc">${(state.cashDrawer || []).length} dite</span>
             </button>
             <button class="btn btn-reset" onclick="resetWeeklyReports()">
                 <i class="fas fa-chart-bar"></i> Reset Raportet
@@ -9329,7 +9329,7 @@ function openClientPaymentDashboard() {
     const totalDebt = clientsWithDebt.reduce((s, c) => s + c.debt, 0);
 
     // Profit split for today
-    const todaySales = state.sales.filter(s => s.date === today);
+    const todaySales = (state.sales || []).filter(s => s.date === today);
     const todayProfit = todaySales.reduce((s, x) => s + x.profit, 0);
 
     let html = '';
@@ -9503,7 +9503,7 @@ function collectClientPayment(clientId) {
 
     // Log payment with extra fields
     if (!state.clientPayments) state.clientPayments = [];
-    state.clientPayments.push({
+    (state.clientPayments = state.clientPayments || []).push({
         id: Date.now(),
         clientId,
         amount,
@@ -9826,7 +9826,7 @@ function confirmDeletePayment(clientId, paymentId) {
     }
 
     // Remove from array
-    state.clientPayments.splice(idx, 1);
+    (state.clientPayments = state.clientPayments || []).splice(idx, 1);
 
     if (typeof addPaymentAudit === 'function') addPaymentAudit('PAGESE_FSHIRE', client.name + ': ' + payment.amount + ' den fshire');
     logActivity('Payment Deleted', client.name + ' - ' + payment.amount + ' den fshire');
@@ -10139,7 +10139,7 @@ function downloadClientHistoryPdf(clientId, filters) {
     doc.autoTable({
         startY: salesStartY + 4,
         head: [['Data', 'Produkti', 'Totali']],
-        body: report.sales.length > 0 ? report.sales.map(sale => [sale.date, sale.product, `${sale.total} den`]) : [['-', 'Nuk ka blerje', '-']],
+        body: report.sales.length > 0 ? report.sales.map(sale => [sale.date, sale.product, `${sale.total || 0} den`]) : [['-', 'Nuk ka blerje', '-']],
         styles: { fontSize: 9, lineColor: [220, 220, 220], lineWidth: 0.1 },
         headStyles: { fillColor: [245, 245, 245], textColor: [90, 90, 90] },
         theme: 'grid'
@@ -10301,7 +10301,7 @@ function showPaymentsByPeriod() {
 
 // Feature 22: Client comparison
 function showClientComparison() {
-    const clients = (state.clients || []).filter(c => state.sales.some(s => s.clientId === c.id));
+    const clients = (state.clients || []).filter(c => (state.sales || []).some(s => s.clientId === c.id));
     let html = '<table class="data-table"><thead><tr><th>Klienti</th><th>Blerje</th><th>Paguar</th><th>Borxh</th><th>% Paguar</th><th>Vleresimi</th></tr></thead><tbody>';
     clients.forEach(c => {
         const bought = (state.sales || []).filter(s => s && s.clientId === c.id).reduce((s, x) => s + x.sellTotal, 0);
@@ -10357,7 +10357,7 @@ function showWeeklyPaymentReport() {
     const weekStr = weekAgo.toISOString().split('T')[0];
     const weekPayments = (state.clientPayments || []).filter(p => p.date >= weekStr && p.status !== 'cancelled');
     const totalCollected = weekPayments.reduce((s, p) => s + ((p && p.amount) || 0), 0);
-    const totalDebtRemaining = state.clients.reduce((s, c) => s + c.debt, 0);
+    const totalDebtRemaining = (state.clients || []).reduce((s, c) => s + c.debt, 0);
     const clientsWhoPaid = [...new Set(weekPayments.map(p => p.clientId))].length;
 
     let html = '<div class="confirmation-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:15px;">';
@@ -10521,9 +10521,9 @@ function _doGlobalSearch(query, results) {
 
     // Bug #114: Klientë — kërkim edhe në email/kategori/adresë
     const clientMatches = (state.clients || []).filter(c =>
-        (c.name && c.name.toLowerCase().includes(qLower)) ||
+        (c.name && (c.name || '').toLowerCase().includes(qLower)) ||
         (c.phone && String(c.phone).toLowerCase().includes(qLower)) ||
-        (c.email && c.email.toLowerCase().includes(qLower)) ||
+        (c.email && (c.email || '').toLowerCase().includes(qLower)) ||
         (c.address && c.address.toLowerCase().includes(qLower)) ||
         (c.category && c.category.toLowerCase().includes(qLower))
     );
@@ -10543,7 +10543,7 @@ function _doGlobalSearch(query, results) {
     // Bug #115: Produkte — kërkim edhe në id/weight, limit 5
     const prodList = (typeof PRODUCTS !== 'undefined' && PRODUCTS ? PRODUCTS : []);
     const prodMatches = prodList.filter(p =>
-        (p.name && p.name.toLowerCase().includes(qLower)) ||
+        (p.name && (p.name || '').toLowerCase().includes(qLower)) ||
         (p.id && String(p.id).toLowerCase().includes(qLower)) ||
         (p.weight && String(p.weight).toLowerCase().includes(qLower))
     );
@@ -10564,10 +10564,10 @@ function _doGlobalSearch(query, results) {
     const salesMatches = (state.sales || []).filter(s => {
         const p = getProduct(s.productId);
         const c = (state.clients || []).find(cl => cl.id === s.clientId);
-        return (p && p.name && p.name.toLowerCase().includes(qLower)) ||
-               (c && c.name && c.name.toLowerCase().includes(qLower)) ||
+        return (p && p.name && (p.name || '').toLowerCase().includes(qLower)) ||
+               (c && c.name && (c.name || '').toLowerCase().includes(qLower)) ||
                (s.date && s.date.includes(qLower)) ||
-               (s.note && s.note.toLowerCase().includes(qLower)) ||
+               (s.note && (s.note || '').toLowerCase().includes(qLower)) ||
                (s.sellTotal && String(s.sellTotal).includes(qLower));
     });
     totalFound += salesMatches.length;
@@ -10589,9 +10589,9 @@ function _doGlobalSearch(query, results) {
     const orderMatches = (state.orders || []).filter(o => {
         const p = getProduct(o.productId);
         const c = (state.clients || []).find(cl => cl.id === o.clientId);
-        return (p && p.name && p.name.toLowerCase().includes(qLower)) ||
-               (c && c.name && c.name.toLowerCase().includes(qLower)) ||
-               (o.note && o.note.toLowerCase().includes(qLower)) ||
+        return (p && p.name && (p.name || '').toLowerCase().includes(qLower)) ||
+               (c && c.name && (c.name || '').toLowerCase().includes(qLower)) ||
+               (o.note && (o.note || '').toLowerCase().includes(qLower)) ||
                (o.status && o.status.toLowerCase().includes(qLower));
     });
     totalFound += orderMatches.length;
@@ -10630,7 +10630,7 @@ function _doGlobalSearch(query, results) {
     // Bug #119: Kthime — kategori e re
     const retMatches = (state.returns || []).filter(r => {
         const p = getProduct(r.productId);
-        return (p && p.name && p.name.toLowerCase().includes(qLower)) ||
+        return (p && p.name && (p.name || '').toLowerCase().includes(qLower)) ||
                (r.reason && r.reason.toLowerCase().includes(qLower));
     });
     totalFound += retMatches.length;
@@ -10668,9 +10668,9 @@ function _doGlobalSearch(query, results) {
 
     // Bug #121: Kontakte — escape + null-safe
     const contactMatches = (state.contacts || []).filter(c =>
-        (c.name && c.name.toLowerCase().includes(qLower)) ||
+        (c.name && (c.name || '').toLowerCase().includes(qLower)) ||
         (c.phone && String(c.phone).toLowerCase().includes(qLower)) ||
-        (c.email && c.email.toLowerCase().includes(qLower)) ||
+        (c.email && (c.email || '').toLowerCase().includes(qLower)) ||
         (c.role && c.role.toLowerCase().includes(qLower))
     );
     totalFound += contactMatches.length;
@@ -10688,7 +10688,7 @@ function _doGlobalSearch(query, results) {
 
     // Bug #122: Dyqanet Dist. — escape + null-safe
     const distMatches = (state.distShops || []).filter(s =>
-        (s.name && s.name.toLowerCase().includes(qLower)) ||
+        (s.name && (s.name || '').toLowerCase().includes(qLower)) ||
         (s.phone && String(s.phone).toLowerCase().includes(qLower)) ||
         (s.address && s.address.toLowerCase().includes(qLower))
     );
@@ -10707,7 +10707,7 @@ function _doGlobalSearch(query, results) {
 
     // Bug #123: Pagesa Faton — kategori e re
     const fatonMatches = (state.fatonPayments || []).filter(f =>
-        (f.note && f.note.toLowerCase().includes(qLower)) ||
+        (f.note && (f.note || '').toLowerCase().includes(qLower)) ||
         (f.category && f.category.toLowerCase().includes(qLower)) ||
         (f.amount && String(f.amount).includes(qLower)) ||
         (f.date && f.date.includes(qLower))
@@ -10867,7 +10867,7 @@ function generateSmartNotifications() {
     });
 
     // Overdue invoices
-    state.sales.filter(s => s.paymentType === 'invoice_60' && !s.invoicePaid && s.dueDate && s.dueDate < today).forEach(s => {
+    (state.sales || []).filter(s => s.paymentType === 'invoice_60' && !s.invoicePaid && s.dueDate && s.dueDate < today).forEach(s => {
         const client = (state.clients || []).find(c => c && c.id === s.clientId);
         notifs.push({ type: 'warning', icon: 'fa-file-invoice', text: `Fatura e ${client ? client.name : 'N/A'} ka skaduar (${s.dueDate})`, action: `navigateTo('clients')` });
     });
@@ -11050,7 +11050,7 @@ function openGlobalTimeline() {
 
     (state.sales || []).forEach(s => {
         const p = getProduct(s.productId);
-        const c = state.clients.find(cl => cl.id === s.clientId);
+        const c = (state.clients || []).find(cl => cl.id === s.clientId);
         events.push({ date: s.date, time: s.time || '00:00', type: 'sale', icon: 'fa-cash-register', cls: 'sale', title: `Shitje: ${p ? p.name : 'N/A'} x${s.quantity}`, detail: `${c ? c.name : 'Pa klient'} | ${s.sellTotal} ден | Fitim: ${s.profit} ден` });
     });
 
@@ -11083,14 +11083,14 @@ function openGlobalTimeline() {
 // Feature 6: Daily Report
 function generateDailyReport() {
     const today = new Date().toISOString().split('T')[0];
-    const todaySales = state.sales.filter(s => s.date === today);
+    const todaySales = (state.sales || []).filter(s => s.date === today);
     const todayProfit = todaySales.reduce((sum, s) => sum + ((s && s.profit) || 0), 0);
     const todayRevenue = todaySales.reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0);
     const todayCash = todaySales.filter(s => (s.paymentType || 'cash') === 'cash').reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0);
     const todayInvoice = todaySales.filter(s => s.paymentType === 'invoice_60').reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0);
     const todayPayments = (state.fatonPayments || []).filter(p => p.date === today);
     const todayFatonPaid = todayPayments.reduce((sum, p) => sum + ((p && p.amount) || 0), 0);
-    const totalDebtClients = state.clients.reduce((sum, c) => sum + (c.debt || 0), 0);
+    const totalDebtClients = (state.clients || []).reduce((sum, c) => sum + (c.debt || 0), 0);
     const fatonDebt = calcTotalOwedToFaton();
     const ownerShare = calcOwnerShare(todayProfit);
     const partnerShare = calcPartnerShare(todayProfit);
@@ -11182,7 +11182,7 @@ function openProduct360(productId) {
     // Last 5 sales
     html += '<h4>Shitjet e fundit</h4><div class="table-container"><table class="data-table"><thead><tr><th>Data</th><th>Klienti</th><th>Sasia</th><th>Totali</th><th>Fitimi</th></tr></thead><tbody>';
     sales.slice(-5).reverse().forEach(s => {
-        const c = state.clients.find(cl => cl.id === s.clientId);
+        const c = (state.clients || []).find(cl => cl.id === s.clientId);
         html += `<tr><td>${s.date}</td><td>${c ? c.name : '-'}</td><td>${s.quantity}</td><td>${s.sellTotal} ден</td><td>${s.profit} ден</td></tr>`;
     });
     html += '</tbody></table></div>';
@@ -11426,8 +11426,8 @@ function getLastMonthSales() {
     const now = new Date();
     const thisMonth = now.toISOString().slice(0, 7);
     const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 7);
-    const thisSales = state.sales.filter(s => s.date && s.date.startsWith(thisMonth));
-    const lastSales = state.sales.filter(s => s.date && s.date.startsWith(lastMonth));
+    const thisSales = (state.sales || []).filter(s => s.date && s.date.startsWith(thisMonth));
+    const lastSales = (state.sales || []).filter(s => s.date && s.date.startsWith(lastMonth));
     return {
         thisRevenue: thisSales.reduce((s, x) => s + x.sellTotal, 0),
         lastRevenue: lastSales.reduce((s, x) => s + x.sellTotal, 0),
@@ -12012,7 +12012,7 @@ function applyStockCount() {
 function openSuppliersModal() {
     if (!state.suppliers) state.suppliers = [{ id: 'faton', name: 'Faton', phone: '', balance: 0 }];
     let html = '<h3><i class="fas fa-truck"></i> Furnitorët</h3><div class="table-container"><table class="data-table"><thead><tr><th>Emri</th><th>Telefoni</th><th>Borxhi</th><th>Veprime</th></tr></thead><tbody>';
-    state.suppliers.forEach(s => { html += `<tr><td>${s.name}</td><td>${s.phone || '-'}</td><td style="color:var(--danger)">${s.balance || 0} ден</td><td><button class="btn btn-sm btn-secondary" onclick="editSupplier('${s.id}')"><i class="fas fa-edit"></i></button></td></tr>`; });
+    (state.suppliers || []).forEach(s => { html += `<tr><td>${s.name}</td><td>${s.phone || '-'}</td><td style="color:var(--danger)">${s.balance || 0} ден</td><td><button class="btn btn-sm btn-secondary" onclick="editSupplier('${s.id}')"><i class="fas fa-edit"></i></button></td></tr>`; });
     html += '</tbody></table></div><button class="btn btn-primary" style="margin-top:10px;" onclick="addNewSupplier()"><i class="fas fa-plus"></i> Shto furnitor</button>';
     openModal(html);
 }
@@ -12021,14 +12021,14 @@ function addNewSupplier() {
     const name = prompt('Emri i furnitorit:'); if (!name) return;
     const phone = prompt('Telefoni (opsional):') || '';
     if (!state.suppliers) state.suppliers = [{ id: 'faton', name: 'Faton', phone: '', balance: 0 }];
-    state.suppliers.push({ id: 'sup_' + Date.now(), name, phone, balance: 0 });
+    (state.suppliers = state.suppliers || []).push({ id: 'sup_' + Date.now(), name, phone, balance: 0 });
     // Bug #67: showToast guard
     saveState(); openSuppliersModal(); if (typeof showToast === 'function') showToast('Furnitori u shtua!');
 }
 
 function editSupplier(id) {
     if (!state.suppliers) return;
-    const sup = state.suppliers.find(s => s.id === id); if (!sup) return;
+    const sup = (state.suppliers || []).find(s => s.id === id); if (!sup) return;
     const name = prompt('Emri:', sup.name); if (name) sup.name = name;
     const phone = prompt('Telefoni:', sup.phone); if (phone !== null) sup.phone = phone;
     saveState(); openSuppliersModal();
@@ -12068,7 +12068,7 @@ function showProductQR(productId) {
 function openPromotionsModal() {
     if (!state.promotions) state.promotions = [];
     const today = new Date().toISOString().split('T')[0];
-    const active = state.promotions.filter(p => (!p.endDate || p.endDate >= today) && (!p.startDate || p.startDate <= today));
+    const active = (state.promotions || []).filter(p => (!p.endDate || p.endDate >= today) && (!p.startDate || p.startDate <= today));
     let html = '<h3><i class="fas fa-tag"></i> Oferta & Promocione</h3>';
     if (active.length > 0) { html += '<h4 style="color:var(--success)">Aktive</h4>'; active.forEach(p => { html += `<div style="background:var(--bg);padding:12px;border-radius:8px;margin-bottom:8px;border-left:4px solid var(--success);"><strong>${p.name}</strong> - ${p.discount}% zbritje<br><small>${p.productId ? (getProduct(p.productId)||{}).name || 'Të gjitha' : 'Të gjitha'} | Deri: ${p.endDate || 'Pa limit'}</small><button class="btn btn-sm btn-danger" style="float:right" onclick="deletePromotion('${p.id}')"><i class="fas fa-trash"></i></button></div>`; }); }
     html += `<h4 style="margin-top:15px;">Shto ofertë</h4><div style="display:grid;gap:8px;">
@@ -12091,16 +12091,16 @@ function addPromotion() {
     const name = nameEl.value; const discount = parseInt(discEl.value);
     if (!name || !discount) { if (typeof showToast === 'function') showToast('Plotëso emrin dhe zbritjen!'); return; }
     if (!state.promotions) state.promotions = [];
-    state.promotions.push({ id: 'promo_' + Date.now(), name, discount, productId: (prodEl && prodEl.value) || null, startDate: (startEl && startEl.value) || null, endDate: (endEl && endEl.value) || null });
+    (state.promotions = state.promotions || []).push({ id: 'promo_' + Date.now(), name, discount, productId: (prodEl && prodEl.value) || null, startDate: (startEl && startEl.value) || null, endDate: (endEl && endEl.value) || null });
     saveState(); if (typeof showToast === 'function') showToast('Oferta u shtua!'); openPromotionsModal();
 }
 
-function deletePromotion(id) { if (!state.promotions) return; state.promotions = state.promotions.filter(p => p.id !== id); saveState(); openPromotionsModal(); }
+function deletePromotion(id) { if (!state.promotions) return; state.promotions = (state.promotions || []).filter(p => p.id !== id); saveState(); openPromotionsModal(); }
 
 function getActiveDiscount(productId) {
     if (!state.promotions) return 0;
     const today = new Date().toISOString().split('T')[0];
-    const promo = state.promotions.find(p => (!p.endDate || p.endDate >= today) && (!p.startDate || p.startDate <= today) && (!p.productId || p.productId === productId));
+    const promo = (state.promotions || []).find(p => (!p.endDate || p.endDate >= today) && (!p.startDate || p.startDate <= today) && (!p.productId || p.productId === productId));
     return promo ? promo.discount : 0;
 }
 
@@ -12164,12 +12164,12 @@ function generateMonthlyPDF() {
     const month = now.toISOString().slice(0, 7);
     const monthName = now.toLocaleString('sq', { month: 'long', year: 'numeric' });
 
-    const monthSales = state.sales.filter(s => s.date && s.date.startsWith(month));
+    const monthSales = (state.sales || []).filter(s => s.date && s.date.startsWith(month));
     const totalRevenue = monthSales.reduce((s, x) => s + x.sellTotal, 0);
     const totalProfit = monthSales.reduce((s, x) => s + x.profit, 0);
     const totalCost = monthSales.reduce((s, x) => s + x.buyTotal, 0);
     const fatonDebt = calcTotalOwedToFaton();
-    const clientDebt = state.clients.reduce((s, c) => s + (c.debt || 0), 0);
+    const clientDebt = (state.clients || []).reduce((s, c) => s + (c.debt || 0), 0);
     const ownerShare = calcOwnerShare(totalProfit);
     const partnerShare = calcPartnerShare(totalProfit);
 
@@ -12370,13 +12370,13 @@ function generateWeeklyWhatsAppReport() {
     const weekStart = weekAgo.toISOString().split('T')[0];
     const weekEnd = now.toISOString().split('T')[0];
 
-    const weekSales = state.sales.filter(s => s.date >= weekStart && s.date <= weekEnd);
+    const weekSales = (state.sales || []).filter(s => s.date >= weekStart && s.date <= weekEnd);
     const revenue = weekSales.reduce((s, x) => s + x.sellTotal, 0);
     const profit = weekSales.reduce((s, x) => s + x.profit, 0);
     const ownerShare = calcOwnerShare(profit);
     const partnerShare = calcPartnerShare(profit);
     const fatonDebt = calcTotalOwedToFaton();
-    const clientDebt = state.clients.reduce((s, c) => s + (c.debt || 0), 0);
+    const clientDebt = (state.clients || []).reduce((s, c) => s + (c.debt || 0), 0);
 
     const msg = `📊 *RAPORT JAVOR*
 📅 ${weekStart} - ${weekEnd}
@@ -12481,14 +12481,14 @@ function updateLiveProfitTracker() {
         if (topbarRight) topbarRight.insertBefore(tracker, topbarRight.firstChild);
     }
     const today = new Date().toISOString().split('T')[0];
-    const todayProfit = state.sales.filter(s => s.date === today).reduce((sum, s) => sum + ((s && s.profit) || 0), 0);
+    const todayProfit = (state.sales || []).filter(s => s.date === today).reduce((sum, s) => sum + ((s && s.profit) || 0), 0);
     tracker.innerHTML = '<i class="fas fa-coins"></i> ' + todayProfit + ' ден';
 }
 
 // FIX-9: Client of the Day
 function getClientOfDay() {
     const today = new Date().toISOString().split('T')[0];
-    const todaySales = state.sales.filter(s => s.date === today && s.clientId);
+    const todaySales = (state.sales || []).filter(s => s.date === today && s.clientId);
     const clientTotals = {};
     todaySales.forEach(s => { clientTotals[s.clientId] = (clientTotals[s.clientId] || 0) + s.sellTotal; });
     const bestClientId = Object.keys(clientTotals).sort((a, b) => clientTotals[b] - clientTotals[a])[0];
@@ -12500,13 +12500,13 @@ function getClientOfDay() {
 function showClientOfDay() {
     const cod = getClientOfDay();
     if (!cod) { showToast('Asnjë klient sot'); return; }
-    openModal(`<div style="text-align:center;padding:20px;"><i class="fas fa-crown" style="font-size:3rem;color:#f1c40f;"></i><h2 style="margin:10px 0;">Klienti i Ditës</h2><h3 style="color:var(--primary);">${cod.name}</h3><p style="font-size:1.5rem;font-weight:700;">${cod.total} ден</p><button class="btn btn-primary" onclick="openClient360('${cod.id}');closeModal();"><i class="fas fa-user"></i> Shiko profilin</button></div>`);
+    openModal(`<div style="text-align:center;padding:20px;"><i class="fas fa-crown" style="font-size:3rem;color:#f1c40f;"></i><h2 style="margin:10px 0;">Klienti i Ditës</h2><h3 style="color:var(--primary);">${cod.name}</h3><p style="font-size:1.5rem;font-weight:700;">${cod.total || 0} ден</p><button class="btn btn-primary" onclick="openClient360('${cod.id}');closeModal();"><i class="fas fa-user"></i> Shiko profilin</button></div>`);
 }
 
 // FIX-10: Comparison Chart
 function showComparisonChart() {
     const last7 = []; const now = new Date();
-    for (let i = 6; i >= 0; i--) { const d = new Date(now); d.setDate(d.getDate() - i); const dateStr = d.toISOString().split('T')[0]; last7.push({ date: dateStr.slice(5), sales: state.sales.filter(s => s.date === dateStr).reduce((s, x) => s + x.sellTotal, 0), fatonPay: (state.fatonPayments || []).filter(p => p.date === dateStr).reduce((s, p) => s + ((p && p.amount) || 0), 0), clientPay: (state.clientPayments || []).filter(p => p.date === dateStr).reduce((s, p) => s + ((p && p.amount) || 0), 0) }); }
+    for (let i = 6; i >= 0; i--) { const d = new Date(now); d.setDate(d.getDate() - i); const dateStr = d.toISOString().split('T')[0]; last7.push({ date: dateStr.slice(5), sales: (state.sales || []).filter(s => s.date === dateStr).reduce((s, x) => s + x.sellTotal, 0), fatonPay: (state.fatonPayments || []).filter(p => p.date === dateStr).reduce((s, p) => s + ((p && p.amount) || 0), 0), clientPay: (state.clientPayments || []).filter(p => p.date === dateStr).reduce((s, p) => s + ((p && p.amount) || 0), 0) }); }
     const maxVal = Math.max(...last7.map(d => Math.max(d.sales, d.fatonPay, d.clientPay)), 1);
     let html = '<h3><i class="fas fa-chart-bar"></i> Krahasim: Shitje vs Pagesa</h3><div style="display:flex;gap:6px;margin-bottom:10px;font-size:0.8rem;"><span><span style="display:inline-block;width:12px;height:12px;background:var(--success);border-radius:2px;"></span> Shitje</span><span><span style="display:inline-block;width:12px;height:12px;background:var(--primary);border-radius:2px;"></span> Fatoni</span><span><span style="display:inline-block;width:12px;height:12px;background:var(--warning);border-radius:2px;"></span> Klientë</span></div>';
     html += '<div style="display:flex;gap:8px;align-items:flex-end;height:150px;">';
@@ -12787,7 +12787,7 @@ function showTopWeekProducts() {
     const weekStartStr = weekStart.toISOString().split('T')[0];
     const weekEnd = now.toISOString().split('T')[0];
 
-    const weekSales = state.sales.filter(s => s.date >= weekStartStr && s.date <= weekEnd);
+    const weekSales = (state.sales || []).filter(s => s.date >= weekStartStr && s.date <= weekEnd);
 
     const productStats = {};
     weekSales.forEach(s => {
@@ -12838,7 +12838,7 @@ function showPartnerProfitChart() {
     for (let i = 5; i >= 0; i--) {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
         const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-        const mSales = state.sales.filter(s => s.date && s.date.startsWith(key));
+        const mSales = (state.sales || []).filter(s => s.date && s.date.startsWith(key));
         const profit = mSales.reduce((sum, s) => sum + ((s && s.profit) || 0), 0);
         const elezShare = calcOwnerShare(profit);
         const orhanShare = calcPartnerShare(profit);
@@ -13177,7 +13177,7 @@ function saveDailyTarget() {
 function getDailyTargetProgress() {
     if (!state.dailyTarget) state.dailyTarget = 0;
     const today = new Date().toISOString().split('T')[0];
-    const current = state.sales.filter(s => s.date === today).reduce((sum, s) => sum + ((s && s.profit) || 0), 0);
+    const current = (state.sales || []).filter(s => s.date === today).reduce((sum, s) => sum + ((s && s.profit) || 0), 0);
     const target = state.dailyTarget;
     const percent = target > 0 ? Math.round((current / target) * 100) : 0;
     return { target, current, percent };
@@ -13200,8 +13200,8 @@ function showWeeklyComparison() {
     const lastWeekStartStr = lastWeekStart.toISOString().split('T')[0];
     const lastWeekEndStr = lastWeekEnd.toISOString().split('T')[0];
 
-    const thisWeekSales = state.sales.filter(s => s.date >= thisWeekStartStr && s.date <= todayStr);
-    const lastWeekSales = state.sales.filter(s => s.date >= lastWeekStartStr && s.date <= lastWeekEndStr);
+    const thisWeekSales = (state.sales || []).filter(s => s.date >= thisWeekStartStr && s.date <= todayStr);
+    const lastWeekSales = (state.sales || []).filter(s => s.date >= lastWeekStartStr && s.date <= lastWeekEndStr);
 
     const thisRevenue = thisWeekSales.reduce((s, x) => s + x.sellTotal, 0);
     const lastRevenue = lastWeekSales.reduce((s, x) => s + x.sellTotal, 0);
@@ -13252,7 +13252,7 @@ function openClientNotesModal(clientId) {
     const client = (state.clients || []).find(c => c && c.id === clientId);
     if (!client) { showToast('Klienti nuk u gjet!', 'error'); return; }
 
-    const notes = state.clientNotes.filter(n => n.clientId === clientId).sort((a, b) => b.date.localeCompare(a.date));
+    const notes = (state.clientNotes || []).filter(n => n.clientId === clientId).sort((a, b) => b.date.localeCompare(a.date));
 
     let html = `<h3><i class="fas fa-sticky-note"></i> Notat për ${client.name}</h3>`;
     html += `<div class="form-group" style="display:flex;gap:8px;">
@@ -13282,7 +13282,7 @@ function addClientNote(clientId) {
     const text = (document.getElementById('client-note-text').value || '').trim();
     if (!text) { showToast('Shkruaj një shënim!', 'error'); return; }
     if (!state.clientNotes) state.clientNotes = [];
-    state.clientNotes.push({
+    (state.clientNotes = state.clientNotes || []).push({
         id: 'note_' + Date.now(),
         clientId,
         text,
@@ -13295,7 +13295,7 @@ function addClientNote(clientId) {
 
 function deleteClientNote(noteId, clientId) {
     if (!state.clientNotes) return;
-    state.clientNotes = state.clientNotes.filter(n => n.id !== noteId);
+    state.clientNotes = (state.clientNotes || []).filter(n => n.id !== noteId);
     saveState();
     openClientNotesModal(clientId);
 }
@@ -13303,9 +13303,9 @@ function deleteClientNote(noteId, clientId) {
 // FEATURE 10: Statistika të shpejta në sidebar
 function updateSidebarStats() {
     const today = new Date().toISOString().split('T')[0];
-    const todaySales = state.sales.filter(s => s.date === today);
+    const todaySales = (state.sales || []).filter(s => s.date === today);
     const todayProfit = todaySales.reduce((sum, s) => sum + ((s && s.profit) || 0), 0);
-    const totalClientDebt = state.clients.reduce((sum, c) => sum + (c.debt || 0), 0);
+    const totalClientDebt = (state.clients || []).reduce((sum, c) => sum + (c.debt || 0), 0);
 
     // Remove legacy duplicate sales badge if exists
     var oldSalesBadge = document.getElementById('sidebar-today-sales-badge');
@@ -13526,7 +13526,7 @@ function processQuickCollect(clientId) {
     if (amount > client.debt) { showToast('Shuma nuk mund te jete me e madhe se borxhi', 'error'); return; }
 
     if (!state.clientPayments) state.clientPayments = [];
-    state.clientPayments.push({
+    (state.clientPayments = state.clientPayments || []).push({
         id: Date.now().toString(),
         clientId: client.id,
         amount,
@@ -14301,12 +14301,12 @@ function openVolumeDiscountSettings() {
     if (!state.volumeDiscounts) state.volumeDiscounts = [];
 
     function renderRows() {
-        if (!state.volumeDiscounts.length) return '<tr><td colspan="3" style="text-align:center;color:var(--text-secondary);padding:12px;">Nuk ka zbritje te caktuara</td></tr>';
-        return state.volumeDiscounts.map((d, i) => `
+        if (!(state.volumeDiscounts || []).length) return '<tr><td colspan="3" style="text-align:center;color:var(--text-secondary);padding:12px;">Nuk ka zbritje te caktuara</td></tr>';
+        return (state.volumeDiscounts || []).map((d, i) => `
             <tr>
                 <td>${d.minQty}+</td>
                 <td style="color:var(--success);font-weight:700;">${d.discountPct}%</td>
-                <td><button class="btn btn-danger" style="padding:4px 10px;font-size:0.8em;" onclick="state.volumeDiscounts.splice(${i},1);saveState();document.getElementById('vd-tbody').innerHTML=renderVDRows();">Fshi</button></td>
+                <td><button class="btn btn-danger" style="padding:4px 10px;font-size:0.8em;" onclick="(state.volumeDiscounts = state.volumeDiscounts || []).splice(${i},1);saveState();document.getElementById('vd-tbody').innerHTML=renderVDRows();">Fshi</button></td>
             </tr>`).join('');
     }
 
@@ -14329,8 +14329,8 @@ function openVolumeDiscountSettings() {
                     const pct = parseFloat(document.getElementById('vd-pct').value);
                     if (!qty || !pct || qty < 1 || pct <= 0) { showToast('Vendos vlera valide','error'); return; }
                     if (!state.volumeDiscounts) state.volumeDiscounts = [];
-                    state.volumeDiscounts.push({minQty:qty, discountPct:pct});
-                    state.volumeDiscounts.sort((a,b)=>a.minQty-b.minQty);
+                    (state.volumeDiscounts = state.volumeDiscounts || []).push({minQty:qty, discountPct:pct});
+                    (state.volumeDiscounts || []).sort((a,b)=>a.minQty-b.minQty);
                     saveState();
                     document.getElementById('vd-tbody').innerHTML=renderVDRows();
                     document.getElementById('vd-minqty').value='';
@@ -16053,7 +16053,7 @@ function _deleteDupSale(idx) {
 
 function _deleteDupClient(idx) {
     modalConfirm('Fshi këtë klient duplikat?', function() {
-        state.clients.splice(idx, 1);
+        (state.clients = state.clients || []).splice(idx, 1);
         saveState();
         showToast('Klienti duplikat u fshi.', 'success');
     });
@@ -16061,7 +16061,7 @@ function _deleteDupClient(idx) {
 
 function _deleteDupPayment(idx) {
     modalConfirm('Fshi këtë pagesë duplikate?', function() {
-        state.clientPayments.splice(idx, 1);
+        (state.clientPayments = state.clientPayments || []).splice(idx, 1);
         saveState();
         showToast('Pagesa duplikate u fshi.', 'success');
     });
@@ -17118,7 +17118,7 @@ function _doPreRestoreRecovery() {
 // === FEATURE 2: Koshi i Plehrave (Trash Bin) ===
 function moveToTrash(type, item) {
     if (!state.trash) state.trash = [];
-    state.trash.push({
+    (state.trash = state.trash || []).push({
         id: Date.now().toString(),
         type: type, // 'sale', 'client', 'payment', 'expense'
         data: JSON.parse(JSON.stringify(item)),
@@ -17126,7 +17126,7 @@ function moveToTrash(type, item) {
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
     });
     // Keep max 200 items in trash
-    if (state.trash.length > 200) state.trash = state.trash.slice(-200);
+    if ((state.trash || []).length > 200) state.trash = (state.trash || []).slice(-200);
     trackChange('delete', type, item.id || item.name || 'unknown');
     saveState();
 }
@@ -17135,9 +17135,9 @@ function showTrashBin() {
     if (!state.trash) state.trash = [];
     // Clean expired items
     const now = new Date().toISOString();
-    state.trash = state.trash.filter(t => t.expiresAt > now);
+    state.trash = (state.trash || []).filter(t => t.expiresAt > now);
 
-    if (state.trash.length === 0) {
+    if ((state.trash || []).length === 0) {
         openModal('🗑️ Koshi i Plehrave', '<div style="text-align:center;padding:40px;color:#999;"><i class="fas fa-trash" style="font-size:3em;margin-bottom:10px;"></i><p>Koshi është bosh!</p><p style="font-size:0.85em;">Elementet e fshira ruhen këtu për 30 ditë.</p></div>');
         return;
     }
@@ -17145,7 +17145,7 @@ function showTrashBin() {
     const typeNames = { sale: 'Shitje', client: 'Klient', payment: 'Pagesë', expense: 'Shpenzim', contact: 'Kontakt', note: 'Shënim' };
     const typeIcons = { sale: 'shopping-cart', client: 'user', payment: 'money-bill', expense: 'receipt', contact: 'address-book', note: 'sticky-note' };
 
-    const rows = state.trash.slice().reverse().map(t => {
+    const rows = (state.trash || []).slice().reverse().map(t => {
         const typeName = typeNames[t.type] || t.type;
         const icon = typeIcons[t.type] || 'file';
         const deletedDate = new Date(t.deletedAt).toLocaleDateString('sq-AL');
@@ -17166,7 +17166,7 @@ function showTrashBin() {
         </tr>`;
     }).join('');
 
-    openModal('🗑️ Koshi i Plehrave (' + state.trash.length + ')', `
+    openModal('🗑️ Koshi i Plehrave (' + (state.trash || []).length + ')', `
         <div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">
             <span style="color:#888;font-size:0.9em;">Elementet fshihen automatikisht pas 30 ditëve</span>
             <button onclick="emptyTrash()" style="background:var(--danger);color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:0.85em;">
@@ -17181,7 +17181,7 @@ function showTrashBin() {
 }
 
 function restoreFromTrash(trashId) {
-    const item = state.trash.find(t => t.id === trashId);
+    const item = (state.trash || []).find(t => t.id === trashId);
     if (!item) return;
 
     // Restore to appropriate collection
@@ -17199,7 +17199,7 @@ function restoreFromTrash(trashId) {
             break;
         case 'payment':
             if (!state.clientPayments) state.clientPayments = [];
-            state.clientPayments.push(item.data);
+            (state.clientPayments = state.clientPayments || []).push(item.data);
             // Re-apply payment to client debt
             if (item.data.clientId && item.data.status !== 'cancelled') {
                 const client = (state.clients || []).find(c => c && c.id === item.data.clientId);
@@ -17217,7 +17217,7 @@ function restoreFromTrash(trashId) {
             break;
     }
 
-    state.trash = state.trash.filter(t => t.id !== trashId);
+    state.trash = (state.trash || []).filter(t => t.id !== trashId);
     logActivity('restore_trash', 'U rikthye nga koshi: ' + item.type + ' - ' + (item.data.name || item.data.id));
     saveState();
     showToast('U rikthye nga koshi!', 'success');
@@ -17226,7 +17226,7 @@ function restoreFromTrash(trashId) {
 
 function permanentDeleteFromTrash(trashId) {
     modalConfirm('Fshirje përfundimtare — nuk mund të kthehet! Vazhdo?', function() {
-        state.trash = state.trash.filter(t => t.id !== trashId);
+        state.trash = (state.trash || []).filter(t => t.id !== trashId);
         saveState();
         showToast('U fshi përgjithmonë', 'info');
         showTrashBin();
@@ -17275,9 +17275,9 @@ function showVersionPreview(n) {
                         <tr><td style="padding:8px;">Shitje</td><td style="padding:8px;text-align:right;">${salesCount}</td><td style="padding:8px;text-align:right;">${curSales}</td><td style="padding:8px;text-align:right;font-weight:bold;color:${curSales >= salesCount ? 'var(--success)' : 'var(--danger)'};">${diff(curSales, salesCount)}</td></tr>
                         <tr><td style="padding:8px;">Klientë</td><td style="padding:8px;text-align:right;">${clientsCount}</td><td style="padding:8px;text-align:right;">${curClients}</td><td style="padding:8px;text-align:right;font-weight:bold;color:${curClients >= clientsCount ? 'var(--success)' : 'var(--danger)'};">${diff(curClients, clientsCount)}</td></tr>
                         <tr><td style="padding:8px;">Pagesa</td><td style="padding:8px;text-align:right;">${paymentsCount}</td><td style="padding:8px;text-align:right;">${(state.clientPayments||[]).length}</td><td style="padding:8px;text-align:right;">${diff((state.clientPayments||[]).length, paymentsCount)}</td></tr>
-                        <tr><td style="padding:8px;">Shpenzime</td><td style="padding:8px;text-align:right;">${expensesCount}</td><td style="padding:8px;text-align:right;">${state.expenses.length}</td><td style="padding:8px;text-align:right;">${diff(state.expenses.length, expensesCount)}</td></tr>
+                        <tr><td style="padding:8px;">Shpenzime</td><td style="padding:8px;text-align:right;">${expensesCount}</td><td style="padding:8px;text-align:right;">${(state.expenses || []).length}</td><td style="padding:8px;text-align:right;">${diff((state.expenses || []).length, expensesCount)}</td></tr>
                         <tr style="background:var(--bg-secondary);"><td style="padding:8px;font-weight:bold;">Qarkullim</td><td style="padding:8px;text-align:right;font-weight:bold;">${totalRevenue} den</td><td style="padding:8px;text-align:right;font-weight:bold;">${(state.sales || []).reduce((s,x)=>s+(x.sellTotal||0),0)} den</td><td></td></tr>
-                        <tr><td style="padding:8px;font-weight:bold;">Borxh total</td><td style="padding:8px;text-align:right;color:var(--danger);font-weight:bold;">${totalDebt} den</td><td style="padding:8px;text-align:right;color:var(--danger);font-weight:bold;">${state.clients.reduce((s,c)=>s+(c.debt||0),0)} den</td><td></td></tr>
+                        <tr><td style="padding:8px;font-weight:bold;">Borxh total</td><td style="padding:8px;text-align:right;color:var(--danger);font-weight:bold;">${totalDebt} den</td><td style="padding:8px;text-align:right;color:var(--danger);font-weight:bold;">${(state.clients || []).reduce((s,c)=>s+(c.debt||0),0)} den</td><td></td></tr>
                     </tbody>
                 </table>
                 <div style="display:flex;gap:10px;margin-top:20px;">
@@ -17316,8 +17316,8 @@ function _onSelectiveFileSelected(input) {
                     { key: 'sales', name: 'Shitje', icon: 'shopping-cart', count: (data.sales||[]).length, current: (state.sales || []).length },
                     { key: 'clients', name: 'Klientë', icon: 'users', count: (data.clients||[]).length, current: (state.clients || []).length },
                     { key: 'clientPayments', name: 'Pagesa', icon: 'money-bill', count: (data.clientPayments||[]).length, current: (state.clientPayments||[]).length },
-                    { key: 'expenses', name: 'Shpenzime', icon: 'receipt', count: (data.expenses||[]).length, current: state.expenses.length },
-                    { key: 'contacts', name: 'Kontakte', icon: 'address-book', count: (data.contacts||[]).length, current: state.contacts.length },
+                    { key: 'expenses', name: 'Shpenzime', icon: 'receipt', count: (data.expenses||[]).length, current: (state.expenses || []).length },
+                    { key: 'contacts', name: 'Kontakte', icon: 'address-book', count: (data.contacts||[]).length, current: (state.contacts || []).length },
                     { key: 'notes', name: 'Shënime', icon: 'sticky-note', count: (data.notes||[]).length, current: (state.notes || []).length },
                     { key: 'stock', name: 'Stoku', icon: 'boxes', count: data.stock ? Object.keys(data.stock).length : 0, current: Object.keys(state.stock||{}).length },
                     { key: 'orders', name: 'Porosi', icon: 'truck', count: (data.orders||[]).length, current: (state.orders || []).length }
@@ -17415,7 +17415,7 @@ function showRestoreComparison(backupData) {
         </tr>`;
     }).join('');
 
-    const currentDebt = state.clients.reduce((s, c) => s + (c.debt || 0), 0);
+    const currentDebt = (state.clients || []).reduce((s, c) => s + (c.debt || 0), 0);
     const backupDebt = (backupData.clients || []).reduce((s, c) => s + (c.debt || 0), 0);
 
     return `
@@ -17455,7 +17455,7 @@ function saveHourlySnapshot() {
     const hourKey = now.toISOString().slice(0, 13); // e.g., "2026-04-07T14"
 
     // Don't save if already saved this hour
-    if (state.hourlySnapshots.some(s => s.hour === hourKey)) return;
+    if ((state.hourlySnapshots || []).some(s => s.hour === hourKey)) return;
 
     // Keep data lightweight - only counts and key metrics
     const snapshot = {
@@ -17464,29 +17464,29 @@ function saveHourlySnapshot() {
         sales: (state.sales || []).length,
         clients: (state.clients || []).length,
         payments: (state.clientPayments || []).length,
-        totalDebt: state.clients.reduce((s, c) => s + (c.debt || 0), 0),
+        totalDebt: (state.clients || []).reduce((s, c) => s + (c.debt || 0), 0),
         totalRevenue: (state.sales || []).reduce((s, x) => s + (x.sellTotal || 0), 0),
         // Full state for last 24h only
         stateJson: JSON.stringify(state)
     };
-    state.hourlySnapshots.push(snapshot);
+    (state.hourlySnapshots = state.hourlySnapshots || []).push(snapshot);
 
     // Keep only last 24 snapshots
-    if (state.hourlySnapshots.length > 24) {
+    if ((state.hourlySnapshots || []).length > 24) {
         // Remove old state JSON to save space
-        state.hourlySnapshots.slice(0, -24).forEach(s => delete s.stateJson);
-        state.hourlySnapshots = state.hourlySnapshots.slice(-24);
+        (state.hourlySnapshots || []).slice(0, -24).forEach(s => delete s.stateJson);
+        state.hourlySnapshots = (state.hourlySnapshots || []).slice(-24);
     }
     saveState();
 }
 
 function showHourlySnapshots() {
-    if (!state.hourlySnapshots || state.hourlySnapshots.length === 0) {
+    if (!state.hourlySnapshots || (state.hourlySnapshots || []).length === 0) {
         openModal('Snapshots çdo Orë', '<div style="text-align:center;padding:30px;color:#999;"><i class="fas fa-clock" style="font-size:3em;"></i><p>Ende nuk ka snapshots.</p></div>');
         return;
     }
 
-    const rows = state.hourlySnapshots.slice().reverse().map(s => {
+    const rows = (state.hourlySnapshots || []).slice().reverse().map(s => {
         const time = new Date(s.date).toLocaleString('sq-AL');
         const hasState = !!s.stateJson;
         return `<tr>
@@ -17499,7 +17499,7 @@ function showHourlySnapshots() {
         </tr>`;
     }).join('');
 
-    openModal('⏰ Snapshots çdo Orë (' + state.hourlySnapshots.length + ')', `
+    openModal('⏰ Snapshots çdo Orë (' + (state.hourlySnapshots || []).length + ')', `
         <div class="table-container"><table class="data-table">
             <thead><tr><th>Ora</th><th>Shitje</th><th>Klientë</th><th>Pagesa</th><th>Borxh</th><th>Veprim</th></tr></thead>
             <tbody>${rows}</tbody>
@@ -17533,18 +17533,18 @@ setTimeout(saveHourlySnapshot, 5000);
 // === FEATURE 8: Timeline e Ndryshimeve ===
 function trackChange(action, type, itemId) {
     if (!state.changeTimeline) state.changeTimeline = [];
-    state.changeTimeline.push({
+    (state.changeTimeline = state.changeTimeline || []).push({
         date: new Date().toISOString(),
         action: action, // 'add', 'edit', 'delete', 'restore'
         type: type,      // 'sale', 'client', 'payment', etc.
         itemId: itemId
     });
     // Keep last 500 entries
-    if (state.changeTimeline.length > 500) state.changeTimeline = state.changeTimeline.slice(-500);
+    if ((state.changeTimeline || []).length > 500) state.changeTimeline = (state.changeTimeline || []).slice(-500);
 }
 
 function showChangeTimeline() {
-    if (!state.changeTimeline || state.changeTimeline.length === 0) {
+    if (!state.changeTimeline || (state.changeTimeline || []).length === 0) {
         openModal('Timeline Ndryshimesh', '<div style="text-align:center;padding:30px;color:#999;"><i class="fas fa-history" style="font-size:3em;"></i><p>Asnjë ndryshim i regjistruar.</p></div>');
         return;
     }
@@ -17553,7 +17553,7 @@ function showChangeTimeline() {
     const actionColors = { add: '#4CAF50', edit: '#2196F3', delete: '#e74c3c', restore: '#FF9800', cancel: '#9C27B0' };
     const typeNames = { sale: 'Shitje', client: 'Klient', payment: 'Pagesë', expense: 'Shpenzim', stock: 'Stok' };
 
-    const rows = state.changeTimeline.slice().reverse().slice(0, 100).map(c => {
+    const rows = (state.changeTimeline || []).slice().reverse().slice(0, 100).map(c => {
         const date = new Date(c.date).toLocaleString('sq-AL');
         const icon = actionIcons[c.action] || '📝';
         const color = actionColors[c.action] || '#666';
@@ -17567,7 +17567,7 @@ function showChangeTimeline() {
     }).join('');
 
     openModal('📋 Timeline Ndryshimesh', `
-        <p style="color:#888;margin-bottom:10px;">${state.changeTimeline.length} ndryshime totale (shfaqen 100 të fundit)</p>
+        <p style="color:#888;margin-bottom:10px;">${(state.changeTimeline || []).length} ndryshime totale (shfaqen 100 të fundit)</p>
         <div class="table-container"><table class="data-table">
             <thead><tr><th>Data</th><th>Veprimi</th><th>Tipi</th><th>ID</th></tr></thead>
             <tbody>${rows}</tbody>
@@ -17735,24 +17735,24 @@ function _onVerifyFileSelected(input) {
 // === FEATURE 13: Restore Log (Ditari) ===
 function addRestoreLog(action, details) {
     if (!state.restoreLog) state.restoreLog = [];
-    state.restoreLog.push({
+    (state.restoreLog = state.restoreLog || []).push({
         date: new Date().toISOString(),
         action: action,
         details: details,
         salesBefore: (state.sales || []).length,
         clientsBefore: (state.clients || []).length,
-        debtBefore: state.clients.reduce((s, c) => s + (c.debt || 0), 0)
+        debtBefore: (state.clients || []).reduce((s, c) => s + (c.debt || 0), 0)
     });
-    if (state.restoreLog.length > 50) state.restoreLog = state.restoreLog.slice(-50);
+    if ((state.restoreLog || []).length > 50) state.restoreLog = (state.restoreLog || []).slice(-50);
 }
 
 function showRestoreLog() {
-    if (!state.restoreLog || state.restoreLog.length === 0) {
+    if (!state.restoreLog || (state.restoreLog || []).length === 0) {
         openModal('Ditari i Restore-ve', '<div style="text-align:center;padding:30px;color:#999;"><i class="fas fa-clipboard-list" style="font-size:3em;"></i><p>Asnjë restore i regjistruar.</p></div>');
         return;
     }
 
-    const rows = state.restoreLog.slice().reverse().map(r => {
+    const rows = (state.restoreLog || []).slice().reverse().map(r => {
         const date = new Date(r.date).toLocaleString('sq-AL');
         return `<tr>
             <td style="padding:8px;font-size:0.85em;">${date}</td>
@@ -17854,7 +17854,7 @@ function sendBackupViaWhatsApp() {
     const stats = 'Hurma Backup ' + new Date().toLocaleDateString('sq-AL') + '\n' +
         'Shitje: ' + (state.sales || []).length + '\n' +
         'Kliente: ' + (state.clients || []).length + '\n' +
-        'Borxh total: ' + state.clients.reduce((s, c) => s + (c.debt || 0), 0) + ' den\n\n' +
+        'Borxh total: ' + (state.clients || []).reduce((s, c) => s + (c.debt || 0), 0) + ' den\n\n' +
         '(Backup JSON u shkarkua si skedar)';
     downloadVerifiedBackup();
     setTimeout(() => {
@@ -18339,7 +18339,7 @@ function refreshAnalytics() {
     startDate.setDate(startDate.getDate() - days);
     var startStr = startDate.toISOString().split('T')[0];
 
-    var periodSales = state.sales.filter(function(s) { return s.date >= startStr; });
+    var periodSales = (state.sales || []).filter(function(s) { return s.date >= startStr; });
 
     _renderAnalyticsKPIs(periodSales, days);
     _renderTrendChart(periodSales, days);
@@ -18518,7 +18518,7 @@ function _renderWeeklyChart() {
         var startStr = weekStart.toISOString().split('T')[0];
         var endStr = weekEnd.toISOString().split('T')[0];
 
-        var weekSales = state.sales.filter(function(s) { return s.date >= startStr && s.date <= endStr; });
+        var weekSales = (state.sales || []).filter(function(s) { return s.date >= startStr && s.date <= endStr; });
         var revenue = weekSales.reduce(function(s, x) { return s + (x.sellTotal || 0); }, 0);
         var profit = weekSales.reduce(function(s, x) { return s + (x.profit || 0); }, 0);
 
@@ -18560,7 +18560,7 @@ function _renderTopClients(periodSales) {
     var clientData = {};
     periodSales.forEach(function(s) {
         if (!s.clientId) return;
-        var c = state.clients.find(function(c) { return c.id === s.clientId; });
+        var c = (state.clients || []).find(function(c) { return c.id === s.clientId; });
         if (!c) return;
         if (!clientData[c.id]) clientData[c.id] = { name: c.name, revenue: 0, profit: 0, count: 0, phone: c.phone || '' };
         clientData[c.id].revenue += (s.sellTotal || 0);
@@ -18619,7 +18619,7 @@ function _renderForecast(currentDays) {
     twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
     var twoWeeksStr = twoWeeksAgo.toISOString().split('T')[0];
 
-    var recentSales = state.sales.filter(function(s) { return s.date >= twoWeeksStr; });
+    var recentSales = (state.sales || []).filter(function(s) { return s.date >= twoWeeksStr; });
     var recentRevenue = recentSales.reduce(function(s, x) { return s + (x.sellTotal || 0); }, 0);
     var recentProfit = recentSales.reduce(function(s, x) { return s + (x.profit || 0); }, 0);
     var recentQty = recentSales.reduce(function(s, x) { return s + (x.quantity || 0); }, 0);
@@ -18642,8 +18642,8 @@ function _renderForecast(currentDays) {
     var oneWeekStr = oneWeekAgo.toISOString().split('T')[0];
     var prevWeekStr = new Date(now.getTime() - 14 * 86400000).toISOString().split('T')[0];
 
-    var thisWeekRev = state.sales.filter(function(s) { return s.date >= oneWeekStr; }).reduce(function(s, x) { return s + (x.sellTotal || 0); }, 0);
-    var prevWeekRev = state.sales.filter(function(s) { return s.date >= prevWeekStr && s.date < oneWeekStr; }).reduce(function(s, x) { return s + (x.sellTotal || 0); }, 0);
+    var thisWeekRev = (state.sales || []).filter(function(s) { return s.date >= oneWeekStr; }).reduce(function(s, x) { return s + (x.sellTotal || 0); }, 0);
+    var prevWeekRev = (state.sales || []).filter(function(s) { return s.date >= prevWeekStr && s.date < oneWeekStr; }).reduce(function(s, x) { return s + (x.sellTotal || 0); }, 0);
 
     var trendPct = prevWeekRev > 0 ? Math.round(((thisWeekRev - prevWeekRev) / prevWeekRev) * 100) : 0;
     var trendIcon = trendPct >= 0 ? '📈' : '📉';
@@ -18737,7 +18737,7 @@ function refreshInvoicesPage() {
     // Build invoices from all sales (Bug #133: null-safe)
     var invoices = (state.sales || []).map(function(s, idx) {
         var product = getProduct(s.productId);
-        var client = s.clientId ? state.clients.find(function(c) { return c.id === s.clientId; }) : null;
+        var client = s.clientId ? (state.clients || []).find(function(c) { return c.id === s.clientId; }) : null;
         var status = _getInvoiceStatus(s);
         var dueDate = _calcDueDate(s);
         var paid = s.paidAmount || (s.invoicePaid ? (s.sellTotal || 0) : 0);
@@ -18964,7 +18964,7 @@ function createCorrectiveInvoice(originalIndex) {
 
         // Reverse client debt if applicable
         if (sale.clientId && sale.isDebt) {
-            var client = state.clients.find(function(c) { return c.id === sale.clientId; });
+            var client = (state.clients || []).find(function(c) { return c.id === sale.clientId; });
             if (client) client.debt = Math.max(0, client.debt - sale.sellTotal);
         }
 
@@ -20144,7 +20144,7 @@ function saveDistReceived(e) {
         note: document.getElementById('dist-recv-note').value
     };
     if (!state.distReceived) state.distReceived = [];
-    state.distReceived.push(rec);
+    (state.distReceived = state.distReceived || []).push(rec);
     saveState();
     closeModal();
     // #4 Cross-tab: note about receiving goods for distribution
@@ -20155,7 +20155,7 @@ function saveDistReceived(e) {
 
 function deleteDistReceived(id) {
     modalConfirm('A jeni i sigurt qe doni te fshini kete pranim?', function() {
-        state.distReceived = state.distReceived.filter(function(r) { return r.id !== id; });
+        state.distReceived = (state.distReceived || []).filter(function(r) { return r.id !== id; });
         saveState();
         showToast('Pranimi u fshi', 'warning');
         refreshDistribution();
@@ -20376,7 +20376,7 @@ function saveDistDelivery(e) {
     };
 
     if (!state.distDeliveries) state.distDeliveries = [];
-    state.distDeliveries.push(delivery);
+    (state.distDeliveries = state.distDeliveries || []).push(delivery);
 
     // #1 Cross-tab: If cash delivery, auto-add to cash tracking
     if (isCash) {
@@ -20523,7 +20523,7 @@ function saveDistPayToFaton(e) {
         signature: signature
     };
     if (!state.distPayToFaton) state.distPayToFaton = [];
-    state.distPayToFaton.push(payment);
+    (state.distPayToFaton = state.distPayToFaton || []).push(payment);
 
     // #3 Cross-tab: When giving cash to Faton, link to main Faton account
     if (state.fatonPayments) {
@@ -20545,7 +20545,7 @@ function saveDistPayToFaton(e) {
 
 function deleteDistPayToFaton(id) {
     modalConfirm('A jeni i sigurt qe doni te fshini kete dorezim?', function() {
-        state.distPayToFaton = state.distPayToFaton.filter(function(p) { return p.id !== id; });
+        state.distPayToFaton = (state.distPayToFaton || []).filter(function(p) { return p.id !== id; });
         saveState();
         showToast('Dorezimi u fshi', 'warning');
         refreshDistribution();
@@ -20587,13 +20587,13 @@ function saveDistShop(e, existingId) {
 
     if (!state.distShops) state.distShops = [];
     if (existingId) {
-        var idx = state.distShops.findIndex(function(s) { return s.id === existingId; });
+        var idx = (state.distShops || []).findIndex(function(s) { return s.id === existingId; });
         if (idx >= 0) {
             shop.dateAdded = state.distShops[idx].dateAdded;
             state.distShops[idx] = shop;
         }
     } else {
-        state.distShops.push(shop);
+        (state.distShops = state.distShops || []).push(shop);
     }
 
     saveState();
@@ -21101,7 +21101,7 @@ function exportDistReport(type, format) {
 // #1,#2 Cross-tab helper: log cash collected
 function distCrossTabCashCollected(amount, note) {
     if (!state.distCashLog) state.distCashLog = [];
-    state.distCashLog.push({
+    (state.distCashLog = state.distCashLog || []).push({
         id: 'dcl_' + Date.now(),
         date: new Date().toISOString().split('T')[0],
         amount: amount,
