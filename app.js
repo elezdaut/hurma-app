@@ -1,3 +1,70 @@
+// ===================== GLOBAL ERROR HANDLING =====================
+// Fix kritik: kap të gjitha gabimet e pakapura (uncaught errors) dhe promise rejections
+// që të mos "humbin në heshtje" dhe butonat të mos duken se nuk punojnë. Shfaqet toast
+// dhe gabimi logohet në activityLog për debug të mëvonshëm.
+(function() {
+    var _errToastBusy = false;
+    function _showErrToast(msg) {
+        if (_errToastBusy) return; // anti-spam
+        _errToastBusy = true;
+        setTimeout(function(){ _errToastBusy = false; }, 1500);
+        try {
+            if (typeof showToast === 'function') {
+                showToast('⚠️ ' + (msg || 'Ndodhi një gabim. Provo përsëri.'), 'error');
+            } else {
+                // Fallback: krijo toast manual nëse showToast s'është i disponueshëm
+                var t = document.createElement('div');
+                t.textContent = '⚠️ ' + msg;
+                t.style.cssText = 'position:fixed;top:20px;right:20px;background:#d32f2f;color:#fff;padding:12px 18px;border-radius:8px;z-index:99999;box-shadow:0 4px 12px rgba(0,0,0,0.3);font-family:sans-serif;max-width:360px;';
+                document.body && document.body.appendChild(t);
+                setTimeout(function(){ try { t.remove(); } catch(e){} }, 4000);
+            }
+        } catch(e) {}
+        try {
+            if (typeof logActivity === 'function') logActivity('error', msg);
+        } catch(e) {}
+    }
+    window.addEventListener('error', function(e) {
+        try {
+            var msg = (e && e.message) ? e.message : 'Gabim i panjohur';
+            var src = (e && e.filename) ? (' [' + e.filename.split('/').pop() + ':' + (e.lineno||'?') + ']') : '';
+            _showErrToast(msg + src);
+        } catch(err) {}
+    });
+    window.addEventListener('unhandledrejection', function(e) {
+        try {
+            var r = e && e.reason;
+            var msg = (r && r.message) ? r.message : (typeof r === 'string' ? r : 'Promise i dështuar');
+            _showErrToast(msg);
+        } catch(err) {}
+    });
+    // Ekspozoje për përdorim të brendshëm
+    window._showErrToast = _showErrToast;
+
+    // Wrapper universal: çdo funksion i thirrur përmes kësaj kapet
+    window.safeCall = function(fn /*, ...args */) {
+        try {
+            return fn.apply(this, Array.prototype.slice.call(arguments, 1));
+        } catch(e) {
+            _showErrToast(e.message || 'Veprimi dështoi');
+            return undefined;
+        }
+    };
+
+    // Helper DOM defensivë — q(id) kthen element ose stub me setters/getters të sigurt
+    window.q = function(id) {
+        return document.getElementById(id) || null;
+    };
+    window.qv = function(id, fallback) {
+        var el = document.getElementById(id);
+        return (el && 'value' in el) ? el.value : (fallback !== undefined ? fallback : '');
+    };
+    window.qc = function(id) {
+        var el = document.getElementById(id);
+        return !!(el && el.checked);
+    };
+})();
+
 // ===================== DATA =====================
 const DEFAULT_PRODUCTS = [
     { id: 'medjool_500', name: 'Medjool 500g', weight: '500g', buyPrice: 270, sellPrice: 290 },
@@ -705,7 +772,7 @@ function toggleInvoiceDueDate() {
         if (saleDate && !(document.getElementById('sale-due-date') || {}).value) {
             const due = new Date(saleDate);
             due.setDate(due.getDate() + invoiceDaysMap[paymentType]);
-            document.getElementById('sale-due-date').value = due.toISOString().split('T')[0];
+            (document.getElementById('sale-due-date') || {}).value = due.toISOString().split('T')[0];
         }
     } else {
         dueDateGroup.classList.add('hidden');
@@ -787,7 +854,7 @@ function addSale() {
     });
 
     // Update stock
-    state.stock[productId] = Math.max(0, (state.stock[productId] || 0) - quantity);
+    (state.stock || {})[productId] = Math.max(0, ((state.stock || {})[productId] || 0) - quantity);
 
     // Update client debt (Bug #173: null-safe find)
     if (isDebt && clientId) {
@@ -804,7 +871,7 @@ function addSale() {
     if (paymentType === 'invoice_60') {
         // Track profit that Faton owes us from this invoice sale
         if (!state.fatonProfitOwed) state.fatonProfitOwed = [];
-        state.fatonProfitOwed.push({
+        (state.fatonProfitOwed = state.fatonProfitOwed || []).push({
             id: Date.now(),
             saleId,
             productId,
@@ -852,8 +919,8 @@ function addSale() {
     showToast('Shitje: ' + product.name + ' x' + quantity + ' | ' + profitMsg + ownerMsg);
 
     // Check low stock notification
-    if ((state.stock[productId] || 0) < 3) {
-        setTimeout(() => showToast('⚠️ Stoku i ' + product.name + ' është vetëm ' + (state.stock[productId] || 0) + '!'), 1500);
+    if (((state.stock || {})[productId] || 0) < 3) {
+        setTimeout(() => showToast('⚠️ Stoku i ' + product.name + ' është vetëm ' + ((state.stock || {})[productId] || 0) + '!'), 1500);
     }
 }
 
@@ -968,7 +1035,7 @@ function updateSale(index) {
 
     // Deduct new stock (Bug #175: guards)
     if (!state.stock) state.stock = {};
-    state.stock[productId] = Math.max(0, (state.stock[productId] || 0) - quantity);
+    (state.stock || {})[productId] = Math.max(0, ((state.stock || {})[productId] || 0) - quantity);
 
     // Apply new client debt if this is a debt sale
     if (isDebt && clientId) {
@@ -1223,15 +1290,15 @@ function confirmMarkInvoicePaid(index) {
     const oldStatus = sale.invoicePaid ? 'paid' : (sale.paidAmount > 0 ? 'partial' : 'unpaid');
 
     // Mark invoice as paid
-    state.sales[index].invoicePaid = true;
-    state.sales[index].invoicePaidDate = payDate;
-    state.sales[index].paidAmount = sale.sellTotal;
-    state.sales[index].payMethod = payMethod;
-    state.sales[index].payDate = payDate;
+    (state.sales[index] || {}).invoicePaid = true;
+    (state.sales[index] || {}).invoicePaidDate = payDate;
+    (state.sales[index] || {}).paidAmount = sale.sellTotal;
+    (state.sales[index] || {}).payMethod = payMethod;
+    (state.sales[index] || {}).payDate = payDate;
 
     // Record in payment history
-    if (!state.sales[index].paymentHistory) state.sales[index].paymentHistory = [];
-    state.sales[index].paymentHistory.push({
+    if (!(state.sales[index] || {}).paymentHistory) (state.sales[index] || {}).paymentHistory = [];
+    (state.sales[index] || {}).paymentHistory.push({
         date: new Date().toISOString(),
         oldStatus: oldStatus,
         newStatus: 'paid',
@@ -1394,13 +1461,13 @@ function _doQuickMarkPaid(index) {
     const payDate = new Date().toISOString().split('T')[0];
     const oldStatus = sale.invoicePaid ? 'paid' : (sale.paidAmount > 0 ? 'partial' : 'unpaid');
 
-    state.sales[index].invoicePaid = true;
-    state.sales[index].invoicePaidDate = payDate;
-    state.sales[index].paidAmount = sale.sellTotal;
-    state.sales[index].payMethod = payMethod;
-    state.sales[index].payDate = payDate;
-    if (!state.sales[index].paymentHistory) state.sales[index].paymentHistory = [];
-    state.sales[index].paymentHistory.push({
+    (state.sales[index] || {}).invoicePaid = true;
+    (state.sales[index] || {}).invoicePaidDate = payDate;
+    (state.sales[index] || {}).paidAmount = sale.sellTotal;
+    (state.sales[index] || {}).payMethod = payMethod;
+    (state.sales[index] || {}).payDate = payDate;
+    if (!(state.sales[index] || {}).paymentHistory) (state.sales[index] || {}).paymentHistory = [];
+    (state.sales[index] || {}).paymentHistory.push({
         date: new Date().toISOString(),
         oldStatus: oldStatus,
         newStatus: 'paid',
@@ -1482,8 +1549,8 @@ function _doUnmarkPaid(index) {
     const reason = document.getElementById('unmark-reason')?.value || 'tjeter';
     const note = document.getElementById('unmark-note')?.value || '';
 
-    if (!state.sales[index].paymentHistory) state.sales[index].paymentHistory = [];
-    state.sales[index].paymentHistory.push({
+    if (!(state.sales[index] || {}).paymentHistory) (state.sales[index] || {}).paymentHistory = [];
+    (state.sales[index] || {}).paymentHistory.push({
         date: new Date().toISOString(),
         oldStatus: 'paid',
         newStatus: 'unpaid',
@@ -1494,10 +1561,10 @@ function _doUnmarkPaid(index) {
         note: 'Kthyer papaguar: ' + reason + (note ? ' — ' + note : '')
     });
 
-    state.sales[index].invoicePaid = false;
-    state.sales[index].invoicePaidDate = '';
-    state.sales[index].paidAmount = 0;
-    state.sales[index].payDate = '';
+    (state.sales[index] || {}).invoicePaid = false;
+    (state.sales[index] || {}).invoicePaidDate = '';
+    (state.sales[index] || {}).paidAmount = 0;
+    (state.sales[index] || {}).payDate = '';
 
     // Re-add client debt if it was a debt sale
     if (sale.isDebt && sale.clientId) {
@@ -1535,7 +1602,7 @@ function openPartialPaymentModal(index) {
             <div class="form-group">
                 <label>Shuma e pagesës (ден):</label>
                 <input type="number" id="partial-pay-amount" min="1" max="${remaining}" value="${remaining}"
-                    oninput="document.getElementById('partial-remaining').textContent = (${remaining} - (parseInt(this.value)||0)) + ' ден'">
+                    oninput="(document.getElementById('partial-remaining') || {}).textContent = (${remaining} - (parseInt(this.value)||0)) + ' ден'">
                 <small style="color:var(--text-secondary);">Pas kësaj pagese mbeten: <strong id="partial-remaining">0 ден</strong></small>
             </div>
             <div class="form-group">
@@ -1584,8 +1651,8 @@ function _doPartialPayment(index) {
     const fullyPaid = newTotal >= sale.sellTotal;
     const oldStatus = sale.invoicePaid ? 'paid' : (alreadyPaid > 0 ? 'partial' : 'unpaid');
 
-    if (!state.sales[index].paymentHistory) state.sales[index].paymentHistory = [];
-    state.sales[index].paymentHistory.push({
+    if (!(state.sales[index] || {}).paymentHistory) (state.sales[index] || {}).paymentHistory = [];
+    (state.sales[index] || {}).paymentHistory.push({
         date: new Date().toISOString(),
         oldStatus: oldStatus,
         newStatus: fullyPaid ? 'paid' : 'partial',
@@ -1596,13 +1663,13 @@ function _doPartialPayment(index) {
         note: payNote || ('Pagesë e pjesshme: ' + payAmount + ' ден')
     });
 
-    state.sales[index].paidAmount = newTotal;
-    state.sales[index].payMethod = payMethod;
-    state.sales[index].payDate = payDate;
+    (state.sales[index] || {}).paidAmount = newTotal;
+    (state.sales[index] || {}).payMethod = payMethod;
+    (state.sales[index] || {}).payDate = payDate;
 
     if (fullyPaid) {
-        state.sales[index].invoicePaid = true;
-        state.sales[index].invoicePaidDate = payDate;
+        (state.sales[index] || {}).invoicePaid = true;
+        (state.sales[index] || {}).invoicePaidDate = payDate;
         if (sale.isDebt && sale.clientId) {
             const client = (state.clients || []).find(c => c && c.id === sale.clientId);
             if (client) client.debt = Math.max(0, client.debt - sale.sellTotal);
@@ -1990,7 +2057,7 @@ function addStock() {
     if (quantity <= 0) return;
 
     if (!state.stock) state.stock = {};
-    state.stock[productId] = (state.stock[productId] || 0) + quantity;
+    (state.stock || {})[productId] = ((state.stock || {})[productId] || 0) + quantity;
 
     // Add to Faton purchases (tracks all stock bought from Faton)
     const product = getProduct(productId);
@@ -2106,7 +2173,7 @@ function deleteFatonPurchase(purchaseId) {
 function resetProductStock(productId) {
     const product = getProduct(productId);
     const productName = (product && product.name) ? product.name : '-';
-    const currentCount = state.stock[productId] || 0;
+    const currentCount = (state.stock || {})[productId] || 0;
     if (currentCount === 0) {
         showToast('Stoku është tashmë 0 për ' + productName, 'info');
         return;
@@ -2123,7 +2190,7 @@ function resetProductStock(productId) {
     if (!confirm(msg)) return;
 
     // 1) Zero stokun aktual
-    state.stock[productId] = 0;
+    (state.stock || {})[productId] = 0;
 
     // 2) Hiq batch-et e atij produkti (që të mos mbeten pa stok përkatës)
     state.stockBatches = (state.stockBatches || []).filter(b => b.productId !== productId);
@@ -2730,11 +2797,11 @@ function updateOrder(index) {
     const nEl = document.getElementById('order-note');
     state.orders[index] = {
         ...state.orders[index],
-        clientId: cEl ? cEl.value : state.orders[index].clientId,
-        productId: pEl ? pEl.value : state.orders[index].productId,
-        quantity: qEl ? (parseInt(qEl.value) || 0) : state.orders[index].quantity,
-        date: dEl ? dEl.value : state.orders[index].date,
-        note: nEl ? nEl.value : state.orders[index].note,
+        clientId: cEl ? cEl.value : (state.orders[index] || {}).clientId,
+        productId: pEl ? pEl.value : (state.orders[index] || {}).productId,
+        quantity: qEl ? (parseInt(qEl.value) || 0) : (state.orders[index] || {}).quantity,
+        date: dEl ? dEl.value : (state.orders[index] || {}).date,
+        note: nEl ? nEl.value : (state.orders[index] || {}).note,
     };
     saveState();
     closeModal();
@@ -2744,7 +2811,7 @@ function updateOrder(index) {
 function changeOrderStatus(index, status) {
     // Bug #74: state.orders/sales/stock guards + product null-check
     if (!state.orders || !state.orders[index]) return;
-    state.orders[index].status = status;
+    (state.orders[index] || {}).status = status;
     if (status === 'completed') {
         // Convert order to sale
         const order = state.orders[index];
@@ -2820,7 +2887,7 @@ function refreshOrders() {
 function calcFatonDebt() {
     // Cash debt: all stock purchases minus cash payments made to Faton
     // Invoice sales are paid by client directly, so they don't add to debt
-    const purchases = (state.fatonPurchases || []).reduce((sum, p) => sum + p.total, 0);
+    const purchases = (state.fatonPurchases || []).reduce((sum, p) => sum + (p.total || 0), 0);
     const payments = (state.fatonPayments || []).reduce((sum, p) => sum + ((p && p.amount) || 0), 0);
 
     // Subtract amounts that were deducted from debt via profit collection
@@ -2838,7 +2905,7 @@ function calcFatonProfitOwed() {
 }
 
 function calcFatonProfitCollected() {
-    const collected = (state.fatonProfitCollections || []).reduce((sum, c) => sum + c.amount, 0);
+    const collected = (state.fatonProfitCollections || []).reduce((sum, c) => sum + (c.amount || 0), 0);
     return collected;
 }
 
@@ -2969,11 +3036,11 @@ function updateFatonPayment(index) {
     const amount = parseInt(_v('faton-amount')) || 0;
     if (amount <= 0) return;
     if (!state.fatonPayments || !state.fatonPayments[index]) return;
-    const oldAmount = state.fatonPayments[index].amount || 0;
-    state.fatonPayments[index].amount = amount;
-    state.fatonPayments[index].date = _v('faton-date');
-    state.fatonPayments[index].note = _v('faton-note');
-    state.fatonPayments[index].category = _v('faton-payment-category');
+    const oldAmount = (state.fatonPayments[index] || {}).amount || 0;
+    (state.fatonPayments[index] || {}).amount = amount;
+    (state.fatonPayments[index] || {}).date = _v('faton-date');
+    (state.fatonPayments[index] || {}).note = _v('faton-note');
+    (state.fatonPayments[index] || {}).category = _v('faton-payment-category');
     saveState();
     if (typeof addPaymentAudit === 'function') addPaymentAudit('EDITIM_PAGESE', 'Index: ' + index + ', Shuma e vjeter: ' + oldAmount + ' den, Shuma e re: ' + amount + ' den');
     closeModal();
@@ -3245,9 +3312,9 @@ function openFatonMonthlyReport() {
 
         months.push({
             label: d.toLocaleDateString('sq-AL', { month: 'long', year: 'numeric' }),
-            totalPurchases: purchases.reduce((s, p) => s + p.total, 0),
+            totalPurchases: purchases.reduce((s, p) => s + (p.total || 0), 0),
             totalPayments: payments.reduce((s, p) => s + ((p && p.amount) || 0), 0),
-            totalCollections: collections.reduce((s, c) => s + c.amount, 0),
+            totalCollections: collections.reduce((s, c) => s + (c.amount || 0), 0),
             purchaseCount: purchases.length,
             paymentCount: payments.length
         });
@@ -3293,7 +3360,7 @@ function getCategoryIcon(cat) {
 
 function refreshFaton() {
     const purchases = state.fatonPurchases || [];
-    const totalPurchased = purchases.reduce((sum, p) => sum + p.total, 0);
+    const totalPurchased = purchases.reduce((sum, p) => sum + (p.total || 0), 0);
     const totalPaid = (state.fatonPayments || []).reduce((sum, p) => sum + ((p && p.amount) || 0), 0);
 
     const deductedFromDebt = (state.fatonProfitCollections || [])
@@ -3505,7 +3572,7 @@ function renderFatonPurchasesVsPaymentsChart() {
         months.push(d.toISOString().slice(0, 7));
     }
 
-    const purchaseData = months.map(m => (state.fatonPurchases || []).filter(p => p.date && p.date.startsWith(m)).reduce((s, p) => s + p.total, 0));
+    const purchaseData = months.map(m => (state.fatonPurchases || []).filter(p => p.date && p.date.startsWith(m)).reduce((s, p) => s + (p.total || 0), 0));
     const paymentData = months.map(m => (state.fatonPayments || []).filter(p => p.date && p.date.startsWith(m)).reduce((s, p) => s + ((p && p.amount) || 0), 0));
     const labels = months.map(m => { const d = new Date(m + '-01'); return d.toLocaleDateString('sq-AL', { month: 'short', year: '2-digit' }); });
 
@@ -3563,8 +3630,8 @@ function createReceipt(payment, paymentIndex) {
         totalNetProfit: netProfit,
         elezShare: calcOwnerShare(netProfit),
         orhanShare: calcPartnerShare(netProfit),
-        profitSplitOwner: state.profitSplit.owner,
-        profitSplitPartner: state.profitSplit.partner,
+        profitSplitOwner: (state.profitSplit || {}).owner,
+        profitSplitPartner: (state.profitSplit || {}).partner,
         // Faton balance
         fatonProfitRemaining: profitOwed - profitCollected,
         // Status
@@ -3671,11 +3738,11 @@ function getStatusLabel(status) {
 
 function verifyReceipt(receiptIndex) {
     if (!state.paymentReceipts[receiptIndex]) return;
-    state.paymentReceipts[receiptIndex].status = 'verified';
+    (state.paymentReceipts[receiptIndex] || {}).status = 'verified';
     saveState();
     viewReceipt(receiptIndex);
     showToast('Fatura u verifikua', 'success');
-    logActivity('Receipt', 'Verifikuar: ' + state.paymentReceipts[receiptIndex].receiptNumber);
+    logActivity('Receipt', 'Verifikuar: ' + (state.paymentReceipts[receiptIndex] || {}).receiptNumber);
 }
 
 // Download receipt as PDF
@@ -3879,7 +3946,7 @@ function clearSignature() {
 function saveSignature(receiptIndex) {
     const canvas = window._signatureCanvas || document.getElementById('signature-canvas');
     if (!canvas || !state.paymentReceipts[receiptIndex]) return;
-    state.paymentReceipts[receiptIndex].signature = canvas.toDataURL('image/png');
+    (state.paymentReceipts[receiptIndex] || {}).signature = canvas.toDataURL('image/png');
     saveState();
     closeModal();
     viewReceipt(receiptIndex);
@@ -3904,7 +3971,7 @@ function _onProofImageSelected(input, receiptIndex) {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = function(ev) {
-        state.paymentReceipts[receiptIndex].proofImage = ev.target.result;
+        (state.paymentReceipts[receiptIndex] || {}).proofImage = ev.target.result;
         saveState();
         closeModal();
         viewReceipt(receiptIndex);
@@ -4215,7 +4282,7 @@ function openPaymentCalendar() {
     const paymentDates = {};
     (state.fatonPayments || []).forEach(p => {
         if (p.date && p.date.startsWith(monthStr)) {
-            const day = parseInt(p.date.split('-')[2]);
+            const day = parseInt((p.date || "").split('-')[2]);
             if (!paymentDates[day]) paymentDates[day] = [];
             paymentDates[day].push({ type: 'payment', amount: p.amount });
         }
@@ -4223,7 +4290,7 @@ function openPaymentCalendar() {
     const installmentDates = {};
     (state.fatonInstallments || []).forEach(inst => {
         if (inst.date && inst.date.startsWith(monthStr)) {
-            const day = parseInt(inst.date.split('-')[2]);
+            const day = parseInt((inst.date || "").split('-')[2]);
             if (!installmentDates[day]) installmentDates[day] = [];
             installmentDates[day].push({ paid: inst.paid, amount: inst.amount });
         }
@@ -4272,11 +4339,11 @@ function showFatonComparison() {
         const payments = (state.fatonPayments || []).filter(p => p.date && p.date.startsWith(monthKey));
         const collections = (state.fatonProfitCollections || []).filter(c => c.date && c.date.startsWith(monthKey));
         return {
-            purchaseTotal: purchases.reduce((s, p) => s + p.total, 0),
+            purchaseTotal: purchases.reduce((s, p) => s + (p.total || 0), 0),
             purchaseCount: purchases.length,
             paymentTotal: payments.reduce((s, p) => s + ((p && p.amount) || 0), 0),
             paymentCount: payments.length,
-            collectionTotal: collections.reduce((s, c) => s + c.amount, 0)
+            collectionTotal: collections.reduce((s, c) => s + (c.amount || 0), 0)
         };
     }
 
@@ -4312,7 +4379,7 @@ function showBalancePerProduct() {
         byProduct[name].qty += p.quantity;
     });
 
-    const totalPurchased = purchases.reduce((s, p) => s + p.total, 0);
+    const totalPurchased = purchases.reduce((s, p) => s + (p.total || 0), 0);
 
     let html = '<table class="data-table"><thead><tr><th>Produkti</th><th>Sasia</th><th>Shuma</th><th>% e borxhit</th></tr></thead><tbody>';
     Object.entries(byProduct).sort((a, b) => b[1].purchased - a[1].purchased).forEach(([name, data]) => {
@@ -4399,7 +4466,7 @@ function showDetailedPaymentReport(paymentIndex) {
             html += '<td>' + calcOwnerShare(s.profit) + ' den</td>';
             html += '<td>' + calcPartnerShare(s.profit) + ' den</td></tr>';
         });
-        html += '<tr style="font-weight:bold;background:var(--bg-secondary);"><td>TOTALI</td><td>' + daySales.reduce((s, x) => s + x.quantity, 0) + '</td><td></td><td>' + daySales.reduce((s, x) => s + x.sellTotal, 0) + ' den</td>';
+        html += '<tr style="font-weight:bold;background:var(--bg-secondary);"><td>TOTALI</td><td>' + daySales.reduce((s, x) => s + (x.quantity || 0), 0) + '</td><td></td><td>' + daySales.reduce((s, x) => s + x.sellTotal, 0) + ' den</td>';
         html += '<td style="color:var(--success);">' + totalProfit + ' den</td>';
         html += '<td>' + calcOwnerShare(totalProfit) + ' den</td>';
         html += '<td>' + calcPartnerShare(totalProfit) + ' den</td></tr>';
@@ -4895,7 +4962,7 @@ function renderFatonMiniDashboard() {
         d.setDate(d.getDate() - i);
         const dateStr = d.toISOString().split('T')[0];
         const dayPayments = (state.fatonPayments || []).filter(p => p.date === dateStr).reduce((s, p) => s + ((p && p.amount) || 0), 0);
-        const dayPurchases = (state.fatonPurchases || []).filter(p => p.date === dateStr).reduce((s, p) => s + p.total, 0);
+        const dayPurchases = (state.fatonPurchases || []).filter(p => p.date === dateStr).reduce((s, p) => s + (p.total || 0), 0);
         last7.push({ date: dateStr, payments: dayPayments, purchases: dayPurchases });
     }
 
@@ -4914,7 +4981,7 @@ function renderFatonMiniDashboard() {
     html += '<div class="mini-value" style="color:var(--success);">' + todayPayments.reduce((s, p) => s + ((p && p.amount) || 0), 0) + ' den</div>';
     html += '<div class="mini-label" style="margin-top:5px;">Blerje sot</div>';
     const todayPurchases = (state.fatonPurchases || []).filter(p => p.date === new Date().toISOString().split('T')[0]);
-    html += '<div class="mini-value" style="color:var(--danger);">' + todayPurchases.reduce((s, p) => s + p.total, 0) + ' den</div>';
+    html += '<div class="mini-value" style="color:var(--danger);">' + todayPurchases.reduce((s, p) => s + (p.total || 0), 0) + ' den</div>';
     html += '</div>';
 
     // Mini card 3: Profit split
@@ -5023,7 +5090,7 @@ function addReturn() {
 
     // Restore stock
     if (!state.stock) state.stock = {};
-    state.stock[productId] = (state.stock[productId] || 0) + quantity;
+    (state.stock || {})[productId] = ((state.stock || {})[productId] || 0) + quantity;
 
     const product = getProduct(productId);
     if (typeof logActivity === 'function') logActivity('return', 'Kthim: ' + (product ? product.name : productId) + ' x' + quantity, 'returns');
@@ -6481,7 +6548,7 @@ function updateCharts() {
     // Product chart
     const productData = {};
     (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).forEach(p => {
-        productData[p.name] = (state.sales || []).filter(s => s && s.productId === p.id).reduce((sum, s) => sum + s.quantity, 0);
+        productData[p.name] = (state.sales || []).filter(s => s && s.productId === p.id).reduce((sum, s) => sum + (s.quantity || 0), 0);
     });
     productChart.data.labels = Object.keys(productData);
     productChart.data.datasets[0].data = Object.values(productData);
@@ -6717,8 +6784,8 @@ function setSalesMonthFilter(month) {
 function showProductHistory(productId) {
     const product = getProduct(productId);
     const productSales = (state.sales || []).filter(s => s && s.productId === productId);
-    const totalSold = productSales.reduce((sum, s) => sum + s.quantity, 0);
-    const totalBought = (state.fatonPurchases || []).filter(p => p.productId === productId).reduce((sum, p) => sum + p.quantity, 0);
+    const totalSold = productSales.reduce((sum, s) => sum + (s.quantity || 0), 0);
+    const totalBought = (state.fatonPurchases || []).filter(p => p.productId === productId).reduce((sum, p) => sum + (p.quantity || 0), 0);
     const totalProfit = productSales.reduce((sum, s) => sum + ((s && s.profit) || 0), 0);
 
     // Top clients
@@ -6745,7 +6812,7 @@ function showProductHistory(productId) {
             <div class="stat-card"><div><h3>Totali blere</h3><p>${totalBought} cope</p></div></div>
             <div class="stat-card"><div><h3>Totali shitur</h3><p>${totalSold} cope</p></div></div>
             <div class="stat-card"><div><h3>Fitimi total</h3><p>${totalProfit} den</p></div></div>
-            <div class="stat-card"><div><h3>Stoku</h3><p>${state.stock[productId] || 0} cope</p></div></div>
+            <div class="stat-card"><div><h3>Stoku</h3><p>${(state.stock || {})[productId] || 0} cope</p></div></div>
         </div>
         <h4>Top klientet</h4>
         <ul style="margin-bottom:15px;">
@@ -6940,7 +7007,7 @@ function refreshBalance() {
     // Cash from sales (approximate cash in hand)
     const totalCashRevenue = (state.sales || []).filter(s => (s.paymentType || 'cash') === 'cash').reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0);
     const totalFatonPayments = (state.fatonPayments || []).reduce((sum, p) => sum + ((p && p.amount) || 0), 0);
-    const totalExpenses = (state.expenses || []).reduce((sum, e) => sum + e.amount, 0);
+    const totalExpenses = (state.expenses || []).reduce((sum, e) => sum + (e.amount || 0), 0);
     const cashInHand = totalCashRevenue - totalFatonPayments - totalExpenses;
 
     // Net balance: what we have - what we owe
@@ -7082,7 +7149,7 @@ function openQuickInvoiceSale() {
 
 // ===================== FEATURE 14: SMART STOCK DEPLETION =====================
 function calcStockDepletionDays(productId) {
-    const currentStock = state.stock[productId] || 0;
+    const currentStock = (state.stock || {})[productId] || 0;
     if (currentStock <= 0) return 0;
 
     // Calculate average daily sales from last 30 days
@@ -7091,7 +7158,7 @@ function calcStockDepletionDays(productId) {
     const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
 
     const recentSales = (state.sales || []).filter(s => s && s.productId === productId && s.date >= thirtyDaysAgoStr);
-    const totalSold = recentSales.reduce((sum, s) => sum + s.quantity, 0);
+    const totalSold = recentSales.reduce((sum, s) => sum + (s.quantity || 0), 0);
     const avgDailySales = totalSold / 30;
 
     if (avgDailySales <= 0) return null; // No sales data
@@ -7330,7 +7397,7 @@ function addProduct() {
     PRODUCTS.push(newProduct);
     state.customProducts = [...PRODUCTS];
     if (!state.stock) state.stock = {};
-    state.stock[id] = 0;
+    (state.stock || {})[id] = 0;
 
     saveState();
     closeModal();
@@ -7386,7 +7453,7 @@ function deleteProduct(id) {
         var productName = PRODUCTS[productIndex].name;
         PRODUCTS.splice(productIndex, 1);
         state.customProducts = PRODUCTS.slice();
-        if (state.stock) delete state.stock[id];
+        if (state.stock) delete (state.stock || {})[id];
         saveState();
         closeModal();
         refreshProducts();
@@ -7492,8 +7559,8 @@ function refreshCashDrawer() {
 
     const startingCash = drawerToday ? drawerToday.startingCash : 0;
     const cashSales = todaySales.reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0);
-    const fatonPayments = todayFatonPayments.reduce((sum, f) => sum + f.amount, 0);
-    const expenses = todayExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const fatonPayments = todayFatonPayments.reduce((sum, f) => sum + (f.amount || 0), 0);
+    const expenses = todayExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
     const expectedBalance = startingCash + cashSales - fatonPayments - expenses;
 
     let html = `
@@ -7534,7 +7601,7 @@ function refreshCashDrawer() {
             </tbody>
         </table>
     `;
-    document.getElementById('page-cashDrawer').innerHTML = html;
+    (document.getElementById('page-cashDrawer') || {}).innerHTML = html;
 }
 
 function openCashDrawerModal() {
@@ -7568,7 +7635,7 @@ function saveCashDrawer() {
     const drawer = { date, startingCash: amount, note };
 
     if (existingIndex >= 0) {
-        state.cashDrawer[existingIndex] = drawer;
+        (state.cashDrawer || {})[existingIndex] = drawer;
     } else {
         (state.cashDrawer = state.cashDrawer || []).push(drawer);
     }
@@ -7606,7 +7673,7 @@ function generatePLReport() {
     const totalRevenue = sales.reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0);
     const totalCOGS = sales.reduce((sum, s) => sum + s.buyTotal, 0);
     const grossProfit = totalRevenue - totalCOGS;
-    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalExpenses = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
     const netProfit = grossProfit - totalExpenses;
 
     const ownerShare = calcOwnerShare(netProfit);
@@ -7622,8 +7689,8 @@ function generatePLReport() {
                 <tr style="background:#f0f0f0;"><td><strong>Gross Profit</strong></td><td style="text-align:right;"><strong>${grossProfit} den</strong></td></tr>
                 <tr><td>Operating Expenses</td><td style="text-align:right;">-${totalExpenses} den</td></tr>
                 <tr style="background:#e0e0e0;"><td><strong>Net Profit</strong></td><td style="text-align:right;"><strong>${netProfit} den</strong></td></tr>
-                <tr><td>Owner Share (${state.profitSplit.owner}%)</td><td style="text-align:right;">${ownerShare} den</td></tr>
-                <tr><td>${state.partnerName} Share (${state.profitSplit.partner}%)</td><td style="text-align:right;">${partnerShare} den</td></tr>
+                <tr><td>Owner Share (${(state.profitSplit || {}).owner}%)</td><td style="text-align:right;">${ownerShare} den</td></tr>
+                <tr><td>${state.partnerName} Share (${(state.profitSplit || {}).partner}%)</td><td style="text-align:right;">${partnerShare} den</td></tr>
             </tbody>
         </table>
     `;
@@ -7650,7 +7717,7 @@ function refreshTrends() {
     html += '<h3 style="margin-top:30px;">Last 12 Months</h3>';
     html += generateTrendTable(months12);
 
-    document.getElementById('page-trends').innerHTML = html;
+    (document.getElementById('page-trends') || {}).innerHTML = html;
 }
 
 function getLast3Months() {
@@ -7797,8 +7864,8 @@ function verifyPin() {
         document.getElementById('pin-lock-overlay')?.remove();
         initAfterAuth();
     } else {
-        document.getElementById('pin-error').textContent = 'Incorrect PIN';
-        document.getElementById('pin-input').value = '';
+        (document.getElementById('pin-error') || {}).textContent = 'Incorrect PIN';
+        (document.getElementById('pin-input') || {}).value = '';
     }
 }
 
@@ -7838,9 +7905,9 @@ function savePinSettings() {
 
 // ===================== FEATURE 13: AUTO-BACKUP =====================
 function checkAutoBackup() {
-    if (!state.autoBackup || !state.autoBackup.enabled) return;
+    if (!state.autoBackup || !(state.autoBackup || {}).enabled) return;
 
-    const lastBackup = state.autoBackup.lastBackup ? new Date(state.autoBackup.lastBackup) : null;
+    const lastBackup = (state.autoBackup || {}).lastBackup ? new Date((state.autoBackup || {}).lastBackup) : null;
     const now = new Date();
 
     let shouldBackup = false;
@@ -7850,14 +7917,14 @@ function checkAutoBackup() {
     } else {
         const daysDiff = Math.floor((now - lastBackup) / (1000 * 60 * 60 * 24));
 
-        if (state.autoBackup.interval === 'daily' && daysDiff >= 1) shouldBackup = true;
-        else if (state.autoBackup.interval === 'weekly' && daysDiff >= 7) shouldBackup = true;
-        else if (state.autoBackup.interval === 'monthly' && daysDiff >= 30) shouldBackup = true;
+        if ((state.autoBackup || {}).interval === 'daily' && daysDiff >= 1) shouldBackup = true;
+        else if ((state.autoBackup || {}).interval === 'weekly' && daysDiff >= 7) shouldBackup = true;
+        else if ((state.autoBackup || {}).interval === 'monthly' && daysDiff >= 30) shouldBackup = true;
     }
 
     if (shouldBackup) {
         exportBackup();
-        state.autoBackup.lastBackup = now.toISOString();
+        (state.autoBackup || {}).lastBackup = now.toISOString();
         saveState();
     }
 }
@@ -7866,18 +7933,18 @@ function openAutoBackupSettings() {
     let html = `
         <div class="form-group">
             <label>
-                <input type="checkbox" id="backup-enabled" ${state.autoBackup.enabled ? 'checked' : ''}> Enable Auto-Backup
+                <input type="checkbox" id="backup-enabled" ${(state.autoBackup || {}).enabled ? 'checked' : ''}> Enable Auto-Backup
             </label>
         </div>
         <div class="form-group">
             <label>Backup Interval:</label>
             <select id="backup-interval">
-                <option value="daily" ${state.autoBackup.interval === 'daily' ? 'selected' : ''}>Daily</option>
-                <option value="weekly" ${state.autoBackup.interval === 'weekly' ? 'selected' : ''}>Weekly</option>
-                <option value="monthly" ${state.autoBackup.interval === 'monthly' ? 'selected' : ''}>Monthly</option>
+                <option value="daily" ${(state.autoBackup || {}).interval === 'daily' ? 'selected' : ''}>Daily</option>
+                <option value="weekly" ${(state.autoBackup || {}).interval === 'weekly' ? 'selected' : ''}>Weekly</option>
+                <option value="monthly" ${(state.autoBackup || {}).interval === 'monthly' ? 'selected' : ''}>Monthly</option>
             </select>
         </div>
-        <p style="font-size:12px; color:#666;">Last backup: ${state.autoBackup.lastBackup ? new Date(state.autoBackup.lastBackup).toLocaleString() : 'Never'}</p>
+        <p style="font-size:12px; color:#666;">Last backup: ${(state.autoBackup || {}).lastBackup ? new Date((state.autoBackup || {}).lastBackup).toLocaleString() : 'Never'}</p>
         <button class="btn btn-primary" onclick="saveAutoBackupSettings()" style="width:100%;">Save Settings</button>
     `;
     openModal('Auto-Backup Settings', html);
@@ -7894,7 +7961,7 @@ function saveAutoBackupSettings() {
     state.autoBackup = {
         enabled,
         interval,
-        lastBackup: (state.autoBackup && state.autoBackup.lastBackup) || null
+        lastBackup: (state.autoBackup && (state.autoBackup || {}).lastBackup) || null
     };
 
     saveState();
@@ -8091,7 +8158,7 @@ function generateRestockSuggestion() {
 
     const suggestions = (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).map(p => {
         const productSales = recentSales.filter(s => s.productId === p.id);
-        const totalSold = productSales.reduce((sum, s) => sum + s.quantity, 0);
+        const totalSold = productSales.reduce((sum, s) => sum + (s.quantity || 0), 0);
         const avgPerDay = totalSold / days;
         const currentStock = state.stock[p.id] || 0;
         const daysRemaining = avgPerDay > 0 ? Math.floor(currentStock / avgPerDay) : 999;
@@ -8207,7 +8274,7 @@ function refreshActivityLog() {
         html += '</tbody></table>';
     }
 
-    document.getElementById('page-activity').innerHTML = html;
+    (document.getElementById('page-activity') || {}).innerHTML = html;
 }
 
 // ===================== FEATURE 20: WHATSAPP INTEGRATION =====================
@@ -8249,7 +8316,7 @@ function refreshSettingsUI() {
         var stats = computeStorageStats();
         var pct = Math.min(100, Math.round(stats.sizeKB / 50 )); // 5MB ~ 100%
         var barColor = pct < 60 ? '#27ae60' : (pct < 85 ? '#f39c12' : '#e74c3c');
-        var lastBk = (state.autoBackup && state.autoBackup.lastBackup) ? new Date(state.autoBackup.lastBackup) : null;
+        var lastBk = (state.autoBackup && (state.autoBackup || {}).lastBackup) ? new Date((state.autoBackup || {}).lastBackup) : null;
         var daysSince = lastBk ? Math.floor((Date.now() - lastBk.getTime()) / 86400000) : null;
         var bkWarn = daysSince === null || daysSince >= 7;
 
@@ -8272,7 +8339,7 @@ function refreshSettingsUI() {
         if (daysSince === null) html += '🛑 Nuk keni bërë kurrë backup! ';
         else if (bkWarn) html += '⚠️ Backup-i i fundit: <b>' + daysSince + ' ditë më parë</b>. ';
         else html += '✅ Backup-i i fundit: ' + daysSince + ' ditë më parë. ';
-        html += '<button class="btn btn-sm" style="background:#3498db;color:white;margin-left:8px;" onclick="exportBackup(); state.autoBackup = state.autoBackup || {}; state.autoBackup.lastBackup = new Date().toISOString(); saveState(); refreshSettingsUI();"><i class="fas fa-download"></i> Bëj Backup Tani</button>';
+        html += '<button class="btn btn-sm" style="background:#3498db;color:white;margin-left:8px;" onclick="exportBackup(); state.autoBackup = state.autoBackup || {}; (state.autoBackup || {}).lastBackup = new Date().toISOString(); saveState(); refreshSettingsUI();"><i class="fas fa-download"></i> Bëj Backup Tani</button>';
         html += '</div>';
         html += '</div>';
     } catch(e) { /* silent */ }
@@ -9591,8 +9658,8 @@ function sendProfitSplitWhatsApp(clientId, amount, oldDebt, profit, ownerShare, 
     text += '  Fitimi total: *' + profit + ' den*\n';
     text += '\n';
     text += '*NDARJA E FITIMIT:*\n';
-    text += '  Elez (' + state.profitSplit.owner + '%): *' + ownerShare + ' den*\n';
-    text += '  ' + (state.partnerName || 'Orhan') + ' (' + state.profitSplit.partner + '%): *' + partnerShare + ' den*\n';
+    text += '  Elez (' + (state.profitSplit || {}).owner + '%): *' + ownerShare + ' den*\n';
+    text += '  ' + (state.partnerName || 'Orhan') + ' (' + (state.profitSplit || {}).partner + '%): *' + partnerShare + ' den*\n';
     text += '\n━━━━━━━━━━━━━━━━━━━━\n';
     text += '_Gjeneruar nga Hurma App_';
 
@@ -10158,8 +10225,8 @@ function sendClientMarketHistoryWhatsApp(clientId) {
         return;
     }
 
-    const totalPayments = report.payments.reduce((sum, payment) => sum + payment.amount, 0);
-    const totalSales = report.sales.reduce((sum, sale) => sum + sale.total, 0);
+    const totalPayments = report.payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+    const totalSales = report.sales.reduce((sum, sale) => sum + (sale.total || 0), 0);
     const rangeLine = report.filters.fromDate || report.filters.toDate
         ? `Periudha: ${report.filters.fromDate ? formatReportDate(report.filters.fromDate) : 'Fillimi'} - ${report.filters.toDate ? formatReportDate(report.filters.toDate) : 'Sot'}\n`
         : '';
@@ -11103,8 +11170,8 @@ function generateDailyReport() {
         <div class="dr-row"><span class="dr-label">Cash</span><span class="dr-value">${todayCash} ден</span></div>
         <div class="dr-row"><span class="dr-label">Faturë</span><span class="dr-value">${todayInvoice} ден</span></div>
         <hr>
-        <div class="dr-row"><span class="dr-label">Elez (${state.profitSplit.owner}%)</span><span class="dr-value">${ownerShare} ден</span></div>
-        <div class="dr-row"><span class="dr-label">${state.partnerName} (${state.profitSplit.partner}%)</span><span class="dr-value">${partnerShare} ден</span></div>
+        <div class="dr-row"><span class="dr-label">Elez (${(state.profitSplit || {}).owner}%)</span><span class="dr-value">${ownerShare} ден</span></div>
+        <div class="dr-row"><span class="dr-label">${state.partnerName} (${(state.profitSplit || {}).partner}%)</span><span class="dr-value">${partnerShare} ден</span></div>
         <hr>
         <div class="dr-row"><span class="dr-label">Paguar Fatonit sot</span><span class="dr-value">${todayFatonPaid} ден</span></div>
         <div class="dr-row"><span class="dr-label">Borxhi Fatoni total</span><span class="dr-value" style="color:var(--danger)">${fatonDebt} ден</span></div>
@@ -11161,9 +11228,9 @@ function openProduct360(productId) {
     const product = getProduct(productId);
     if (!product) return;
 
-    const stock = state.stock[productId] || 0;
+    const stock = (state.stock || {})[productId] || 0;
     const sales = (state.sales || []).filter(s => s && s.productId === productId);
-    const totalSold = sales.reduce((sum, s) => sum + s.quantity, 0);
+    const totalSold = sales.reduce((sum, s) => sum + (s.quantity || 0), 0);
     const totalRevenue = sales.reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0);
     const totalProfit = sales.reduce((sum, s) => sum + ((s && s.profit) || 0), 0);
     const totalBought = sales.reduce((sum, s) => sum + s.buyTotal, 0);
@@ -11342,8 +11409,8 @@ function setBadge(id, count, alwaysShow) {
 
 // Feature 10: Side Panel
 function openSidePanel(title, contentHtml) {
-    document.getElementById('side-panel-title').textContent = title;
-    document.getElementById('side-panel-body').innerHTML = contentHtml;
+    (document.getElementById('side-panel-title') || {}).textContent = title;
+    (document.getElementById('side-panel-body') || {}).innerHTML = contentHtml;
     document.getElementById('side-panel-overlay')?.classList?.remove('hidden');
     const panel = document.getElementById('side-panel');
     panel.classList.remove('hidden');
@@ -11393,8 +11460,8 @@ function applyGlobalDateFilter() {
 }
 
 function clearGlobalDateFilter() {
-    document.getElementById('global-date-from').value = '';
-    document.getElementById('global-date-to').value = '';
+    (document.getElementById('global-date-from') || {}).value = '';
+    (document.getElementById('global-date-to') || {}).value = '';
     window._globalDateFilter = null;
     refreshAll();
     showToast('Filtri u hoq');
@@ -11611,7 +11678,7 @@ function updateSyncStatusBar() {
     // Backup status
     const backupEl = document.getElementById('sync-backup-status');
     if (backupEl) {
-        const lastBackup = state.autoBackup ? state.autoBackup.lastBackup : null;
+        const lastBackup = state.autoBackup ? (state.autoBackup || {}).lastBackup : null;
         if (lastBackup) {
             const hours = Math.floor((Date.now() - new Date(lastBackup).getTime()) / (1000*60*60));
             backupEl.textContent = hours < 1 ? 'Tani' : hours + 'h';
@@ -11668,7 +11735,7 @@ function autoBackupJSON() {
     a.download = 'hurma-backup-' + new Date().toISOString().split('T')[0] + '.json';
     a.click();
     URL.revokeObjectURL(url);
-    state.autoBackup.lastBackup = new Date().toISOString();
+    (state.autoBackup || {}).lastBackup = new Date().toISOString();
     saveState();
     showToast('Backup u ruajt!');
     try { updateSyncStatusBar(); } catch(e) {}
@@ -11835,7 +11902,7 @@ function showSalesPrediction() {
     }
     const avgRevenue = Math.round(last30.reduce((s, d) => s + d.revenue, 0) / 30);
     const avgProfit = Math.round(last30.reduce((s, d) => s + d.profit, 0) / 30);
-    const avgCount = Math.round(last30.reduce((s, d) => s + d.count, 0) / 30 * 10) / 10;
+    const avgCount = Math.round(last30.reduce((s, d) => s + (d.count || 0), 0) / 30 * 10) / 10;
     const last7 = last30.slice(-7).reduce((s, d) => s + d.revenue, 0);
     const prev7 = last30.slice(-14, -7).reduce((s, d) => s + d.revenue, 0);
     const trend = prev7 > 0 ? Math.round(((last7 - prev7) / prev7) * 100) : 0;
@@ -11916,7 +11983,7 @@ function showSalesSeason() {
     // Bug #57: state.sales guard + NaN fallbacks + month validation
     (state.sales || []).forEach(s => {
         if (!s.date) return;
-        const m = parseInt(s.date.split('-')[1]) - 1;
+        const m = parseInt((s.date || "").split('-')[1]) - 1;
         if (isNaN(m) || m < 0 || m > 11) return;
         monthData[m] += (s.sellTotal || 0);
         monthProfit[m] += (s.profit || 0);
@@ -12205,8 +12272,8 @@ function generateMonthlyPDF() {
     addRow('Qarkullim:', totalRevenue + ' den');
     addRow('Kosto:', totalCost + ' den');
     addRow('Fitimi:', totalProfit + ' den', [46, 204, 113]);
-    addRow('Elez (' + state.profitSplit.owner + '%):', ownerShare + ' den', [52, 152, 219]);
-    addRow(state.partnerName + ' (' + state.profitSplit.partner + '%):', partnerShare + ' den', [52, 152, 219]);
+    addRow('Elez (' + (state.profitSplit || {}).owner + '%):', ownerShare + ' den', [52, 152, 219]);
+    addRow(state.partnerName + ' (' + (state.profitSplit || {}).partner + '%):', partnerShare + ' den', [52, 152, 219]);
 
     y += 5;
     doc.setFontSize(13);
@@ -12224,7 +12291,7 @@ function generateMonthlyPDF() {
 
     const productRows = (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).map(p => {
         const pSales = monthSales.filter(s => s.productId === p.id);
-        return [p.name, pSales.reduce((s,x) => s + x.quantity, 0) + '', pSales.reduce((s,x) => s + x.sellTotal, 0) + ' den', pSales.reduce((s,x) => s + x.profit, 0) + ' den'];
+        return [p.name, pSales.reduce((s,x) => s + (x.quantity || 0), 0) + '', pSales.reduce((s,x) => s + x.sellTotal, 0) + ' den', pSales.reduce((s,x) => s + x.profit, 0) + ' den'];
     });
 
     doc.autoTable({
@@ -12385,8 +12452,8 @@ function generateWeeklyWhatsAppReport() {
 💰 Qarkullim: ${revenue} ден
 ✅ Fitimi: ${profit} ден
 
-👤 Elez (${state.profitSplit.owner}%): ${ownerShare} ден
-👥 ${state.partnerName} (${state.profitSplit.partner}%): ${partnerShare} ден
+👤 Elez (${(state.profitSplit || {}).owner}%): ${ownerShare} ден
+👥 ${state.partnerName} (${(state.profitSplit || {}).partner}%): ${partnerShare} ден
 
 ⚠️ Borxh Fatoni: ${fatonDebt} ден
 ⚠️ Borxh klientësh: ${clientDebt} ден
@@ -12767,7 +12834,7 @@ function initFatonDesignFeatures() {
     applyTimeBasedTheme();
 
     // Render progress bar
-    const totalPurchased = (state.fatonPurchases || []).reduce((s, p) => s + p.total, 0);
+    const totalPurchased = (state.fatonPurchases || []).reduce((s, p) => s + (p.total || 0), 0);
     const totalPaid = (state.fatonPayments || []).reduce((s, p) => s + ((p && p.amount) || 0), 0);
     const deducted = (state.fatonProfitCollections || []).filter(c => c.type === 'deduct_from_debt' || c.type === 'combination').reduce((s, c) => s + (c.deductAmount || 0), 0);
     renderDebtProgressBar('faton-progress-bar', totalPaid + deducted, totalPurchased);
@@ -13065,7 +13132,7 @@ function confirmDuplicateSale() {
     }
 
     (state.sales = state.sales || []).push(newSale);
-    if (state.stock[productId] !== undefined) state.stock[productId] = Math.max(0, (state.stock[productId] || 0) - quantity);
+    if ((state.stock || {})[productId] !== undefined) (state.stock || {})[productId] = Math.max(0, ((state.stock || {})[productId] || 0) - quantity);
     logActivity('Sale Added (Copy)', `${quantity}x ${product.name} - ${sellTotal} ден`);
     saveState();
     closeModal();
@@ -13127,7 +13194,7 @@ function openQuickSaleForProduct(productId) {
         <input type="hidden" id="sale-location" value="">
         <div style="background:var(--bg);padding:12px;border-radius:10px;text-align:center;margin:10px 0;">
             <strong>Çmimi: ${product.sellPrice} ден/njësi</strong><br>
-            <small style="color:var(--text-secondary);">Stoku: ${state.stock[productId] || 0}</small>
+            <small style="color:var(--text-secondary);">Stoku: ${(state.stock || {})[productId] || 0}</small>
         </div>
         <button class="btn btn-success" onclick="confirmDuplicateSale()" style="width:100%;margin-top:10px;font-size:1.1rem;">
             <i class="fas fa-check"></i> Shto Shitjen
@@ -14249,7 +14316,7 @@ function showWeeklyForecast() {
 
     // Average per day across 4 weeks
     const values = Object.values(dailyData);
-    const avgCount = values.reduce((s, v) => s + v.count, 0) / 28;
+    const avgCount = values.reduce((s, v) => s + (v.count || 0), 0) / 28;
     const avgRevenue = values.reduce((s, v) => s + v.revenue, 0) / 28;
     const avgProfit = values.reduce((s, v) => s + v.profit, 0) / 28;
 
@@ -14306,7 +14373,7 @@ function openVolumeDiscountSettings() {
             <tr>
                 <td>${d.minQty}+</td>
                 <td style="color:var(--success);font-weight:700;">${d.discountPct}%</td>
-                <td><button class="btn btn-danger" style="padding:4px 10px;font-size:0.8em;" onclick="(state.volumeDiscounts = state.volumeDiscounts || []).splice(${i},1);saveState();document.getElementById('vd-tbody').innerHTML=renderVDRows();">Fshi</button></td>
+                <td><button class="btn btn-danger" style="padding:4px 10px;font-size:0.8em;" onclick="(state.volumeDiscounts = state.volumeDiscounts || []).splice(${i},1);saveState();(document.getElementById('vd-tbody') || {}).innerHTML =renderVDRows();">Fshi</button></td>
             </tr>`).join('');
     }
 
@@ -14332,9 +14399,9 @@ function openVolumeDiscountSettings() {
                     (state.volumeDiscounts = state.volumeDiscounts || []).push({minQty:qty, discountPct:pct});
                     (state.volumeDiscounts || []).sort((a,b)=>a.minQty-b.minQty);
                     saveState();
-                    document.getElementById('vd-tbody').innerHTML=renderVDRows();
-                    document.getElementById('vd-minqty').value='';
-                    document.getElementById('vd-pct').value='';
+                    (document.getElementById('vd-tbody') || {}).innerHTML =renderVDRows();
+                    (document.getElementById('vd-minqty') || {}).value ='';
+                    (document.getElementById('vd-pct') || {}).value ='';
                     showToast('Zbritja u shtua','success');
                 })();">Shto</button>
             </div>
@@ -14762,8 +14829,8 @@ function requestPinForDelete(callback) {
                 document.querySelector('.modal-overlay')?.remove();
                 callback();
             } else {
-                document.getElementById('delete-pin-error').textContent = 'PIN i gabuar! Provo sërish.';
-                document.getElementById('delete-pin-input').value = '';
+                (document.getElementById('delete-pin-error') || {}).textContent = 'PIN i gabuar! Provo sërish.';
+                (document.getElementById('delete-pin-input') || {}).value = '';
                 document.getElementById('delete-pin-input')?.focus();
             }
         };
@@ -15119,8 +15186,8 @@ function addWarranty(saleIndex) {
 function saveWarranty(saleIndex) {
     const days = parseInt((document.getElementById('warranty-days-input') || {}).value);
     if (isNaN(days) || days < 0) { showToast('Numri i ditëve është i pavlefshëm!', 'error'); return; }
-    state.sales[saleIndex].warrantyDays = days;
-    state.sales[saleIndex].warrantyStart = state.sales[saleIndex].date;
+    (state.sales[saleIndex] || {}).warrantyDays = days;
+    (state.sales[saleIndex] || {}).warrantyStart = (state.sales[saleIndex] || {}).date;
     saveState();
     document.querySelector('.modal-overlay')?.remove();
     showToast(`Garanci ${days} ditë u ruajt!`, 'success');
@@ -16316,7 +16383,7 @@ function _doEncryptDownload() {
     a.click();
     URL.revokeObjectURL(url);
     state.autoBackup = state.autoBackup || {};
-    state.autoBackup.lastBackup = new Date().toISOString();
+    (state.autoBackup || {}).lastBackup = new Date().toISOString();
     saveState();
     logActivity('backup', 'Backup i enkriptuar u shkarkua');
     showToast('Backup i enkriptuar u shkarkua!', 'success');
@@ -16552,7 +16619,7 @@ function importFromJSON(data) {
     merge('orders', 'orders');
     if (data.stock) {
         Object.keys(data.stock).forEach(k => {
-            if (state.stock[k] === undefined) state.stock[k] = data.stock[k];
+            if ((state.stock || {})[k] === undefined) (state.stock || {})[k] = data.stock[k];
         });
     }
     saveState();
@@ -16604,7 +16671,7 @@ function _quickBackupFromBanner() {
     a.click();
     URL.revokeObjectURL(url);
     state.autoBackup = state.autoBackup || {};
-    state.autoBackup.lastBackup = new Date().toISOString();
+    (state.autoBackup || {}).lastBackup = new Date().toISOString();
     saveState();
     logActivity('backup', 'Backup i shpejtë nga kujtesa');
     showToast('Backup u shkarkua!', 'success');
@@ -16687,7 +16754,7 @@ function repairData() {
 
     // Fix negative stock
     Object.keys(state.stock || {}).forEach(k => {
-        if (state.stock[k] < 0) { state.stock[k] = 0; fixed++; }
+        if ((state.stock || {})[k] < 0) { (state.stock || {})[k] = 0; fixed++; }
     });
 
     // Remove duplicate sale IDs (keep first)
@@ -16870,7 +16937,7 @@ function _exportFullBackup() {
     a.click();
     URL.revokeObjectURL(url);
     state.autoBackup = state.autoBackup || {};
-    state.autoBackup.lastBackup = new Date().toISOString();
+    (state.autoBackup || {}).lastBackup = new Date().toISOString();
     saveState();
     logActivity('export', 'Backup i plotë u eksportua');
     showToast('Backup i plotë u shkarkua!', 'success');
@@ -17369,7 +17436,7 @@ function _doSelectiveRestore() {
                 state.stock = data.stock || {};
             } else {
                 Object.keys(data.stock || {}).forEach(k => {
-                    state.stock[k] = (state.stock[k] || 0) + (data.stock[k] || 0);
+                    (state.stock || {})[k] = ((state.stock || {})[k] || 0) + (data.stock[k] || 0);
                 });
             }
             restored++;
@@ -17802,7 +17869,7 @@ function _verifyRestorePin() {
         }
     } else {
         showToast('PIN i gabuar!', 'error');
-        document.getElementById('restore-pin-input').value = '';
+        (document.getElementById('restore-pin-input') || {}).value = '';
         document.getElementById('restore-pin-input')?.focus();
     }
 }
@@ -19056,8 +19123,8 @@ function exportInvoiceWord(saleIndex) {
     var totalProfit = sale.sellTotal - totalCost;
     if (sale.discount) { totalProfit = sale.sellTotal - totalCost; }
     var marginPct = sale.sellTotal > 0 ? Math.round((totalProfit / sale.sellTotal) * 100) : 0;
-    var ownerPct = state.profitSplit ? state.profitSplit.owner : 50;
-    var partnerPct = state.profitSplit ? state.profitSplit.partner : 50;
+    var ownerPct = state.profitSplit ? (state.profitSplit || {}).owner : 50;
+    var partnerPct = state.profitSplit ? (state.profitSplit || {}).partner : 50;
     var ownerProfit = Math.round(totalProfit * ownerPct / 100);
     var partnerProfit = Math.round(totalProfit * partnerPct / 100);
     var partnerName = state.partnerName || 'Orhan';
@@ -19520,7 +19587,7 @@ function calcDistTotalCashCollected() {
     var total = 0;
     (state.distDeliveries || []).forEach(function(d) {
         if (d.paymentType === 'cash' && d.paid) {
-            total += (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+            total += (d.items || []).reduce(function(s, i) { return s + (i.quantity || 0) * i.price; }, 0);
         } else if (d.paymentType !== 'cash') {
             total += (d.paidAmount || 0);
         }
@@ -19532,7 +19599,7 @@ function calcDistShopDebts() {
     var total = 0;
     (state.distDeliveries || []).forEach(function(d) {
         if (!d.paid) {
-            var deliveryTotal = (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+            var deliveryTotal = (d.items || []).reduce(function(s, i) { return s + (i.quantity || 0) * i.price; }, 0);
             total += deliveryTotal - (d.paidAmount || 0);
         }
     });
@@ -19540,7 +19607,7 @@ function calcDistShopDebts() {
 }
 
 function calcDistGivenToFaton() {
-    return (state.distPayToFaton || []).reduce(function(s, p) { return s + p.amount; }, 0);
+    return (state.distPayToFaton || []).reduce(function(s, p) { return s + (p.amount || 0); }, 0);
 }
 
 function calcDistCashReady() {
@@ -19560,7 +19627,7 @@ function calcDistOverdueDebts() {
         var dueDate = new Date(d.date);
         dueDate.setDate(dueDate.getDate() + days);
         if (today > dueDate) {
-            var deliveryTotal = (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+            var deliveryTotal = (d.items || []).reduce(function(s, i) { return s + (i.quantity || 0) * i.price; }, 0);
             total += deliveryTotal - (d.paidAmount || 0);
         }
     });
@@ -19757,7 +19824,7 @@ function renderDistDeliveriesTab() {
 
     deliveries.forEach(function(d) {
         var shop = getDistShop(d.shopId);
-        var total = (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+        var total = (d.items || []).reduce(function(s, i) { return s + (i.quantity || 0) * i.price; }, 0);
         var remaining = total - (d.paidAmount || 0);
         var itemsStr = (d.items || []).map(function(i) { return getDistProduct(i.productId).name + ' x' + i.quantity; }).join(', ');
         var payLabel = d.paymentType === 'cash' ? 'Cash' : d.paymentType === 'invoice_30' ? 'Faturë 30' : d.paymentType === 'invoice_60' ? 'Faturë 60' : 'Faturë 90';
@@ -19814,7 +19881,7 @@ function renderDistShopsTab() {
         var debt = 0;
         (state.distDeliveries || []).forEach(function(d) {
             if (d.shopId === s.id && !d.paid) {
-                var total = (d.items || []).reduce(function(sum, i) { return sum + i.quantity * i.price; }, 0);
+                var total = (d.items || []).reduce(function(sum, i) { return sum + (i.quantity || 0) * i.price; }, 0);
                 debt += total - (d.paidAmount || 0);
             }
         });
@@ -19910,7 +19977,7 @@ function renderDistDebtsTab() {
     (state.distDeliveries || []).forEach(function(d) {
         if (d.paid) return;
         if (!shopDebts[d.shopId]) shopDebts[d.shopId] = { total: 0, deliveries: [], overdue: 0 };
-        var total = (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+        var total = (d.items || []).reduce(function(s, i) { return s + (i.quantity || 0) * i.price; }, 0);
         var remaining = total - (d.paidAmount || 0);
         shopDebts[d.shopId].total += remaining;
         shopDebts[d.shopId].deliveries.push(d);
@@ -20039,7 +20106,7 @@ function renderDistCashFatonTab() {
     if (payments.length === 0) {
         h += '<p style="color:#999;">Asnjë dorezim ende.</p>';
     } else {
-        var totalFiltered = payments.reduce(function(s, p) { return s + p.amount; }, 0);
+        var totalFiltered = payments.reduce(function(s, p) { return s + (p.amount || 0); }, 0);
         h += '<div style="margin-bottom:8px;color:#555;">Total në këtë periudhë: <strong>' + totalFiltered + ' den</strong> (' + payments.length + ' dorëzime)</div>';
         h += '<div class="table-container"><table class="dist-table"><thead><tr>';
         h += '<th>Data</th><th>Shuma</th><th>% e totalit</th><th>Ditë nga prev.</th><th>Metoda</th><th>Nënshkrim</th><th>Shënim</th><th>Veprime</th>';
@@ -20098,7 +20165,7 @@ function renderDistReportsTab() {
     var cashCollected = calcDistTotalCashCollected();
     var givenToFaton = calcDistGivenToFaton();
     var shopDebts = calcDistShopDebts();
-    var totalReceived = (state.distReceived || []).reduce(function(s, r) { return s + r.quantity * r.price; }, 0);
+    var totalReceived = (state.distReceived || []).reduce(function(s, r) { return s + (r.quantity || 0) * r.price; }, 0);
     var totalDelivered = (state.distDeliveries || []).reduce(function(s, d) { return s + (d.items || []).reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
 
     h += '<div class="dist-report-summary">';
@@ -20383,9 +20450,9 @@ function saveDistDelivery(e) {
         paymentType: paymentType,
         invoiceNum: invoiceNum,
         paid: isCash,
-        paidAmount: isCash ? items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0) : 0,
+        paidAmount: isCash ? items.reduce(function(s, i) { return s + (i.quantity || 0) * i.price; }, 0) : 0,
         paidDate: isCash ? new Date().toISOString().split('T')[0] : null,
-        paymentHistory: isCash ? [{ date: new Date().toISOString().split('T')[0], amount: items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0), method: 'cash' }] : [],
+        paymentHistory: isCash ? [{ date: new Date().toISOString().split('T')[0], amount: items.reduce(function(s, i) { return s + (i.quantity || 0) * i.price; }, 0), method: 'cash' }] : [],
         note: (document.getElementById('dist-del-note') || {}).value,
         pod: pod
     };
@@ -20395,13 +20462,13 @@ function saveDistDelivery(e) {
 
     // #1 Cross-tab: If cash delivery, auto-add to cash tracking
     if (isCash) {
-        distCrossTabCashCollected(items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0), 'Cash nga dërgesë ' + invoiceNum + ' -> ' + getDistShop(delivery.shopId).name);
+        distCrossTabCashCollected(items.reduce(function(s, i) { return s + (i.quantity || 0) * i.price; }, 0), 'Cash nga dërgesë ' + invoiceNum + ' -> ' + getDistShop(delivery.shopId).name);
     }
 
     saveState();
     closeModal();
 
-    var total = items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+    var total = items.reduce(function(s, i) { return s + (i.quantity || 0) * i.price; }, 0);
     showToast('Dërgesë u regjistrua: ' + invoiceNum + ' | ' + total + ' den', 'success');
     logActivity('dist_delivery', 'Dërgesë: ' + invoiceNum + ' -> ' + getDistShop(delivery.shopId).name + ' | ' + total + ' den', 'distribution');
     refreshDistribution();
@@ -20422,7 +20489,7 @@ function openDistCollectPaymentModal(deliveryId, shopId) {
     if (deliveryId) {
         var del = (state.distDeliveries || []).find(function(d) { return d.id === deliveryId; });
         if (!del) return;
-        var total = (del.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+        var total = (del.items || []).reduce(function(s, i) { return s + (i.quantity || 0) * i.price; }, 0);
         var remaining = total - (del.paidAmount || 0);
         h += '<input type="hidden" id="dist-pay-delivery-id" value="' + deliveryId + '">';
         h += '<p style="margin-bottom:10px;"><strong>Fatura:</strong> ' + del.invoiceNum + ' | <strong>Dyqani:</strong> ' + getDistShop(del.shopId).name + '</p>';
@@ -20437,7 +20504,7 @@ function openDistCollectPaymentModal(deliveryId, shopId) {
         }
         h += '<div class="form-group"><label>Zgjedh Faturën</label><select id="dist-pay-delivery-id" required onchange="distUpdatePaymentMax()">';
         unpaid.forEach(function(d) {
-            var total = (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+            var total = (d.items || []).reduce(function(s, i) { return s + (i.quantity || 0) * i.price; }, 0);
             var remaining = total - (d.paidAmount || 0);
             h += '<option value="' + d.id + '">' + d.invoiceNum + ' - ' + getDistShop(d.shopId).name + ' (' + remaining + ' den mbetur)</option>';
         });
@@ -20463,7 +20530,7 @@ function distUpdatePaymentMax() {
     if (!sel) return;
     var del = (state.distDeliveries || []).find(function(d) { return d.id === sel.value; });
     if (del) {
-        var total = (del.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+        var total = (del.items || []).reduce(function(s, i) { return s + (i.quantity || 0) * i.price; }, 0);
         var remaining = total - (del.paidAmount || 0);
         var amountInput = document.getElementById('dist-pay-amount');
         amountInput.max = remaining;
@@ -20481,7 +20548,7 @@ function saveDistCollectPayment(e) {
     var del = (state.distDeliveries || []).find(function(d) { return d.id === deliveryId; });
     if (!del) { showToast('Dërgesa nuk u gjet!', 'error'); return; }
 
-    var total = (del.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+    var total = (del.items || []).reduce(function(s, i) { return s + (i.quantity || 0) * i.price; }, 0);
     del.paidAmount = (del.paidAmount || 0) + amount;
     if (!del.paymentHistory) del.paymentHistory = [];
     del.paymentHistory.push({ date: date, amount: amount, method: method });
@@ -20604,8 +20671,8 @@ function saveDistShop(e, existingId) {
     if (existingId) {
         var idx = (state.distShops || []).findIndex(function(s) { return s.id === existingId; });
         if (idx >= 0) {
-            shop.dateAdded = state.distShops[idx].dateAdded;
-            state.distShops[idx] = shop;
+            shop.dateAdded = (state.distShops || {})[idx].dateAdded;
+            (state.distShops || {})[idx] = shop;
         }
     } else {
         (state.distShops = state.distShops || []).push(shop);
@@ -20637,7 +20704,7 @@ function viewDistDeliveryInvoice(deliveryId) {
     var del = (state.distDeliveries || []).find(function(d) { return d.id === deliveryId; });
     if (!del) return;
     var shop = getDistShop(del.shopId);
-    var total = (del.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+    var total = (del.items || []).reduce(function(s, i) { return s + (i.quantity || 0) * i.price; }, 0);
     var payLabel = del.paymentType === 'cash' ? 'Cash' : del.paymentType === 'invoice_30' ? 'Faturë 30 ditë' : del.paymentType === 'invoice_60' ? 'Faturë 60 ditë' : 'Faturë 90 ditë';
 
     var h = '<div class="dist-invoice">';
@@ -20648,7 +20715,7 @@ function viewDistDeliveryInvoice(deliveryId) {
     h += '</div>';
 
     h += '<div style="display:flex;justify-content:space-between;margin:15px 0;">';
-    h += '<div><strong>Furnitori:</strong><br>Faton (via Elez)<br>' + (state.invoiceProfile ? state.invoiceProfile.phone : '') + '</div>';
+    h += '<div><strong>Furnitori:</strong><br>Faton (via Elez)<br>' + (state.invoiceProfile ? (state.invoiceProfile || {}).phone : '') + '</div>';
     h += '<div style="text-align:right;"><strong>Blerësi:</strong><br>' + shop.name + '<br>' + (shop.address || '') + '<br>' + (shop.phone || '') + '</div>';
     h += '</div>';
 
@@ -20759,7 +20826,7 @@ function distSendInvoiceWhatsApp(deliveryId) {
     if (!del) return;
     var shop = getDistShop(del.shopId);
     var items = del.items || [];
-    var total = items.reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+    var total = items.reduce(function(s, i) { return s + (i.quantity || 0) * i.price; }, 0);
     var itemsText = items.map(function(i) { return getDistProduct(i.productId).name + ' x' + i.quantity + ' = ' + (i.quantity * i.price) + ' den'; }).join('\n');
     var msg = 'Faturë Shpërndarje ' + (del.invoiceNum || '-') + '\nData: ' + (del.date || '-') + '\nDyqani: ' + (shop.name || '-') + '\n\n' + itemsText + '\n\nTOTALI: ' + total + ' den\nPagesa: ' + _distPayLabel(del.paymentType);
 
@@ -20777,7 +20844,7 @@ function distSendDebtReminder(shopId) {
     var invoices = [];
     (state.distDeliveries || []).forEach(function(d) {
         if (d.shopId === shopId && !d.paid) {
-            var total = (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+            var total = (d.items || []).reduce(function(s, i) { return s + (i.quantity || 0) * i.price; }, 0);
             var remaining = total - (d.paidAmount || 0);
             debt += remaining;
             invoices.push(d.invoiceNum + ': ' + remaining + ' den');
@@ -20807,7 +20874,7 @@ function distReportDaily() {
     var todayCash = deliveries.filter(function(d) { return d.paymentType === 'cash'; }).reduce(function(s, d) { return s + (d.items || []).reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
     h += '<div class="dist-report-row"><span>Cash i mbledhur sot:</span><strong>' + todayCash + ' den</strong></div>';
     h += '<div class="dist-report-row"><span>Pranim malli sot:</span><strong>' + received.length + ' artikuj</strong></div>';
-    h += '<div class="dist-report-row"><span>Dorezuar Fatonit sot:</span><strong>' + payments.reduce(function(s, p) { return s + p.amount; }, 0) + ' den</strong></div>';
+    h += '<div class="dist-report-row"><span>Dorezuar Fatonit sot:</span><strong>' + payments.reduce(function(s, p) { return s + (p.amount || 0); }, 0) + ' den</strong></div>';
     h += '</div>';
 
     h += '<div style="margin-top:15px;display:flex;gap:8px;">';
@@ -20854,7 +20921,7 @@ function distReportMonthly() {
     var deliveries = (state.distDeliveries || []).filter(function(d) { return d.date >= monthStart && d.date <= toDate; });
     var received = (state.distReceived || []).filter(function(r) { return r.date >= monthStart && r.date <= toDate; });
     var totalDelivered = deliveries.reduce(function(s, d) { return s + (d.items || []).reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
-    var totalReceived = received.reduce(function(s, r) { return s + r.quantity * r.price; }, 0);
+    var totalReceived = received.reduce(function(s, r) { return s + (r.quantity || 0) * r.price; }, 0);
 
     var h = '<h3>Raporti Mujor (' + monthStart + ' - ' + toDate + ')</h3>';
     h += '<div class="dist-report-summary">';
@@ -20882,7 +20949,7 @@ function distReportPerShop() {
         var total = deliveries.reduce(function(s, d) { return s + (d.items || []).reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
         var paid = deliveries.filter(function(d) { return d.paid; }).reduce(function(s, d) { return s + (d.items || []).reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
         var debt = 0;
-        deliveries.forEach(function(d) { if (!d.paid) { var t = (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0); debt += t - (d.paidAmount || 0); } });
+        deliveries.forEach(function(d) { if (!d.paid) { var t = (d.items || []).reduce(function(s, i) { return s + (i.quantity || 0) * i.price; }, 0); debt += t - (d.paidAmount || 0); } });
 
         h += '<div class="dist-report-summary" style="margin-bottom:10px;">';
         h += '<h4>' + shop.name + '</h4>';
@@ -20905,7 +20972,7 @@ function distReportPerShop() {
 function distReportPerProduct() {
     var h = '<h3>Raporti sipas Produktit</h3>';
     (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).forEach(function(p) {
-        var totalReceived = (state.distReceived || []).filter(function(r) { return r.productId === p.id; }).reduce(function(s, r) { return s + r.quantity; }, 0);
+        var totalReceived = (state.distReceived || []).filter(function(r) { return r.productId === p.id; }).reduce(function(s, r) { return s + (r.quantity || 0); }, 0);
         var totalDelivered = 0;
         (state.distDeliveries || []).forEach(function(d) {
             (d.items || []).forEach(function(item) { if (item.productId === p.id) totalDelivered += item.quantity; });
@@ -20933,7 +21000,7 @@ function distReportFinancial() {
     var givenToFaton = calcDistGivenToFaton();
     var shopDebts = calcDistShopDebts();
     var overdueDebts = calcDistOverdueDebts();
-    var totalReceived = (state.distReceived || []).reduce(function(s, r) { return s + r.quantity * r.price; }, 0);
+    var totalReceived = (state.distReceived || []).reduce(function(s, r) { return s + (r.quantity || 0) * r.price; }, 0);
     var totalDelivered = (state.distDeliveries || []).reduce(function(s, d) { return s + (d.items || []).reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
 
     var h = '<h3>Permbledhje Financiare</h3>';
@@ -21166,7 +21233,7 @@ function openDistShop360(shopId) {
     var purchaseHistory = {};
 
     deliveries.forEach(function(d) {
-        var total = (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+        var total = (d.items || []).reduce(function(s, i) { return s + (i.quantity || 0) * i.price; }, 0);
         totalBought += total;
         totalPaid += (d.paidAmount || 0);
         var month = d.date.substring(0, 7);
@@ -21214,7 +21281,7 @@ function openDistShop360(shopId) {
     h += '<th>Nr.</th><th>Data</th><th>Produkte</th><th>Totali</th><th>Statusi</th>';
     h += '</tr></thead><tbody>';
     deliveries.sort(function(a, b) { return b.date.localeCompare(a.date); }).forEach(function(d) {
-        var total = (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+        var total = (d.items || []).reduce(function(s, i) { return s + (i.quantity || 0) * i.price; }, 0);
         var itemsStr = (d.items || []).map(function(i) { return getDistProduct(i.productId).name + ' x' + i.quantity; }).join(', ');
         var statusClass = d.paid ? 'dist-badge-paid' : (d.paidAmount > 0 ? 'dist-badge-partial' : 'dist-badge-unpaid');
         var statusText = d.paid ? 'Paguar' : (d.paidAmount > 0 ? 'Pjesërisht (' + d.paidAmount + '/' + total + ')' : 'Papaguar');
@@ -21252,7 +21319,7 @@ function openDistShop360(shopId) {
 function openDistPaymentHistory(deliveryId) {
     var del = (state.distDeliveries || []).find(function(d) { return d.id === deliveryId; });
     if (!del) return;
-    var total = (del.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+    var total = (del.items || []).reduce(function(s, i) { return s + (i.quantity || 0) * i.price; }, 0);
     var h = '<h4>Fatura: ' + del.invoiceNum + '</h4>';
     h += '<p>Totali: <strong>' + total + ' den</strong> | Paguar: <strong>' + (del.paidAmount || 0) + ' den</strong> | Mbetur: <strong>' + (total - (del.paidAmount || 0)) + ' den</strong></p>';
 
@@ -21303,7 +21370,7 @@ function openDistDailyRoute() {
             if (shop.address) h += ' <small>(' + shop.address + ')</small>';
             h += '<div style="margin-top:5px;">';
             deliveries.forEach(function(d) {
-                var total = (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+                var total = (d.items || []).reduce(function(s, i) { return s + (i.quantity || 0) * i.price; }, 0);
                 var itemsStr = (d.items || []).map(function(i) { return getDistProduct(i.productId).name + ' x' + i.quantity; }).join(', ');
                 h += '<div style="font-size:0.9em;margin:3px 0;"><span class="dist-badge ' + (d.paid ? 'dist-badge-paid' : 'dist-badge-unpaid') + '">' + d.invoiceNum + '</span> ' + itemsStr + ' = ' + total + ' den</div>';
             });
@@ -21338,7 +21405,7 @@ function openDistCalendarView() {
     var dayCounts = {};
     (state.distDeliveries || []).forEach(function(d) {
         if (d.date.startsWith(year + '-' + String(month + 1).padStart(2, '0'))) {
-            var day = parseInt(d.date.split('-')[2]);
+            var day = parseInt((d.date || "").split('-')[2]);
             dayCounts[day] = (dayCounts[day] || 0) + 1;
         }
     });
@@ -21470,7 +21537,7 @@ function distReportComparison() {
 function distReportTopShops() {
     var shopTotals = {};
     (state.distDeliveries || []).forEach(function(d) {
-        var total = (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+        var total = (d.items || []).reduce(function(s, i) { return s + (i.quantity || 0) * i.price; }, 0);
         shopTotals[d.shopId] = (shopTotals[d.shopId] || 0) + total;
     });
 
@@ -21516,7 +21583,7 @@ function distReportCashFlow() {
         var cashOut = 0;
         (state.distDeliveries || []).forEach(function(d) {
             if (d.date === day && d.paymentType === 'cash' && d.paid) {
-                cashIn += (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+                cashIn += (d.items || []).reduce(function(s, i) { return s + (i.quantity || 0) * i.price; }, 0);
             }
             (d.paymentHistory || []).forEach(function(ph) {
                 if (ph.date === day) cashIn += ph.amount;
@@ -21557,7 +21624,7 @@ function distReportDetailedPDF() {
     var givenToFaton = calcDistGivenToFaton();
     var shopDebts = calcDistShopDebts();
     var overdueDebts = calcDistOverdueDebts();
-    var totalReceived = (state.distReceived || []).reduce(function(s, r) { return s + r.quantity * r.price; }, 0);
+    var totalReceived = (state.distReceived || []).reduce(function(s, r) { return s + (r.quantity || 0) * r.price; }, 0);
     var totalDelivered = (state.distDeliveries || []).reduce(function(s, d) { return s + (d.items || []).reduce(function(ss, i) { return ss + i.quantity * i.price; }, 0); }, 0);
 
     var headers = ['Zëri', 'Vlera'];
@@ -21587,7 +21654,7 @@ function distReportDetailedPDF() {
         var debt = 0;
         (state.distDeliveries || []).forEach(function(d) {
             if (d.shopId === shop.id && !d.paid) {
-                var t = (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+                var t = (d.items || []).reduce(function(s, i) { return s + (i.quantity || 0) * i.price; }, 0);
                 debt += t - (d.paidAmount || 0);
             }
         });
@@ -21648,7 +21715,7 @@ function distSendDailyReportWhatsApp() {
     msg += 'Dërgesa sot: ' + deliveries.length + '\n';
     deliveries.forEach(function(d) {
         var shop = getDistShop(d.shopId);
-        var total = (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+        var total = (d.items || []).reduce(function(s, i) { return s + (i.quantity || 0) * i.price; }, 0);
         msg += '- ' + shop.name + ': ' + total + ' den (' + (d.paid ? 'Paguar' : 'Papaguar') + ')\n';
     });
     msg += '\nCash total: ' + cashCollected + ' den\n';
@@ -22219,7 +22286,7 @@ function showDistFatonCashFlowChart() {
     var payments = (state.distPayToFaton || []).slice();
     var events = [];
     deliveries.forEach(function(d) {
-        var total = (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+        var total = (d.items || []).reduce(function(s, i) { return s + (i.quantity || 0) * i.price; }, 0);
         if (d.paymentType === 'cash' && d.paid) {
             events.push({ date: d.date, type: 'in', amount: total });
         } else if (d.paidAmount) {
@@ -22695,7 +22762,7 @@ function distPODWhatsApp(deliveryId) {
     if (!del) return;
     var shop = getDistShop(del.shopId);
     var pod = del.pod || {};
-    var total = (del.items || []).reduce(function(s,i){ return s + i.quantity * i.price; }, 0);
+    var total = (del.items || []).reduce(function(s,i){ return s + (i.quantity || 0) * i.price; }, 0);
     var condLabels = { complete: 'I plotë', partial: 'Pjesërisht', damaged: 'I dëmtuar' };
     var msg = '📋 PROVË DORËZIMI\n\n';
     msg += 'Faturë: ' + (del.invoiceNum || '-') + '\n';
@@ -23052,7 +23119,7 @@ function showDistPODMap() {
         items.forEach(function(it) {
             var shop = it.shop || {};
             var d = it.delivery;
-            var total = (d.items || []).reduce(function(s,i){ return s + i.quantity * i.price; }, 0);
+            var total = (d.items || []).reduce(function(s,i){ return s + (i.quantity || 0) * i.price; }, 0);
             // Ngjyra sipas statusit të pagesës
             var color = d.paid ? '#27ae60' : (d.paidAmount > 0 ? '#f39c12' : '#c0392b');
             var marker = L.circleMarker([it.gps.lat, it.gps.lng], {
@@ -23104,7 +23171,7 @@ function distExportDeliveriesExcel(scope) {
 
     var rows = deliveries.map(function(d){
         var shop = getDistShop(d.shopId) || {};
-        var total = (d.items || []).reduce(function(s,i){ return s + i.quantity * i.price; }, 0);
+        var total = (d.items || []).reduce(function(s,i){ return s + (i.quantity || 0) * i.price; }, 0);
         var paid = d.paidAmount || 0;
         var days = d.paymentType === 'invoice_30' ? 30 : d.paymentType === 'invoice_60' ? 60 : d.paymentType === 'invoice_90' ? 90 : 0;
         var due = days ? new Date(new Date(d.date).getTime() + days * 86400000).toISOString().split('T')[0] : '';
@@ -23156,7 +23223,7 @@ function computeOverdueDeliveries() {
         var delDate = new Date(d.date); delDate.setHours(0,0,0,0);
         var due = new Date(delDate.getTime() + days * 86400000);
         if (due < today) {
-            var total = (d.items || []).reduce(function(s,i){ return s + i.quantity * i.price; }, 0);
+            var total = (d.items || []).reduce(function(s,i){ return s + (i.quantity || 0) * i.price; }, 0);
             var remaining = total - (d.paidAmount || 0);
             var daysOverdue = Math.floor((today - due) / 86400000);
             overdue.push({
@@ -23212,7 +23279,7 @@ function sendOverdueReminderWhatsApp(deliveryId) {
     var del = (state.distDeliveries || []).find(function(d){ return d.id === deliveryId; });
     if (!del) return;
     var shop = getDistShop(del.shopId);
-    var total = (del.items || []).reduce(function(s,i){ return s + i.quantity * i.price; }, 0);
+    var total = (del.items || []).reduce(function(s,i){ return s + (i.quantity || 0) * i.price; }, 0);
     var remaining = total - (del.paidAmount || 0);
     var days = del.paymentType === 'invoice_30' ? 30 : del.paymentType === 'invoice_60' ? 60 : 90;
     var due = new Date(new Date(del.date).getTime() + days * 86400000);
@@ -23244,7 +23311,7 @@ function distPODGeneratePDF(deliveryId) {
     try {
         var shop = getDistShop(del.shopId);
         var pod = del.pod || {};
-        var total = (del.items || []).reduce(function(s,i){ return s + i.quantity * i.price; }, 0);
+        var total = (del.items || []).reduce(function(s,i){ return s + (i.quantity || 0) * i.price; }, 0);
         var condLabels = { complete: 'I plote / OK', partial: 'Pjeserisht', damaged: 'I demtuar' };
 
         var jsPDF = window.jspdf.jsPDF;
@@ -23418,7 +23485,7 @@ function showMissingPODDeliveries() {
         h += '</tr></thead><tbody>';
         missing.forEach(function(d) {
             var shop = getDistShop(d.shopId);
-            var total = (d.items || []).reduce(function(s, i) { return s + i.quantity * i.price; }, 0);
+            var total = (d.items || []).reduce(function(s, i) { return s + (i.quantity || 0) * i.price; }, 0);
             h += '<tr>';
             h += '<td><strong>' + (d.invoiceNum || '-') + '</strong></td>';
             h += '<td>' + d.date + '</td>';
