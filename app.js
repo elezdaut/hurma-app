@@ -208,7 +208,7 @@ function saveState() {
 }
 
 function initStock() {
-    PRODUCTS.forEach(p => {
+    (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).forEach(p => {
         if (state.stock[p.id] === undefined) {
             state.stock[p.id] = 0;
         }
@@ -565,7 +565,7 @@ function openSaleModal(editId) {
         <div class="form-group">
             <label>${t('product')}:</label>
             <select id="sale-product">
-                ${PRODUCTS.map(p => `<option value="${p.id}" ${sale && sale.productId === p.id ? 'selected' : ''}>${p.name} (${t('buy_price')}: ${p.buyPrice}, ${t('sell_price')}: ${p.sellPrice})</option>`).join('')}
+                ${(typeof PRODUCTS !== "undefined" ? PRODUCTS : []).map(p => `<option value="${p.id}" ${sale && sale.productId === p.id ? 'selected' : ''}>${p.name} (${t('buy_price')}: ${p.buyPrice}, ${t('sell_price')}: ${p.sellPrice})</option>`).join('')}
             </select>
         </div>
         <div class="form-group">
@@ -1955,7 +1955,7 @@ function openStockModal() {
         <div class="form-group">
             <label>${t('product')}:</label>
             <select id="stock-product">
-                ${PRODUCTS.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+                ${(typeof PRODUCTS !== "undefined" ? PRODUCTS : []).map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
             </select>
         </div>
         <div class="form-group">
@@ -2006,7 +2006,7 @@ function addStock() {
     // Add batch for expiry tracking
     if (expiry) {
         if (!state.stockBatches) state.stockBatches = [];
-        state.stockBatches.push({
+        (state.stockBatches = state.stockBatches || []).push({
             id: Date.now(),
             productId,
             quantity,
@@ -2667,7 +2667,7 @@ function openOrderModal(editId) {
         <div class="form-group">
             <label>${t('product')}:</label>
             <select id="order-product">
-                ${PRODUCTS.map(p => `<option value="${p.id}" ${order && order.productId === p.id ? 'selected' : ''}>${p.name}</option>`).join('')}
+                ${(typeof PRODUCTS !== "undefined" ? PRODUCTS : []).map(p => `<option value="${p.id}" ${order && order.productId === p.id ? 'selected' : ''}>${p.name}</option>`).join('')}
             </select>
         </div>
         <div class="form-group">
@@ -4982,7 +4982,7 @@ function openReturnModal() {
         <div class="form-group">
             <label>${t('product')}:</label>
             <select id="return-product">
-                ${PRODUCTS.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+                ${(typeof PRODUCTS !== "undefined" ? PRODUCTS : []).map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
             </select>
         </div>
         <div class="form-group">
@@ -5268,7 +5268,7 @@ function refreshNotes() {
 // ===================== TARGETS =====================
 function openTargetModal(editId) {
     const isEdit = editId !== undefined;
-    const target = isEdit ? state.targets.find(t => t.id === editId) : null;
+    const target = isEdit ? (state.targets || []).find(t => t.id === editId) : null;
 
     let html = `
         <div class="form-group">
@@ -5344,7 +5344,7 @@ function updateTarget(id) {
 
 function deleteTarget(id) {
     modalConfirm('Fshi këtë target?', function() {
-        state.targets = state.targets.filter(t => t.id !== id);
+        state.targets = (state.targets || []).filter(t => t.id !== id);
         saveState();
         refreshTargets();
     });
@@ -5993,7 +5993,7 @@ function checkNotifications() {
     state.notifications = [];
 
     // Low stock
-    PRODUCTS.forEach(p => {
+    (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).forEach(p => {
         if ((state.stock[p.id] || 0) < 10) {
             state.notifications.push({
                 type: 'warning',
@@ -6003,7 +6003,7 @@ function checkNotifications() {
     });
 
     // Expiring soon
-    state.stockBatches.forEach(batch => {
+    (state.stockBatches || []).forEach(batch => {
         const daysLeft = Math.ceil((new Date(batch.expiry) - new Date()) / (1000 * 60 * 60 * 24));
         const product = getProduct(batch.productId);
         if (daysLeft < 0) {
@@ -6037,7 +6037,7 @@ function checkNotifications() {
     }
 
     // Feature 14: Smart stock depletion alerts
-    PRODUCTS.forEach(p => {
+    (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).forEach(p => {
         const days = calcStockDepletionDays(p.id);
         if (days !== null && days <= 7) {
             state.notifications.push({
@@ -6131,8 +6131,8 @@ function checkNotifications() {
 
     // Update badge
     const badge = document.getElementById('notification-badge');
-    if (state.notifications.length > 0) {
-        badge.textContent = state.notifications.length;
+    if ((state.notifications || []).length > 0) {
+        badge.textContent = (state.notifications || []).length;
         badge.classList.remove('hidden');
     } else {
         badge.classList.add('hidden');
@@ -6141,7 +6141,7 @@ function checkNotifications() {
     // Update panel
     const list = document.getElementById('notification-list');
     list.innerHTML = '';
-    state.notifications.forEach(n => {
+    (state.notifications || []).forEach(n => {
         list.innerHTML += `<div class="notification-item ${n.type}">${n.text}</div>`;
     });
 }
@@ -6480,7 +6480,7 @@ function updateCharts() {
 
     // Product chart
     const productData = {};
-    PRODUCTS.forEach(p => {
+    (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).forEach(p => {
         productData[p.name] = (state.sales || []).filter(s => s && s.productId === p.id).reduce((sum, s) => sum + s.quantity, 0);
     });
     productChart.data.labels = Object.keys(productData);
@@ -6490,7 +6490,7 @@ function updateCharts() {
 
 // ===================== HELPERS =====================
 function getProduct(id) {
-    return PRODUCTS.find(p => p.id === id) || PRODUCTS[0];
+    return (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).find(p => p.id === id) || PRODUCTS[0];
 }
 
 function getClientById(clientId) {
@@ -6632,7 +6632,7 @@ function duplicateSale(index) {
         <div class="form-group">
             <label>${t('product')}:</label>
             <select id="sale-product">
-                ${PRODUCTS.map(p => `<option value="${p.id}" ${sale.productId === p.id ? 'selected' : ''}>${p.name} (${t('buy_price')}: ${p.buyPrice}, ${t('sell_price')}: ${p.sellPrice})</option>`).join('')}
+                ${(typeof PRODUCTS !== "undefined" ? PRODUCTS : []).map(p => `<option value="${p.id}" ${sale.productId === p.id ? 'selected' : ''}>${p.name} (${t('buy_price')}: ${p.buyPrice}, ${t('sell_price')}: ${p.sellPrice})</option>`).join('')}
             </select>
         </div>
         <div class="form-group">
@@ -6929,11 +6929,11 @@ function refreshBalance() {
 
     // Stock monetary value
     let stockValue = 0;
-    PRODUCTS.forEach(p => {
+    (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).forEach(p => {
         stockValue += (state.stock[p.id] || 0) * p.buyPrice;
     });
     let stockSellValue = 0;
-    PRODUCTS.forEach(p => {
+    (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).forEach(p => {
         stockSellValue += (state.stock[p.id] || 0) * p.sellPrice;
     });
 
@@ -7280,7 +7280,7 @@ function getClientOptionsHtml(selectedId) {
 // ===================== FEATURE 1: PRODUCT MANAGEMENT =====================
 function openProductModal(editId) {
     const isEdit = editId !== undefined;
-    const product = isEdit ? PRODUCTS.find(p => p.id === editId) : null;
+    const product = isEdit ? (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).find(p => p.id === editId) : null;
 
     let html = `
         <div class="form-group">
@@ -7918,7 +7918,7 @@ function openPresetModal(editId) {
         <div class="form-group">
             <label>Product:</label>
             <select id="preset-product">
-                ${PRODUCTS.map(p => `<option value="${p.id}" ${preset && preset.productId === p.id ? 'selected' : ''}>${p.name}</option>`).join('')}
+                ${(typeof PRODUCTS !== "undefined" ? PRODUCTS : []).map(p => `<option value="${p.id}" ${preset && preset.productId === p.id ? 'selected' : ''}>${p.name}</option>`).join('')}
             </select>
         </div>
         <div class="form-group">
@@ -8089,7 +8089,7 @@ function generateRestockSuggestion() {
 
     const recentSales = state.sales.filter(s => s.date >= cutoffStr);
 
-    const suggestions = PRODUCTS.map(p => {
+    const suggestions = (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).map(p => {
         const productSales = recentSales.filter(s => s.productId === p.id);
         const totalSold = productSales.reduce((sum, s) => sum + s.quantity, 0);
         const avgPerDay = totalSold / days;
@@ -8177,7 +8177,7 @@ function logActivity(typeOrAction, textOrDetails, page) {
         timestamp: now.toISOString()
     });
 
-    if (state.activityLog.length > 500) {
+    if ((state.activityLog || []).length > 500) {
         state.activityLog = state.activityLog.slice(-500);
     }
 
@@ -8188,7 +8188,7 @@ function logActivity(typeOrAction, textOrDetails, page) {
 function refreshActivityLog() {
     let html = '<h2>Activity Log</h2>';
 
-    if (!state.activityLog || state.activityLog.length === 0) {
+    if (!state.activityLog || (state.activityLog || []).length === 0) {
         html += '<p>No activity logged yet</p>';
     } else {
         html += '<table class="data-table"><thead><tr><th>Timestamp</th><th>Action</th><th>Details</th></tr></thead><tbody>';
@@ -8304,7 +8304,7 @@ function resetSales() {
 // 2. Reset Stoku
 function resetStock() {
     confirmReset('Stoku', function() {
-            PRODUCTS.forEach(p => { state.stock[p.id] = 0; });
+            (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).forEach(p => { state.stock[p.id] = 0; });
         state.stockBatches = [];
         saveState();
         refreshAll();
@@ -8490,7 +8490,7 @@ function resetAll() {
 
     localStorage.removeItem('hurma-state');
     PRODUCTS.length = 0;
-    DEFAULT_PRODUCTS.forEach(p => PRODUCTS.push(p));
+    DEFAULT_(typeof PRODUCTS !== "undefined" ? PRODUCTS : []).forEach(p => PRODUCTS.push(p));
 
     state = {
         sales: [], stock: {}, stockBatches: [], clients: [], orders: [],
@@ -10828,7 +10828,7 @@ function refreshDashboardMiniatures() {
         if (statsGrid) statsGrid.parentNode.insertBefore(miniDiv, statsGrid.nextSibling);
     }
 
-    const lowStock = PRODUCTS.filter(p => (state.stock[p.id] || 0) < 5);
+    const lowStock = (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).filter(p => (state.stock[p.id] || 0) < 5);
     const debtClients = (state.clients || []).filter(c => c.debt > 0);
     const totalDebt = debtClients.reduce((s, c) => s + (c.debt || 0), 0);
     const pendingOrders = (state.orders || []).filter(o => o && o.status === 'pending');
@@ -10855,7 +10855,7 @@ function generateSmartNotifications() {
     const today = new Date().toISOString().split('T')[0];
 
     // Low stock alerts
-    PRODUCTS.forEach(p => {
+    (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).forEach(p => {
         const qty = state.stock[p.id] || 0;
         if (qty < 3) notifs.push({ type: 'danger', icon: 'fa-boxes-stacked', text: `Stoku i ${p.name} është ${qty} - duhet furnizim!`, action: `navigateTo('stock')` });
         else if (qty < 5) notifs.push({ type: 'warning', icon: 'fa-boxes-stacked', text: `Stoku i ${p.name} po mbaron (${qty})`, action: `navigateTo('stock')` });
@@ -10898,7 +10898,7 @@ function showSmartSuggestions() {
     const today = new Date().toISOString().split('T')[0];
 
     // Stock suggestions
-    PRODUCTS.forEach(p => {
+    (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).forEach(p => {
         if ((state.stock[p.id] || 0) < 3) suggestions.push({ icon: 'fa-truck', text: `${p.name} po mbaron - porosit nga Fatoni`, btn: 'Porosit', action: `navigateTo('faton')` });
     });
 
@@ -11110,7 +11110,7 @@ function generateDailyReport() {
         <div class="dr-row"><span class="dr-label">Borxhi Fatoni total</span><span class="dr-value" style="color:var(--danger)">${fatonDebt} ден</span></div>
         <div class="dr-row"><span class="dr-label">Borxhi klientësh total</span><span class="dr-value" style="color:var(--danger)">${totalDebtClients} ден</span></div>
         <hr>
-        <div class="dr-row"><span class="dr-label">Stoku</span><span class="dr-value">${PRODUCTS.map(p => p.name + ': ' + (state.stock[p.id]||0)).join(', ')}</span></div>
+        <div class="dr-row"><span class="dr-label">Stoku</span><span class="dr-value">${(typeof PRODUCTS !== "undefined" ? PRODUCTS : []).map(p => p.name + ': ' + (state.stock[p.id]||0)).join(', ')}</span></div>
         <div style="margin-top:15px;text-align:center;">
             <button class="btn btn-primary" onclick="exportDailyReportPDF()"><i class="fas fa-file-pdf"></i> Shkarko PDF</button>
         </div>
@@ -12039,7 +12039,7 @@ function openBarcodeScanner() {
     let html = `<h3><i class="fas fa-barcode"></i> Skaner Barkod/QR</h3><div style="margin-bottom:10px;"><input type="text" id="barcode-input" placeholder="Fut barkodin..." style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:1rem;"></div>
         <button class="btn btn-primary" onclick="searchBarcode()"><i class="fas fa-search"></i> Kërko</button><div id="barcode-result" style="margin-top:15px;"></div>
         <hr style="margin:15px 0;"><h4>Barkodët</h4><div class="table-container"><table class="data-table"><thead><tr><th>Produkti</th><th>ID</th><th>QR</th></tr></thead><tbody>`;
-    PRODUCTS.forEach(p => { html += `<tr><td>${p.name}</td><td>${p.id}</td><td><button class="btn btn-sm btn-info" onclick="showProductQR('${p.id}')"><i class="fas fa-qrcode"></i></button></td></tr>`; });
+    (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).forEach(p => { html += `<tr><td>${p.name}</td><td>${p.id}</td><td><button class="btn btn-sm btn-info" onclick="showProductQR('${p.id}')"><i class="fas fa-qrcode"></i></button></td></tr>`; });
     html += '</tbody></table></div>';
     openModal(html);
 }
@@ -12073,7 +12073,7 @@ function openPromotionsModal() {
     if (active.length > 0) { html += '<h4 style="color:var(--success)">Aktive</h4>'; active.forEach(p => { html += `<div style="background:var(--bg);padding:12px;border-radius:8px;margin-bottom:8px;border-left:4px solid var(--success);"><strong>${p.name}</strong> - ${p.discount}% zbritje<br><small>${p.productId ? (getProduct(p.productId)||{}).name || 'Të gjitha' : 'Të gjitha'} | Deri: ${p.endDate || 'Pa limit'}</small><button class="btn btn-sm btn-danger" style="float:right" onclick="deletePromotion('${p.id}')"><i class="fas fa-trash"></i></button></div>`; }); }
     html += `<h4 style="margin-top:15px;">Shto ofertë</h4><div style="display:grid;gap:8px;">
         <input type="text" id="promo-name" placeholder="Emri" style="padding:8px;border:1px solid var(--border);border-radius:6px;">
-        <select id="promo-product" style="padding:8px;border:1px solid var(--border);border-radius:6px;"><option value="">Të gjitha</option>${PRODUCTS.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}</select>
+        <select id="promo-product" style="padding:8px;border:1px solid var(--border);border-radius:6px;"><option value="">Të gjitha</option>${(typeof PRODUCTS !== "undefined" ? PRODUCTS : []).map(p => `<option value="${p.id}">${p.name}</option>`).join('')}</select>
         <input type="number" id="promo-discount" placeholder="Zbritja (%)" min="1" max="99" style="padding:8px;border:1px solid var(--border);border-radius:6px;">
         <div style="display:flex;gap:8px;"><input type="date" id="promo-start" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;"><input type="date" id="promo-end" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;"></div>
         <button class="btn btn-success" onclick="addPromotion()"><i class="fas fa-plus"></i> Shto</button></div>`;
@@ -12131,7 +12131,7 @@ function createAutoOrder(productId) {
 }
 
 function createAllAutoOrders() {
-    PRODUCTS.forEach(p => { if ((state.stock[p.id] || 0) < (state.autoOrderThreshold || 3)) createAutoOrder(p.id); });
+    (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).forEach(p => { if ((state.stock[p.id] || 0) < (state.autoOrderThreshold || 3)) createAutoOrder(p.id); });
     closeModal(); refreshAll();
 }
 
@@ -12222,7 +12222,7 @@ function generateMonthlyPDF() {
     doc.setTextColor(44, 62, 80);
     doc.text('Shitjet sipas produktit', 25, y); y += 5;
 
-    const productRows = PRODUCTS.map(p => {
+    const productRows = (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).map(p => {
         const pSales = monthSales.filter(s => s.productId === p.id);
         return [p.name, pSales.reduce((s,x) => s + x.quantity, 0) + '', pSales.reduce((s,x) => s + x.sellTotal, 0) + ' den', pSales.reduce((s,x) => s + x.profit, 0) + ' den'];
     });
@@ -12242,7 +12242,7 @@ function generateMonthlyPDF() {
     doc.setTextColor(44, 62, 80);
     doc.text('Gjendja e stokut', 25, y); y += 5;
 
-    const stockRows = PRODUCTS.map(p => [p.name, (state.stock[p.id] || 0) + ' cope']);
+    const stockRows = (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).map(p => [p.name, (state.stock[p.id] || 0) + ' cope']);
     doc.autoTable({
         startY: y,
         head: [['Produkti', 'Sasia']],
@@ -12391,7 +12391,7 @@ function generateWeeklyWhatsAppReport() {
 ⚠️ Borxh Fatoni: ${fatonDebt} ден
 ⚠️ Borxh klientësh: ${clientDebt} ден
 
-📦 Stoku: ${PRODUCTS.map(p => p.name + ': ' + (state.stock[p.id] || 0)).join(', ')}
+📦 Stoku: ${(typeof PRODUCTS !== "undefined" ? PRODUCTS : []).map(p => p.name + ': ' + (state.stock[p.id] || 0)).join(', ')}
 
 🌴 _Hurma App_`;
 
@@ -12518,7 +12518,7 @@ function showComparisonChart() {
 function checkEveningBackup() { const now = new Date(); const hour = now.getHours(); const today = now.toISOString().split('T')[0]; const last = localStorage.getItem('hurma-last-auto-backup'); if (hour >= 20 && last !== today && state.sales.length > 0) { localStorage.setItem('hurma-last-auto-backup', today); autoBackupJSON(); } }
 
 // FIX-12: Stock alerts
-function checkStockAlerts() { const empty = PRODUCTS.filter(p => (state.stock[p.id] || 0) === 0); const low = PRODUCTS.filter(p => { const s = state.stock[p.id] || 0; return s > 0 && s < 3; }); if (empty.length > 0) showToast('STOK 0: ' + empty.map(p => p.name).join(', ')); if (low.length > 0) setTimeout(() => showToast('Stok i ulët: ' + low.map(p => p.name + '(' + (state.stock[p.id]||0) + ')').join(', ')), 2000); }
+function checkStockAlerts() { const empty = (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).filter(p => (state.stock[p.id] || 0) === 0); const low = (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).filter(p => { const s = state.stock[p.id] || 0; return s > 0 && s < 3; }); if (empty.length > 0) showToast('STOK 0: ' + empty.map(p => p.name).join(', ')); if (low.length > 0) setTimeout(() => showToast('Stok i ulët: ' + low.map(p => p.name + '(' + (state.stock[p.id]||0) + ')').join(', ')), 2000); }
 
 // FIX-13: Live calculation in sale modal
 function addLiveCalculation() {
@@ -12986,7 +12986,7 @@ function duplicateSale(saleIndex) {
         <div class="form-group">
             <label>${t('product')}:</label>
             <select id="sale-product">
-                ${PRODUCTS.map(p => `<option value="${p.id}" ${p.id === sale.productId ? 'selected' : ''}>${p.name} (blerje: ${p.buyPrice}, shitje: ${p.sellPrice})</option>`).join('')}
+                ${(typeof PRODUCTS !== "undefined" ? PRODUCTS : []).map(p => `<option value="${p.id}" ${p.id === sale.productId ? 'selected' : ''}>${p.name} (blerje: ${p.buyPrice}, shitje: ${p.sellPrice})</option>`).join('')}
             </select>
         </div>
         <div class="form-group">
@@ -13634,7 +13634,7 @@ function sendDailyReportToOrhan() {
     const totalPayments = paymentsToday.reduce((s, p) => s + (p.amount || 0), 0);
 
     // Stock alerts
-    const lowStock = PRODUCTS.filter(p => (state.stock[p.id] || 0) < 10);
+    const lowStock = (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).filter(p => (state.stock[p.id] || 0) < 10);
     const stockAlert = lowStock.length > 0
         ? `\n⚠️ Stok i ulet: ${lowStock.map(p => p.name + ' (' + (state.stock[p.id] || 0) + ')').join(', ')}`
         : '\n✅ Stoku eshte ne rregull';
@@ -14199,7 +14199,7 @@ function showProductROI() {
         salesData[s.productId].profit += (s.profit || 0);
     });
 
-    const rows = PRODUCTS.map(p => {
+    const rows = (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).map(p => {
         const d = salesData[p.id] || { units: 0, revenue: 0, profit: 0 };
         const roi = p.buyPrice > 0 ? (((p.sellPrice - p.buyPrice) / p.buyPrice) * 100).toFixed(1) : 0;
         const unitProfit = (p.sellPrice || 0) - (p.buyPrice || 0);
@@ -14502,7 +14502,7 @@ function generateClientContract(clientId) {
         y += 8;
     } else {
         prodEntries.slice(0, 15).forEach(([pid, d]) => {
-            const p = PRODUCTS.find(pr => pr.id === pid);
+            const p = (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).find(pr => pr.id === pid);
             const name = p ? p.name : 'Produkt ' + pid;
             const price = p ? p.sellPrice + ' den' : '-';
             doc.text(name.substring(0, 40), 16, y);
@@ -14849,7 +14849,7 @@ function sendGroupWhatsAppReport() {
     const totalPayments = todayPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
 
     // Stock alerts
-    const lowStock = PRODUCTS.filter(p => (state.stock[p.id] || 0) < 3);
+    const lowStock = (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).filter(p => (state.stock[p.id] || 0) < 3);
     const stockAlert = lowStock.length > 0
         ? `⚠️ Stock i ulët: ${lowStock.map(p => p.name).join(', ')}`
         : '✅ Stock normal';
@@ -14862,7 +14862,7 @@ function sendGroupWhatsAppReport() {
         });
     });
     const topProdId = Object.keys(prodSales).sort((a, b) => prodSales[b] - prodSales[a])[0];
-    const topProd = topProdId ? (PRODUCTS.find(p => p.id === topProdId) || {}).name || topProdId : 'N/A';
+    const topProd = topProdId ? ((typeof PRODUCTS !== "undefined" ? PRODUCTS : []).find(p => p.id === topProdId) || {}).name || topProdId : 'N/A';
 
     const dateFormatted = new Date().toLocaleDateString('sq-MK', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -14950,7 +14950,7 @@ function _buildProductCatalogPdf() {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(10);
 
-        PRODUCTS.forEach((p, i) => {
+        (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).forEach((p, i) => {
             if (y > pageH - 25) {
                 doc.addPage();
                 y = 20;
@@ -18201,7 +18201,7 @@ function _checkOverdueInvoices() {
 
 // 2. Stok kritik (< 3 njësi)
 function _checkCriticalStock() {
-    const critical = PRODUCTS.filter(p => (state.stock[p.id] || 0) < 3);
+    const critical = (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).filter(p => (state.stock[p.id] || 0) < 3);
     if (critical.length === 0) return;
 
     const names = critical.map(p => `${p.name} (${state.stock[p.id] || 0})`).join(', ');
@@ -19472,7 +19472,7 @@ function refreshDistribution() {
 }
 
 function getDistProduct(id) {
-    return PRODUCTS.find(function(p) { return p.id === id; }) || { name: 'N/A', buyPrice: 0, sellPrice: 0 };
+    return (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).find(function(p) { return p.id === id; }) || { name: 'N/A', buyPrice: 0, sellPrice: 0 };
 }
 
 function getDistShop(id) {
@@ -19488,7 +19488,7 @@ function distNextInvoiceNum() {
 
 function calcDistStock() {
     var stock = {};
-    PRODUCTS.forEach(function(p) { stock[p.id] = 0; });
+    (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).forEach(function(p) { stock[p.id] = 0; });
     (state.distReceived || []).forEach(function(r) {
         stock[r.productId] = (stock[r.productId] || 0) + r.quantity;
     });
@@ -19560,7 +19560,7 @@ function renderDistributionPage() {
     var today = new Date().toISOString().split('T')[0];
     var todayDeliveries = (state.distDeliveries || []).filter(function(d) { return d.date === today; });
     var totalStockUnits = 0;
-    PRODUCTS.forEach(function(p) { totalStockUnits += (stock[p.id] || 0); });
+    (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).forEach(function(p) { totalStockUnits += (stock[p.id] || 0); });
     var cashCollected = calcDistTotalCashCollected();
     var shopDebts = calcDistShopDebts();
     var cashReady = calcDistCashReady();
@@ -19593,7 +19593,7 @@ function renderDistributionPage() {
 
     // #13 Low stock alarm
     var lowStockProducts = [];
-    PRODUCTS.forEach(function(p) { if ((stock[p.id] || 0) <= 0) lowStockProducts.push(p.name); });
+    (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).forEach(function(p) { if ((stock[p.id] || 0) <= 0) lowStockProducts.push(p.name); });
     if (lowStockProducts.length > 0) {
         h += '<div class="dist-alarm-banner dist-alarm-stock">';
         h += '<i class="fas fa-box-open"></i> <strong>ALARM:</strong> Stoku i ulet per: <strong>' + lowStockProducts.join(', ') + '</strong>';
@@ -19834,7 +19834,7 @@ function renderDistStockTab() {
     h += '</tr></thead><tbody>';
 
     var totalValue = 0;
-    PRODUCTS.forEach(function(p) {
+    (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).forEach(function(p) {
         var qty = stock[p.id] || 0;
         var val = qty * p.buyPrice;
         totalValue += val;
@@ -20105,7 +20105,7 @@ function openDistReceiveModal() {
     var h = '<form onsubmit="saveDistReceived(event)">';
     h += '<div class="form-group"><label>Data</label><input type="date" id="dist-recv-date" value="' + new Date().toISOString().split('T')[0] + '" required></div>';
     h += '<div class="form-group"><label>Produkti</label><select id="dist-recv-product" required>';
-    PRODUCTS.forEach(function(p) {
+    (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).forEach(function(p) {
         h += '<option value="' + p.id + '">' + p.name + ' (' + p.buyPrice + ' den)</option>';
     });
     h += '</select></div>';
@@ -20121,7 +20121,7 @@ function openDistReceiveModal() {
         var sel = document.getElementById('dist-recv-product');
         if (!sel) return;
         sel.addEventListener('change', function() {
-            var p = PRODUCTS.find(function(x) { return x.id === sel.value; });
+            var p = (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).find(function(x) { return x.id === sel.value; });
             var priceEl = document.getElementById('dist-recv-price');
             if (p && priceEl) priceEl.value = p.buyPrice;
         });
@@ -20182,7 +20182,7 @@ function openDistDeliveryModal() {
     // Dynamic items
     h += '<div id="dist-del-items"><div class="dist-del-item" data-index="0">';
     h += '<div class="form-group"><label>Produkti</label><select class="dist-del-product" required>';
-    PRODUCTS.forEach(function(p) {
+    (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).forEach(function(p) {
         var stock = (calcDistStock()[p.id] || 0);
         h += '<option value="' + p.id + '">' + p.name + ' (stok: ' + stock + ')</option>';
     });
@@ -20236,7 +20236,7 @@ function openDistDeliveryModal() {
     setTimeout(function() {
         document.querySelectorAll('.dist-del-product').forEach(function(sel) {
             sel.addEventListener('change', function() {
-                var p = PRODUCTS.find(function(x) { return x.id === sel.value; });
+                var p = (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).find(function(x) { return x.id === sel.value; });
                 var priceEl = sel.closest('.dist-del-item').querySelector('.dist-del-price');
                 if (p && priceEl) priceEl.value = p.sellPrice;
             });
@@ -20256,7 +20256,7 @@ function distAddDeliveryItem() {
     div.dataset.index = index;
     div.style.cssText = 'border-top:1px solid #eee;padding-top:10px;margin-top:10px;';
     var h = '<div class="form-group"><label>Produkti</label><select class="dist-del-product" required>';
-    PRODUCTS.forEach(function(p) {
+    (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).forEach(function(p) {
         h += '<option value="' + p.id + '">' + p.name + ' (stok: ' + (stock[p.id] || 0) + ')</option>';
     });
     h += '</select></div>';
@@ -20269,7 +20269,7 @@ function distAddDeliveryItem() {
     // Auto-fill price for new item
     var sel = div.querySelector('.dist-del-product');
     sel.addEventListener('change', function() {
-        var p = PRODUCTS.find(function(x) { return x.id === sel.value; });
+        var p = (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).find(function(x) { return x.id === sel.value; });
         var priceEl = div.querySelector('.dist-del-price');
         if (p && priceEl) priceEl.value = p.sellPrice;
     });
@@ -20394,7 +20394,7 @@ function saveDistDelivery(e) {
 
 function deleteDistDelivery(id) {
     modalConfirm('A jeni i sigurt qe doni te fshini kete dërgesë?', function() {
-        state.distDeliveries = state.distDeliveries.filter(function(d) { return d.id !== id; });
+        state.distDeliveries = (state.distDeliveries || []).filter(function(d) { return d.id !== id; });
         saveState();
         showToast('Dërgesa u fshi', 'warning');
         refreshDistribution();
@@ -20610,7 +20610,7 @@ function deleteDistShop(id) {
         return;
     }
     modalConfirm('A jeni i sigurt qe doni te fshini kete dyqan?', function() {
-        state.distShops = state.distShops.filter(function(s) { return s.id !== id; });
+        state.distShops = (state.distShops || []).filter(function(s) { return s.id !== id; });
         saveState();
         showToast('Dyqani u fshi', 'warning');
         refreshDistribution();
@@ -20889,7 +20889,7 @@ function distReportPerShop() {
 
 function distReportPerProduct() {
     var h = '<h3>Raporti sipas Produktit</h3>';
-    PRODUCTS.forEach(function(p) {
+    (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).forEach(function(p) {
         var totalReceived = (state.distReceived || []).filter(function(r) { return r.productId === p.id; }).reduce(function(s, r) { return s + r.quantity; }, 0);
         var totalDelivered = 0;
         (state.distDeliveries || []).forEach(function(d) {
@@ -20956,7 +20956,7 @@ function distWhatsAppReport() {
     // Stock summary
     var stock = calcDistStock();
     msg += 'Stoku:\n';
-    PRODUCTS.forEach(function(p) {
+    (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).forEach(function(p) {
         var qty = stock[p.id] || 0;
         if (qty > 0) msg += '- ' + p.name + ': ' + qty + '\n';
     });
@@ -21061,7 +21061,7 @@ function exportDistReport(type, format) {
         title = 'Raporti sipas Produktit';
         headers = ['Produkti', 'Pranuar', 'Dorezuar', 'Ne Stok'];
         var stock = calcDistStock();
-        rows = PRODUCTS.map(function(p) {
+        rows = (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).map(function(p) {
             // Bug #19: (r.quantity || 0) shmang NaN nëse rekordi s'ka quantity
             var totalReceived = (state.distReceived || []).filter(function(r) { return r.productId === p.id; }).reduce(function(s, r) { return s + (r.quantity || 0); }, 0);
             var totalDelivered = 0;
@@ -21561,7 +21561,7 @@ function distReportDetailedPDF() {
     ];
 
     var stock = calcDistStock();
-    PRODUCTS.forEach(function(p) {
+    (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).forEach(function(p) {
         var qty = stock[p.id] || 0;
         rows.push([p.name, qty + ' njësi (' + (qty * p.buyPrice) + ' den)']);
     });

@@ -6210,3 +6210,196 @@ select {
 
 /* D40: Softer borders everywhere */
 .data-table, .stat-card, .stock-card { border-color: rgba(0,0,0,0.06); }
+
+/* ===================== DESIGN POLISH BATCH 3 (D41-D73) ===================== */
+/* D41: Topbar elevation */
+.topbar { box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+
+/* D42: Soft shadow on modals */
+.modal {
+    box-shadow: 0 20px 60px rgba(0,0,0,0.18), 0 4px 12px rgba(0,0,0,0.08);
+    border-radius: 16px;
+}
+
+/* D43: Better mobile tap targets */
+@media (max-width: 768px) {
+    .btn { min-height: 42px; padding: 10px 16px; }
+    .btn-sm { min-height: 34px; padding: 6px 12px; }
+}
+
+/* D44: Button with icon only — square ratio */
+.btn-icon { width: 38px; height: 38px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+
+/* D45: Card title spacing */
+.stat-card h3, .stock-card h4 { margin: 0 0 6px; font-size: 0.82em; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary, #888); font-weight: 700; }
+.stat-card p { font-size: 1.6em; font-weight: 700; margin: 0; }
+
+/* D46: Progress bar polish */
+.progress, progress {
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(0,0,0,0.06);
+    overflow: hidden;
+}
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary, #e17055), #d35400);
+    border-radius: 999px;
+    transition: width 0.4s ease;
+}
+
+/* D47: Pill chips */
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: rgba(0,0,0,0.05);
+    font-size: 0.78em;
+    font-weight: 600;
+}
+
+/* D48: Avatar circles */
+.contact-avatar {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary, #e17055), #d35400);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+/* D49: Invoice card accent border animation on hover */
+.invoice-card { transition: transform 0.18s ease, box-shadow 0.18s ease; }
+.invoice-card:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,0,0,0.08); }
+
+/* D50: Subtle inset on inputs for depth */
+input[type="text"], input[type="number"], input[type="date"], select, textarea {
+    box-shadow: inset 0 1px 0 rgba(0,0,0,0.02);
+}
+
+/* D51: Sidebar active highlight */
+.sidebar .nav-item.active, .sidebar-item.active {
+    background: linear-gradient(90deg, rgba(225,112,85,0.12), transparent);
+    border-left: 3px solid var(--primary, #e17055);
+}
+
+/* D52: Better label weight hierarchy */
+.form-group label strong { color: var(--text-primary, #333); }
+
+/* D53: Modal close button polish */
+.modal .close-btn, .modal-close {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease;
+}
+.modal .close-btn:hover, .modal-close:hover { background: rgba(0,0,0,0.08); }
+
+/* D54: Fieldset polish */
+fieldset { border: 1px solid rgba(0,0,0,0.08); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
+fieldset legend { padding: 0 6px; font-weight: 600; font-size: 0.88em; color: var(--text-secondary, #666); }
+
+/* D55: Tab bar scroll-snap for mobile */
+.nav-tabs { scroll-snap-type: x mandatory; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.nav-tab { scroll-snap-align: start; }
+
+/* D56: Hide scrollbar on tab strip */
+.nav-tabs::-webkit-scrollbar { display: none; }
+.nav-tabs { scrollbar-width: none; }
+
+/* D57: Number input — spinner polish */
+input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button {
+    height: 20px; opacity: 0.5;
+}
+
+/* D58: Tooltip-style kbd */
+kbd {
+    font-family: ui-monospace, monospace;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(0,0,0,0.06);
+    border: 1px solid rgba(0,0,0,0.1);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.08);
+    font-size: 0.82em;
+}
+
+/* D59: Row action buttons cluster spacing */
+.data-table td .btn + .btn, td .btn + .btn { margin-left: 4px; }
+
+/* D60: Empty table message style */
+.data-table tbody tr.empty td {
+    text-align: center;
+    padding: 40px 12px;
+    color: var(--text-secondary, #999);
+    font-style: italic;
+}
+
+/* D61: Notification badge glow for unread */
+.notification-badge.unread {
+    box-shadow: 0 0 0 2px rgba(225,112,85,0.35);
+}
+
+/* D62: Better code block */
+code {
+    font-family: ui-monospace, monospace;
+    background: rgba(0,0,0,0.05);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.88em;
+}
+
+/* D63: Sections have rounded top */
+.page > section, section.card { border-radius: 14px; }
+
+/* D64: Stat up/down trend indicators */
+.trend-up { color: #00b894; }
+.trend-down { color: #d63031; }
+.trend-flat { color: #888; }
+.trend-up::before { content: '▲ '; font-size: 0.8em; }
+.trend-down::before { content: '▼ '; font-size: 0.8em; }
+
+/* D65: Subtle accent stripe on top of page */
+.page { position: relative; }
+
+/* D66: Chart container consistent */
+canvas { max-width: 100%; height: auto !important; }
+
+/* D67: Better date input */
+input[type="date"] { font-variant-numeric: tabular-nums; }
+input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.6; }
+input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+
+/* D68: QR code container */
+[id^="qr-"] { display: inline-block; padding: 6px; background: #fff; border-radius: 6px; }
+
+/* D69: Mobile modal fills more screen */
+@media (max-width: 640px) {
+    .modal { width: calc(100vw - 20px) !important; max-height: calc(100vh - 40px); overflow-y: auto; }
+}
+
+/* D70: Better icon-only button sizing */
+.btn i:only-child { margin: 0; }
+
+/* D71: Focus on data-table rows (keyboard) */
+.data-table tr:focus-within { outline: 2px solid var(--primary, #e17055); outline-offset: -2px; }
+
+/* D72: Kbd shortcut hints in menus */
+.menu-shortcut { float: right; opacity: 0.5; font-size: 0.82em; }
+
+/* D73: Print date/time header */
+@media print {
+    body::before {
+        content: 'Hurma App — ' attr(data-print-date);
+        display: block;
+        font-size: 0.8em;
+        color: #666;
+        margin-bottom: 10px;
+    }
+}
