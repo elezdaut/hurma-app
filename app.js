@@ -74,6 +74,18 @@
         try { return new Chart(ctx, cfg); }
         catch(e) { try { console.warn('Gabim në Chart:', e); } catch(_){} return null; }
     };
+
+    // i18n.js fallback: nëse skedari nuk ngarkohet (CDN offline, gabim rrjeti),
+    // mos e lejo app-in të prishet — kthe çelësin e papërkthyer si tekst.
+    if (typeof window.t !== 'function') {
+        window.t = function(key) { return (key == null) ? '' : String(key); };
+    }
+    if (typeof window.applyTranslations !== 'function') {
+        window.applyTranslations = function() {};
+    }
+    if (typeof window.changeLanguage !== 'function') {
+        window.changeLanguage = function() {};
+    }
 })();
 
 // ===================== DATA =====================
@@ -1112,6 +1124,7 @@ function deleteSale(index) {
     // Bug #176: sale + product null-guard + state guards
     if (!state.sales || !state.sales[index]) return;
     const sale = state.sales[index];
+    if (!sale) { if (typeof showToast === "function") showToast("Të dhënat nuk u gjetën", "warning"); return; }
     const product = getProduct(sale.productId);
     const pname = (product && product.name) ? product.name : '-';
     modalConfirm('A jeni i sigurt që dëshironi ta fshini shitjen?<br><strong>' + pname + ' x' + (sale.quantity || 0) + ' — ' + (sale.sellTotal || 0) + ' ден</strong>', function() {
@@ -1276,6 +1289,7 @@ function markInvoicePaid(index) {
     // Bug #158: sale + client null-guards
     if (!state.sales || !state.sales[index]) return;
     const sale = state.sales[index];
+    if (!sale) { if (typeof showToast === "function") showToast("Të dhënat nuk u gjetën", "warning"); return; }
     const profit = sale.profit || 0;
     const cashDebt = calcFatonDebt();
     const client = sale.clientId ? (state.clients || []).find(c => c && c.id === sale.clientId) : null;
@@ -1339,6 +1353,7 @@ function confirmMarkInvoicePaid(index) {
     // Bug #150: sale + DOM null-guards
     if (!state.sales || !state.sales[index]) return;
     const sale = state.sales[index];
+    if (!sale) { if (typeof showToast === "function") showToast("Të dhënat nuk u gjetën", "warning"); return; }
     const profitTypeEl = document.getElementById('invoice-profit-type');
     const profitType = profitTypeEl ? profitTypeEl.value : '';
     const amountEl = document.getElementById('invoice-profit-amount');
@@ -1477,6 +1492,7 @@ function quickMarkPaid(index) {
     // Bug #384: sale null-guard
     if (!state.sales || !state.sales[index]) return;
     const sale = state.sales[index];
+    if (!sale) { if (typeof showToast === "function") showToast("Të dhënat nuk u gjetën", "warning"); return; }
     const product = getProduct(sale.productId);
     const client = sale.clientId ? (state.clients || []).find(c => c && c.id === sale.clientId) : null;
     openModal('⚡ Shëno si të Paguar', `
@@ -1517,6 +1533,7 @@ function quickMarkPaid(index) {
 
 function _doQuickMarkPaid(index) {
     const sale = state.sales[index];
+    if (!sale) { if (typeof showToast === "function") showToast("Të dhënat nuk u gjetën", "warning"); return; }
     const payMethod = document.getElementById('quick-pay-method')?.value || 'cash';
     const payDate = new Date().toISOString().split('T')[0];
     const oldStatus = sale.invoicePaid ? 'paid' : (sale.paidAmount > 0 ? 'partial' : 'unpaid');
@@ -1553,6 +1570,7 @@ function _doQuickMarkPaid(index) {
 // Feature 1b: Unmark paid (kthe si papaguar) with double confirmation
 function unmarkPaid(index) {
     const sale = state.sales[index];
+    if (!sale) { if (typeof showToast === "function") showToast("Të dhënat nuk u gjetën", "warning"); return; }
     const product = getProduct(sale.productId);
     openModal('🔄 Kthe si Papaguar', `
         <div style="text-align:center;padding:10px;">
@@ -1606,6 +1624,7 @@ function unmarkPaid(index) {
 
 function _doUnmarkPaid(index) {
     const sale = state.sales[index];
+    if (!sale) { if (typeof showToast === "function") showToast("Të dhënat nuk u gjetën", "warning"); return; }
     const reason = document.getElementById('unmark-reason')?.value || 'tjeter';
     const note = document.getElementById('unmark-note')?.value || '';
 
@@ -1642,6 +1661,7 @@ function _doUnmarkPaid(index) {
 // Feature 3: Partial payment modal
 function openPartialPaymentModal(index) {
     const sale = state.sales[index];
+    if (!sale) { if (typeof showToast === "function") showToast("Të dhënat nuk u gjetën", "warning"); return; }
     const product = getProduct(sale.productId);
     const client = sale.clientId ? (state.clients || []).find(c => c && c.id === sale.clientId) : null;
     const alreadyPaid = sale.paidAmount || 0;
@@ -1698,6 +1718,7 @@ function openPartialPaymentModal(index) {
 
 function _doPartialPayment(index) {
     const sale = state.sales[index];
+    if (!sale) { if (typeof showToast === "function") showToast("Të dhënat nuk u gjetën", "warning"); return; }
     const payAmount = parseInt(document.getElementById('partial-pay-amount')?.value) || 0;
     const payMethod = document.getElementById('partial-pay-method')?.value || 'cash';
     const payDate = document.getElementById('partial-pay-date')?.value || new Date().toISOString().split('T')[0];
@@ -1747,8 +1768,12 @@ function _doPartialPayment(index) {
 
 // Feature 7: Show payment history for a sale
 function showSalePaymentHistory(index) {
-    const sale = state.sales[index];
-    const product = getProduct(sale.productId);
+    const sale = (state.sales || [])[index];
+    if (!sale) {
+        showToast('Shitja nuk u gjet', 'warning');
+        return;
+    }
+    const product = getProduct(sale.productId) || { name: '-' };
     const history = sale.paymentHistory || [];
 
     if (history.length === 0) {
@@ -1758,7 +1783,7 @@ function showSalePaymentHistory(index) {
 
     let html = `
         <div style="margin-bottom:15px;">
-            <strong>${product.name}</strong> x${sale.quantity} — Totali: ${sale.sellTotal} ден
+            <strong>${product.name}</strong> x${(sale.quantity || 0)} — Totali: ${(sale.sellTotal || 0)} ден
         </div>
         <div style="display:flex;flex-direction:column;gap:8px;">
     `;
@@ -1789,6 +1814,7 @@ function showSalePaymentHistory(index) {
 // Feature 6 & 11: Send payment reminder via WhatsApp
 function sendPaymentReminder(index) {
     const sale = state.sales[index];
+    if (!sale) { if (typeof showToast === "function") showToast("Të dhënat nuk u gjetën", "warning"); return; }
     if (!sale.clientId) { showToast('Kjo shitje nuk ka klient!', 'error'); return; }
     const client = (state.clients || []).find(c => c && c.id === sale.clientId);
     if (!client) { showToast('Klienti nuk u gjet!', 'error'); return; }
@@ -1844,6 +1870,7 @@ function _sendWhatsAppReminder(phone, index) {
 
     // Record reminder sent
     const sale = state.sales[index];
+    if (!sale) { if (typeof showToast === "function") showToast("Të dhënat nuk u gjetën", "warning"); return; }
     if (!sale.paymentHistory) sale.paymentHistory = [];
     sale.paymentHistory.push({
         date: new Date().toISOString(),
@@ -2053,6 +2080,7 @@ function autoNotifyClientOnStatusChange(saleIndex, oldStatus, newStatus) {
     // Bug #160: sale + clients null-guard
     if (!state.sales || !state.sales[saleIndex]) return;
     const sale = state.sales[saleIndex];
+    if (!sale) { if (typeof showToast === "function") showToast("Të dhënat nuk u gjetën", "warning"); return; }
     if (!sale.clientId) return;
     const client = (state.clients || []).find(c => c && c.id === sale.clientId);
     if (!client || !client.phone) return;
@@ -2875,6 +2903,7 @@ function changeOrderStatus(index, status) {
     if (status === 'completed') {
         // Convert order to sale
         const order = state.orders[index];
+        if (!order) { if (typeof showToast === "function") showToast("Të dhënat nuk u gjetën", "warning"); return; }
         const product = getProduct(order.productId);
         const sellPrice = (product && product.sellPrice) || 0;
         const buyPrice = (product && product.buyPrice) || 0;
@@ -5165,6 +5194,7 @@ function deleteReturn(index) {
     modalConfirm('Fshi këtë kthim?', function() {
     if (!state.returns || !state.returns[index]) return;
     var ret = state.returns[index];
+    if (!ret) { if (typeof showToast === "function") showToast("Të dhënat nuk u gjetën", "warning"); return; }
     if (!state.stock) state.stock = {};
     state.stock[ret.productId] = Math.max(0, (state.stock[ret.productId] || 0) - (ret.quantity || 0));
     (state.returns = state.returns || []).splice(index, 1);
