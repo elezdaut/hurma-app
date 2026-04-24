@@ -5838,7 +5838,7 @@ function generateReport() {
 function updateReportCharts(sales) {
     // Bug #94: DOM null-checks + Chart undefined guard + date null-check
     if (typeof Chart === 'undefined') return;
-    sales = sales || [];
+    sales = Array.isArray(sales) ? sales : [];
     // Comparison chart
     const months = {};
     sales.forEach(s => {
@@ -6612,7 +6612,6 @@ function initCharts() {
 }
 
 function updateCharts() {
-    if (typeof salesChart === 'undefined' || !salesChart || typeof profitChart === 'undefined' || !profitChart) return;
     // Last 7 days
     const days = [];
     const salesData = [];
@@ -6622,27 +6621,41 @@ function updateCharts() {
         d.setDate(d.getDate() - i);
         const dateStr = d.toISOString().split('T')[0];
         days.push(dateStr.substring(5));
-        const daySales = (state.sales || []).filter(s => s.date === dateStr);
+        const daySales = (state.sales || []).filter(s => s && s.date === dateStr);
         salesData.push(daySales.reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0));
         profitData.push(daySales.reduce((sum, s) => sum + ((s && s.profit) || 0), 0));
     }
 
-    salesChart.data.labels = days;
-    salesChart.data.datasets[0].data = salesData;
-    salesChart.update();
+    // Defensive: each chart guarded individually so failure of one doesn't kill the others
+    try {
+        if (typeof salesChart !== 'undefined' && salesChart && salesChart.data && Array.isArray(salesChart.data.datasets) && salesChart.data.datasets[0]) {
+            salesChart.data.labels = days;
+            salesChart.data.datasets[0].data = salesData;
+            if (typeof salesChart.update === 'function') salesChart.update();
+        }
+    } catch(e) { try { console.warn('salesChart update failed:', e); } catch(_){} }
 
-    profitChart.data.labels = days;
-    profitChart.data.datasets[0].data = profitData;
-    profitChart.update();
+    try {
+        if (typeof profitChart !== 'undefined' && profitChart && profitChart.data && Array.isArray(profitChart.data.datasets) && profitChart.data.datasets[0]) {
+            profitChart.data.labels = days;
+            profitChart.data.datasets[0].data = profitData;
+            if (typeof profitChart.update === 'function') profitChart.update();
+        }
+    } catch(e) { try { console.warn('profitChart update failed:', e); } catch(_){} }
 
     // Product chart
-    const productData = {};
-    (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).forEach(p => {
-        productData[p.name] = (state.sales || []).filter(s => s && s.productId === p.id).reduce((sum, s) => sum + (s.quantity || 0), 0);
-    });
-    productChart.data.labels = Object.keys(productData);
-    productChart.data.datasets[0].data = Object.values(productData);
-    productChart.update();
+    try {
+        const productData = {};
+        (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).forEach(p => {
+            if (!p) return;
+            productData[p.name] = (state.sales || []).filter(s => s && s.productId === p.id).reduce((sum, s) => sum + (s.quantity || 0), 0);
+        });
+        if (typeof productChart !== 'undefined' && productChart && productChart.data && Array.isArray(productChart.data.datasets) && productChart.data.datasets[0]) {
+            productChart.data.labels = Object.keys(productData);
+            productChart.data.datasets[0].data = Object.values(productData);
+            if (typeof productChart.update === 'function') productChart.update();
+        }
+    } catch(e) { try { console.warn('productChart update failed:', e); } catch(_){} }
 }
 
 // ===================== HELPERS =====================
@@ -7834,10 +7847,11 @@ function getLastNMonths(n) {
 }
 
 function generateTrendTable(months) {
+    months = Array.isArray(months) ? months : [];
     let html = '<table class="data-table"><thead><tr><th>Month</th><th>Sales</th><th>Revenue</th><th>Profit</th><th>Trend</th></tr></thead><tbody>';
 
     const data = months.map(m => {
-        const sales = (state.sales || []).filter(s => s.date.startsWith(m));
+        const sales = (state.sales || []).filter(s => s && s.date && s.date.startsWith(m));
         return {
             month: m,
             count: sales.length,
@@ -8833,6 +8847,10 @@ function exportToPDF(title, headers, rows, filename, orientation) {
 
 // Core Word export - Professional layout
 function exportToWord(title, headers, rows, filename) {
+    headers = Array.isArray(headers) ? headers : [];
+    rows = Array.isArray(rows) ? rows : [];
+    title = title || 'Raport';
+    filename = filename || 'export.doc';
     var profile = typeof getInvoiceProfile === 'function' ? getInvoiceProfile() : {};
     var bizName = (profile.businessName) || 'Hurma App';
     var accent = (profile.accentColor) || '#2c7a4b';
@@ -12898,6 +12916,8 @@ function applyTimeBasedTheme() {
 
 // Feature 27: Stepper HTML generator for modals
 function generateStepper(steps, currentStep) {
+    steps = Array.isArray(steps) ? steps : [];
+    currentStep = Number(currentStep) || 0;
     let html = '<div class="stepper">';
     steps.forEach((step, i) => {
         const isActive = i === currentStep;
@@ -14263,10 +14283,10 @@ function addTrendIndicators() {
 
     metrics.forEach(m => {
         const el = document.getElementById(m.id);
-        if (!el) return;
+        if (!el || !el.parentElement) return;
         // Remove old badge if exists
-        const old = el.parentElement.querySelector('.trend-badge');
-        if (old) old.remove();
+        const old = el.parentElement.querySelector ? el.parentElement.querySelector('.trend-badge') : null;
+        if (old && typeof old.remove === 'function') old.remove();
 
         let icon, color, pct;
         if (m.yesterday === 0 && m.today === 0) {
@@ -14285,7 +14305,9 @@ function addTrendIndicators() {
         badge.style.cssText = 'font-size:0.72em;color:' + color + ';margin-left:6px;font-weight:600;white-space:nowrap;';
         badge.textContent = icon + ' ' + pct;
         badge.title = 'Dje: ' + m.yesterday;
-        el.parentElement.appendChild(badge);
+        if (el.parentElement && typeof el.parentElement.appendChild === 'function') {
+            el.parentElement.appendChild(badge);
+        }
     });
 }
 
