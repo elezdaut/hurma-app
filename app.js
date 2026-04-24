@@ -271,7 +271,56 @@ function loadState() {
 }
 
 function saveState() {
-    localStorage.setItem('hurma-state', JSON.stringify(state));
+    // Fix kritik: trajto QuotaExceededError. localStorage ka ~5MB limit — kur mbushet,
+    // pastrojmë automatikisht të dhëna historike (jo bazat) dhe provojmë prapë.
+    try {
+        localStorage.setItem('hurma-state', JSON.stringify(state));
+        return true;
+    } catch(e) {
+        var isQuota = e && (e.name === 'QuotaExceededError' ||
+                            e.code === 22 || e.code === 1014 ||
+                            /quota/i.test(e.message || ''));
+        if (!isQuota) {
+            try { if (window._showErrToast) window._showErrToast('Ruajtja dështoi: ' + e.message); } catch(_){}
+            return false;
+        }
+        // Hap 1: pastro log-et historike (pa prekur të dhënat kryesore)
+        try {
+            if (Array.isArray(state.activityLog)) state.activityLog = state.activityLog.slice(-100);
+            if (Array.isArray(state.hourlySnapshots)) state.hourlySnapshots = state.hourlySnapshots.slice(-48);
+            if (Array.isArray(state.changeTimeline)) state.changeTimeline = state.changeTimeline.slice(-100);
+            if (Array.isArray(state.restoreLog)) state.restoreLog = state.restoreLog.slice(-20);
+            if (Array.isArray(state.paymentAuditTrail)) state.paymentAuditTrail = state.paymentAuditTrail.slice(-200);
+            if (Array.isArray(state.trash)) state.trash = state.trash.slice(-50);
+            if (Array.isArray(state.weeklyReports)) state.weeklyReports = state.weeklyReports.slice(-12);
+            if (Array.isArray(state.fatonDebtHistory)) state.fatonDebtHistory = state.fatonDebtHistory.slice(-200);
+            localStorage.setItem('hurma-state', JSON.stringify(state));
+            try { if (window._showErrToast) window._showErrToast('Memoria u mbush — u pastruan log-et e vjetra automatikisht.'); } catch(_){}
+            return true;
+        } catch(e2) {}
+        // Hap 2: pastro edhe më agresivisht dhe hiq snapshot-et
+        try {
+            state.activityLog = [];
+            state.hourlySnapshots = [];
+            state.changeTimeline = [];
+            state.restoreLog = [];
+            state.paymentAuditTrail = [];
+            state.trash = [];
+            state.weeklyReports = [];
+            state.fatonDebtHistory = [];
+            // Largo çdo backup të brendshëm
+            try { localStorage.removeItem('hurma-state-backup'); } catch(_){}
+            try { localStorage.removeItem('hurma-backup-auto'); } catch(_){}
+            localStorage.setItem('hurma-state', JSON.stringify(state));
+            try { if (window._showErrToast) window._showErrToast('Memoria u pastrua plotësisht nga historiku — të dhënat kryesore janë të sigurta.'); } catch(_){}
+            return true;
+        } catch(e3) {
+            try {
+                if (window._showErrToast) window._showErrToast('Memoria është plot! Bëj backup (Settings → Eksporto) dhe pastro manualisht.');
+            } catch(_){}
+            return false;
+        }
+    }
 }
 
 function initStock() {
