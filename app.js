@@ -538,7 +538,7 @@ function showExecutiveDashboard() {
 
     openModal('Dashboard Ekzekutiv', `
         <div class="stats-grid" style="margin-bottom:16px;">
-            <div class="stat-card"><i class="fas fa-users"></i><div><h3>Klientë gjithsej</h3><p>${state.clients.length}</p></div></div>
+            <div class="stat-card"><i class="fas fa-users"></i><div><h3>Klientë gjithsej</h3><p>${(state.clients || []).length}</p></div></div>
             <div class="stat-card"><i class="fas fa-user-tie"></i><div><h3>Premium</h3><p>${rankedClients.filter(r => r.score >= 75).length}</p></div></div>
             <div class="stat-card"><i class="fas fa-list-check"></i><div><h3>Task-e aktive</h3><p>${(state.clientTasks || []).filter(t => t.status !== 'done').length}</p></div></div>
             <div class="stat-card"><i class="fas fa-calendar-check"></i><div><h3>Vizita të ardhshme</h3><p>${(state.clientVisits || []).filter(v => v.nextVisitDate && v.nextVisitDate >= new Date().toISOString().split('T')[0]).length}</p></div></div>
@@ -768,7 +768,7 @@ function addSale() {
     if (!state.clients) state.clients = [];
 
     const saleId = Date.now();
-    state.sales.push({
+    (state.sales = state.sales || []).push({
         id: saleId,
         productId,
         quantity,
@@ -821,7 +821,7 @@ function addSale() {
     // Auto-apply promotion discount
     const activeDiscount = typeof getActiveDiscount === 'function' ? getActiveDiscount(productId) : 0;
     if (activeDiscount > 0 && discount === 0) {
-        const lastSale = state.sales[state.sales.length - 1];
+        const lastSale = state.sales[(state.sales || []).length - 1];
         const promoSellTotal = effectiveSellPrice * quantity * (1 - activeDiscount / 100);
         lastSale.sellTotal = Math.round(promoSellTotal);
         lastSale.profit = Math.round(promoSellTotal - buyTotal);
@@ -830,7 +830,7 @@ function addSale() {
 
     // Auto-register cash payment for client tracking
     if (typeof autoRegisterCashPayment === 'function' && (paymentType || 'cash') === 'cash') {
-        autoRegisterCashPayment(state.sales[state.sales.length - 1]);
+        autoRegisterCashPayment(state.sales[(state.sales || []).length - 1]);
     }
 
     // Log activity
@@ -996,7 +996,7 @@ function deleteSale(index) {
             if (client) client.debt = Math.max(0, (client.debt || 0) - (sale.sellTotal || 0));
         }
 
-        state.sales.splice(index, 1);
+        (state.sales = state.sales || []).splice(index, 1);
 
         if (typeof logActivity === 'function') logActivity('Sale Deleted', (sale.quantity || 0) + 'x ' + pname + ' - ' + (sale.sellTotal || 0) + ' den');
         saveState();
@@ -1051,7 +1051,7 @@ function refreshSales() {
     sales.forEach((s, i) => {
         const product = getProduct(s.productId);
         const client = s.clientId ? (state.clients || []).find(c => c && c.id === s.clientId) : null;
-        const realIndex = state.sales.indexOf(s);
+        const realIndex = (state.sales || []).indexOf(s);
         totalSales += s.sellTotal;
         totalProfit += s.profit;
         const pType = s.paymentType || 'cash';
@@ -1830,7 +1830,7 @@ function showPaymentReport() {
                     const cl = s.clientId ? (state.clients || []).find(c => c && c.id === s.clientId) : null;
                     const pr = getProduct(s.productId);
                     const days = Math.abs(Math.ceil((new Date(s.dueDate) - new Date()) / (1000*60*60*24)));
-                    const ri = state.sales.indexOf(s);
+                    const ri = (state.sales || []).indexOf(s);
                     return `
                         <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:#fff;border-radius:8px;margin-bottom:5px;">
                             <div>
@@ -1995,7 +1995,7 @@ function addStock() {
     // Add to Faton purchases (tracks all stock bought from Faton)
     const product = getProduct(productId);
     if (!state.fatonPurchases) state.fatonPurchases = [];
-    state.fatonPurchases.push({
+    (state.fatonPurchases = state.fatonPurchases || []).push({
         id: Date.now(),
         productId,
         quantity,
@@ -2056,7 +2056,7 @@ function deleteStockBatch(batchId) {
         p.quantity === batch.quantity &&
         p.date === batch.date
     );
-    if (purchIdx !== -1) state.fatonPurchases.splice(purchIdx, 1);
+    if (purchIdx !== -1) (state.fatonPurchases = state.fatonPurchases || []).splice(purchIdx, 1);
 
     saveState();
     refreshAll();
@@ -2082,7 +2082,7 @@ function deleteFatonPurchase(purchaseId) {
 
     // 2) Hiq blerjen (kjo automatikisht zbret borxhin e Fatonit sepse
     //    calcFatonDebt()/refreshFaton() e llogarit nga fatonPurchases)
-    state.fatonPurchases.splice(idx, 1);
+    (state.fatonPurchases = state.fatonPurchases || []).splice(idx, 1);
 
     // 3) Gjej batch-in përkatës (nëse ka) dhe hiqe
     const batchIdx = (state.stockBatches || []).findIndex(b =>
@@ -2259,7 +2259,7 @@ function addClient() {
     const addrEl = document.getElementById('client-address');
 
     if (!state.clients) state.clients = [];
-    state.clients.push({
+    (state.clients = state.clients || []).push({
         id: Date.now().toString(),
         name,
         phone: phoneEl ? phoneEl.value : '',
@@ -2338,7 +2338,7 @@ function saveClientTask(editId) {
         const idx = (state.clientTasks || []).findIndex(task => task.id === editId);
         if (idx >= 0) state.clientTasks[idx] = payload;
     } else {
-        state.clientTasks.push(payload);
+        (state.clientTasks = state.clientTasks || []).push(payload);
     }
     saveState();
     closeModal();
@@ -2408,7 +2408,7 @@ function saveClientVisit(editId) {
         const idx = (state.clientVisits || []).findIndex(visit => visit.id === editId);
         if (idx >= 0) state.clientVisits[idx] = payload;
     } else {
-        state.clientVisits.push(payload);
+        (state.clientVisits = state.clientVisits || []).push(payload);
     }
     saveState();
     closeModal();
@@ -2621,7 +2621,7 @@ function showClientInvoices(clientId) {
 
     invoices.forEach(s => {
         const product = getProduct(s.productId);
-        const realIndex = state.sales.indexOf(s);
+        const realIndex = (state.sales || []).indexOf(s);
         let statusHtml = '';
         if (s.invoicePaid) {
             statusHtml = `<span style="color:var(--success)">${t('paid')}</span>`;
@@ -2704,7 +2704,7 @@ function addOrder() {
     const note = nEl ? nEl.value : '';
 
     if (!state.orders) state.orders = [];
-    state.orders.push({
+    (state.orders = state.orders || []).push({
         id: Date.now(),
         clientId,
         productId,
@@ -2753,7 +2753,7 @@ function changeOrderStatus(index, status) {
         const buyPrice = (product && product.buyPrice) || 0;
         const qty = order.quantity || 0;
         if (!state.sales) state.sales = [];
-        state.sales.push({
+        (state.sales = state.sales || []).push({
             id: Date.now(),
             productId: order.productId,
             quantity: qty,
@@ -2777,7 +2777,7 @@ function changeOrderStatus(index, status) {
 
 function deleteOrder(index) {
     modalConfirm('Fshi këtë porosi?', function() {
-        state.orders.splice(index, 1);
+        (state.orders = state.orders || []).splice(index, 1);
         saveState();
         refreshOrders();
     });
@@ -2942,11 +2942,11 @@ function addFatonPayment() {
             category: category
         };
         if (!state.fatonPayments) state.fatonPayments = [];
-        state.fatonPayments.push(payment);
+        (state.fatonPayments = state.fatonPayments || []).push(payment);
         saveState();
 
         // Create receipt
-        const receipt = createReceipt(payment, state.fatonPayments.length - 1);
+        const receipt = createReceipt(payment, (state.fatonPayments || []).length - 1);
 
         // Audit trail
         addPaymentAudit('PAGESE_RE', 'Shuma: ' + amount + ' den, Metoda: ' + getCategoryLabel(category) + (note ? ', Shenim: ' + note : ''));
@@ -2987,7 +2987,7 @@ function deleteFatonPayment(index) {
     if (!state.fatonPayments || !state.fatonPayments[index]) return;
     var payment = state.fatonPayments[index];
     if (typeof addPaymentAudit === 'function') addPaymentAudit('FSHIRJE_PAGESE', 'Shuma: ' + (payment.amount || 0) + ' den, Data: ' + (payment.date || '-'));
-    state.fatonPayments.splice(index, 1);
+    (state.fatonPayments = state.fatonPayments || []).splice(index, 1);
     saveState();
     refreshFaton();
     });
@@ -4462,7 +4462,7 @@ function processSplitPayment() {
     });
     if (parts.length === 0) { showToast('Vendosni shuma', 'error'); return; }
     parts.forEach(p => {
-        state.fatonPayments.push({ id: Date.now() + Math.random(), amount: p.amount, date: date, note: note + ' [Split: ' + getCategoryLabel(p.category) + ']', category: p.category });
+        (state.fatonPayments = state.fatonPayments || []).push({ id: Date.now() + Math.random(), amount: p.amount, date: date, note: note + ' [Split: ' + getCategoryLabel(p.category) + ']', category: p.category });
     });
     saveState();
     addPaymentAudit('PAGESE_SPLIT', 'Totali: ' + totalAmount + ' den, ' + parts.length + ' pjese');
@@ -4505,7 +4505,7 @@ function processDiscountPayment() {
     if (amount <= 0) return;
     const discount = Math.round(amount * pct / 100);
     const effectivePayment = amount + discount;
-    state.fatonPayments.push({
+    (state.fatonPayments = state.fatonPayments || []).push({
         id: Date.now(), amount: effectivePayment,
         date: document.getElementById('discount-date').value,
         note: 'Pagese me zbritje ' + pct + '% (Paguar: ' + amount + ', Zbritje: ' + discount + ')',
@@ -4612,7 +4612,7 @@ function processReferencePayment() {
     });
     if (!state.fatonPayments) state.fatonPayments = [];
     const _refDateEl = document.getElementById('ref-date');
-    state.fatonPayments.push({
+    (state.fatonPayments = state.fatonPayments || []).push({
         id: Date.now(), amount: total,
         date: _refDateEl ? (_refDateEl.value || '') : '',
         note: 'Pagese per: ' + refs.join(', '),
@@ -4731,8 +4731,8 @@ function exportFatonCSV() {
 
 // ===================== ONE-CLICK QUICK PAY =====================
 function quickPayLastAmount() {
-    if (state.fatonPayments.length === 0) { showToast('Nuk ka pagesa te meparshme', 'info'); return; }
-    const lastPayment = state.fatonPayments[state.fatonPayments.length - 1];
+    if ((state.fatonPayments || []).length === 0) { showToast('Nuk ka pagesa te meparshme', 'info'); return; }
+    const lastPayment = state.fatonPayments[(state.fatonPayments || []).length - 1];
     const debt = calcFatonDebt();
     if (debt <= 0) { showToast('Nuk ka borxh', 'success'); return; }
     const amount = Math.min(lastPayment.amount, debt);
@@ -4750,14 +4750,14 @@ function quickPayLastAmount() {
 }
 
 function executeQuickPay(amount) {
-    state.fatonPayments.push({
+    (state.fatonPayments = state.fatonPayments || []).push({
         id: Date.now(), amount: amount,
         date: new Date().toISOString().split('T')[0],
         note: 'Pagese e shpejte (1-klik)',
         category: 'cash'
     });
     saveState();
-    if (typeof createReceipt === 'function') createReceipt(state.fatonPayments[state.fatonPayments.length - 1], state.fatonPayments.length - 1);
+    if (typeof createReceipt === 'function') createReceipt(state.fatonPayments[(state.fatonPayments || []).length - 1], (state.fatonPayments || []).length - 1);
     addPaymentAudit('PAGESE_SHPEJTE', amount + ' den');
     closeModal();
     refreshFaton(); refreshDashboard();
@@ -5019,7 +5019,7 @@ function addReturn() {
     if (quantity <= 0) return;
 
     if (!state.returns) state.returns = [];
-    state.returns.push({ id: Date.now(), clientId, productId, quantity, reason, date });
+    (state.returns = state.returns || []).push({ id: Date.now(), clientId, productId, quantity, reason, date });
 
     // Restore stock
     if (!state.stock) state.stock = {};
@@ -5040,7 +5040,7 @@ function deleteReturn(index) {
     var ret = state.returns[index];
     if (!state.stock) state.stock = {};
     state.stock[ret.productId] = Math.max(0, (state.stock[ret.productId] || 0) - (ret.quantity || 0));
-    state.returns.splice(index, 1);
+    (state.returns = state.returns || []).splice(index, 1);
     saveState();
     refreshReturns();
     });
@@ -5076,7 +5076,7 @@ function refreshReturns() {
 // ===================== CONTACTS =====================
 function openContactModal(editId) {
     const isEdit = editId !== undefined;
-    const contact = isEdit ? state.contacts.find(c => c.id === editId) : null;
+    const contact = isEdit ? (state.contacts || []).find(c => c.id === editId) : null;
 
     let html = `
         <div class="form-group">
@@ -5121,7 +5121,7 @@ function addContact() {
     const roleEl = document.getElementById('contact-role');
     const noteEl = document.getElementById('contact-note');
     if (!state.contacts) state.contacts = [];
-    state.contacts.push({
+    (state.contacts = state.contacts || []).push({
         id: Date.now().toString(),
         name,
         phone: phoneEl ? phoneEl.value : '',
@@ -5135,7 +5135,7 @@ function addContact() {
 }
 
 function updateContact(id) {
-    const contact = state.contacts.find(c => c.id === id);
+    const contact = (state.contacts || []).find(c => c.id === id);
     if (!contact) return;
     contact.name = document.getElementById('contact-name').value.trim();
     contact.phone = document.getElementById('contact-phone').value;
@@ -5149,7 +5149,7 @@ function updateContact(id) {
 
 function deleteContact(id) {
     modalConfirm('Fshi këtë kontakt?', function() {
-        state.contacts = state.contacts.filter(c => c.id !== id);
+        state.contacts = (state.contacts || []).filter(c => c.id !== id);
         saveState();
         refreshContacts();
     });
@@ -5186,7 +5186,7 @@ function refreshContacts() {
 // ===================== NOTES =====================
 function openNoteModal(editId) {
     const isEdit = editId !== undefined;
-    const note = isEdit ? state.notes.find(n => n.id === editId) : null;
+    const note = isEdit ? (state.notes || []).find(n => n.id === editId) : null;
 
     let html = `
         <div class="form-group">
@@ -5213,7 +5213,7 @@ function addNote() {
     const content = cEl ? (cEl.value || '').trim() : '';
     if (!title) return;
     if (!state.notes) state.notes = [];
-    state.notes.push({
+    (state.notes = state.notes || []).push({
         id: Date.now().toString(),
         title,
         content,
@@ -5239,7 +5239,7 @@ function updateNote(id) {
 
 function deleteNote(id) {
     modalConfirm('Fshi këtë shënim?', function() {
-        state.notes = state.notes.filter(n => n.id !== id);
+        state.notes = (state.notes || []).filter(n => n.id !== id);
         saveState();
         refreshNotes();
     });
@@ -5310,7 +5310,7 @@ function addTarget() {
     const mEl = document.getElementById('target-month');
     const dEl = document.getElementById('target-desc');
     if (!state.targets) state.targets = [];
-    state.targets.push({
+    (state.targets = state.targets || []).push({
         id: Date.now().toString(),
         title,
         goal,
@@ -5485,7 +5485,7 @@ function addExpense() {
     if (!description || amount <= 0) return;
 
     if (!state.expenses) state.expenses = [];
-    state.expenses.push({ id: Date.now(), description, amount, date, shared, category });
+    (state.expenses = state.expenses || []).push({ id: Date.now(), description, amount, date, shared, category });
     saveState();
     closeModal();
     refreshExpenses();
@@ -5497,7 +5497,7 @@ function deleteExpense(index) {
     // Bug #92: state.expenses bounds
     modalConfirm('Fshi këtë shpenzim?', function() {
         if (!state.expenses || !state.expenses[index]) return;
-        state.expenses.splice(index, 1);
+        (state.expenses = state.expenses || []).splice(index, 1);
         saveState();
         refreshExpenses();
     });
@@ -5542,8 +5542,8 @@ function addLocation() {
     if (!nEl) return;
     const name = (nEl.value || '').trim();
     if (!state.locations) state.locations = [];
-    if (!name || state.locations.includes(name)) return;
-    state.locations.push(name);
+    if (!name || (state.locations || []).includes(name)) return;
+    (state.locations = state.locations || []).push(name);
     saveState();
     closeModal();
     refreshLocations();
@@ -8022,7 +8022,7 @@ function executePreset(id) {
     const profit = sellTotal - buyTotal;
 
     const saleId = Date.now();
-    state.sales.push({
+    (state.sales = state.sales || []).push({
         id: saleId,
         productId: preset.productId,
         quantity: preset.quantity,
@@ -8532,7 +8532,7 @@ function openResetCenter() {
         <div class="reset-grid">
             <button class="btn btn-reset" onclick="resetSales()">
                 <i class="fas fa-cash-register"></i> Reset Shitjet
-                <span class="reset-desc">${state.sales.length} shitje</span>
+                <span class="reset-desc">${(state.sales || []).length} shitje</span>
             </button>
             <button class="btn btn-reset" onclick="resetStock()">
                 <i class="fas fa-boxes-stacked"></i> Reset Stoku
@@ -8544,11 +8544,11 @@ function openResetCenter() {
             </button>
             <button class="btn btn-reset" onclick="resetOrders()">
                 <i class="fas fa-clipboard-list"></i> Reset Porosite
-                <span class="reset-desc">${state.orders.length} porosi</span>
+                <span class="reset-desc">${(state.orders || []).length} porosi</span>
             </button>
             <button class="btn btn-reset" onclick="resetReturns()">
                 <i class="fas fa-undo"></i> Reset Kthimet
-                <span class="reset-desc">${state.returns.length} kthime</span>
+                <span class="reset-desc">${(state.returns || []).length} kthime</span>
             </button>
             <button class="btn btn-reset" onclick="resetProfit()">
                 <i class="fas fa-coins"></i> Reset Fitimi
@@ -8560,7 +8560,7 @@ function openResetCenter() {
         <div class="reset-grid">
             <button class="btn btn-reset" onclick="resetClients()">
                 <i class="fas fa-users"></i> Reset Klientet
-                <span class="reset-desc">${state.clients.length} kliente</span>
+                <span class="reset-desc">${(state.clients || []).length} kliente</span>
             </button>
             <button class="btn btn-reset" onclick="resetClientDebts()">
                 <i class="fas fa-hand-holding-usd"></i> Zero Borxhet
@@ -8580,7 +8580,7 @@ function openResetCenter() {
             </button>
             <button class="btn btn-reset" onclick="resetNotes()">
                 <i class="fas fa-sticky-note"></i> Reset Shenimet
-                <span class="reset-desc">${state.notes.length} shenime</span>
+                <span class="reset-desc">${(state.notes || []).length} shenime</span>
             </button>
             <button class="btn btn-reset" onclick="resetTargets()">
                 <i class="fas fa-bullseye"></i> Reset Qellimet
@@ -10905,7 +10905,7 @@ function showSmartSuggestions() {
     // Payment suggestions
     const fatonDebt = calcTotalOwedToFaton();
     if (fatonDebt > 5000 && (state.fatonPayments || []).length > 0) {
-        const lastPay = state.fatonPayments[state.fatonPayments.length - 1];
+        const lastPay = state.fatonPayments[(state.fatonPayments || []).length - 1];
         const daysSince = Math.floor((new Date() - new Date(lastPay.date)) / (1000*60*60*24));
         if (daysSince > 14) suggestions.push({ icon: 'fa-money-bill', text: `Fatoni s'është paguar ${daysSince} ditë - konsidero pagesë`, btn: 'Pago', action: `navigateTo('faton')` });
     }
@@ -11202,7 +11202,7 @@ function openClient360(clientId) {
     const payments = (state.clientPayments || []).filter(p => p.clientId === clientId);
     const totalClientPaid = payments.reduce((sum, p) => sum + ((p && p.amount) || 0), 0);
     const openInvoices = sales.filter(s => s.paymentType === 'invoice_60' && !s.invoicePaid);
-    const notes = state.notes.filter(n => n.linkedClient === clientId);
+    const notes = (state.notes || []).filter(n => n.linkedClient === clientId);
     const orders = (state.orders || []).filter(o => o && o.clientId === clientId);
     const clientTasks = (state.clientTasks || []).filter(task => task.clientId === clientId);
     const clientVisits = (state.clientVisits || []).filter(visit => visit.clientId === clientId);
@@ -11372,7 +11372,7 @@ function openNoteModalLinked(type, id, name) {
 }
 
 function saveNoteWithLink() {
-    const note = state.notes[state.notes.length - 1];
+    const note = state.notes[(state.notes || []).length - 1];
     if (note && window._noteLink) {
         note.linkedClient = window._noteLink.type === 'client' ? window._noteLink.id : null;
         note.linkedProduct = window._noteLink.type === 'product' ? window._noteLink.id : null;
@@ -11731,7 +11731,7 @@ function _onRestoreFileSelected(input) {
                         </div>
                     </div>
                     <div style="background:#fff3e0;padding:10px;border-radius:8px;margin-bottom:15px;color:#e65100;font-size:0.9em;">
-                        <i class="fas fa-exclamation-triangle"></i> Të dhënat aktuale (${state.sales.length} shitje, ${state.clients.length} klientë) do të zëvendësohen!
+                        <i class="fas fa-exclamation-triangle"></i> Të dhënat aktuale (${(state.sales || []).length} shitje, ${(state.clients || []).length} klientë) do të zëvendësohen!
                     </div>
                 `;
             }
@@ -12126,7 +12126,7 @@ function createAutoOrder(productId) {
     const product = getProduct(productId);
     if (!product) return;
     if (!state.orders) state.orders = [];
-    state.orders.push({ id: 'ord_' + Date.now(), date: new Date().toISOString().split('T')[0], productId, quantity: qty, status: 'pending', note: 'Auto-porosi' });
+    (state.orders = state.orders || []).push({ id: 'ord_' + Date.now(), date: new Date().toISOString().split('T')[0], productId, quantity: qty, status: 'pending', note: 'Auto-porosi' });
     saveState(); if (typeof showToast === 'function') showToast(`Porosi: ${product.name || '-'} x${qty}`);
 }
 
@@ -12515,7 +12515,7 @@ function showComparisonChart() {
 }
 
 // FIX-11: Auto evening backup
-function checkEveningBackup() { const now = new Date(); const hour = now.getHours(); const today = now.toISOString().split('T')[0]; const last = localStorage.getItem('hurma-last-auto-backup'); if (hour >= 20 && last !== today && state.sales.length > 0) { localStorage.setItem('hurma-last-auto-backup', today); autoBackupJSON(); } }
+function checkEveningBackup() { const now = new Date(); const hour = now.getHours(); const today = now.toISOString().split('T')[0]; const last = localStorage.getItem('hurma-last-auto-backup'); if (hour >= 20 && last !== today && (state.sales || []).length > 0) { localStorage.setItem('hurma-last-auto-backup', today); autoBackupJSON(); } }
 
 // FIX-12: Stock alerts
 function checkStockAlerts() { const empty = (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).filter(p => (state.stock[p.id] || 0) === 0); const low = (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).filter(p => { const s = state.stock[p.id] || 0; return s > 0 && s < 3; }); if (empty.length > 0) showToast('STOK 0: ' + empty.map(p => p.name).join(', ')); if (low.length > 0) setTimeout(() => showToast('Stok i ulët: ' + low.map(p => p.name + '(' + (state.stock[p.id]||0) + ')').join(', ')), 2000); }
@@ -13064,7 +13064,7 @@ function confirmDuplicateSale() {
         newSale.invoicePaid = false;
     }
 
-    state.sales.push(newSale);
+    (state.sales = state.sales || []).push(newSale);
     if (state.stock[productId] !== undefined) state.stock[productId] = Math.max(0, (state.stock[productId] || 0) - quantity);
     logActivity('Sale Added (Copy)', `${quantity}x ${product.name} - ${sellTotal} ден`);
     saveState();
@@ -16045,7 +16045,7 @@ function findDuplicates() {
 
 function _deleteDupSale(idx) {
     modalConfirm('Fshi këtë shitje duplikate?', function() {
-        state.sales.splice(idx, 1);
+        (state.sales = state.sales || []).splice(idx, 1);
         saveState();
         showToast('Shitja duplikate u fshi.', 'success');
     });
@@ -16683,7 +16683,7 @@ function repairData() {
     // Remove orphaned sales
     const before = (state.sales || []).length;
     state.sales = (state.sales || []).filter(s => !s.clientId || clientIds.has(s.clientId));
-    fixed += before - state.sales.length;
+    fixed += before - (state.sales || []).length;
 
     // Fix negative stock
     Object.keys(state.stock || {}).forEach(k => {
@@ -16697,7 +16697,7 @@ function repairData() {
         if (!s.id || !seenSaleIds.has(s.id)) { if (s.id) seenSaleIds.add(s.id); return true; }
         return false;
     });
-    fixed += beforeDup - state.sales.length;
+    fixed += beforeDup - (state.sales || []).length;
 
     // Remove duplicate client IDs (keep first)
     const seenClientIds = new Set();
@@ -16706,7 +16706,7 @@ function repairData() {
         if (!c.id || !seenClientIds.has(c.id)) { if (c.id) seenClientIds.add(c.id); return true; }
         return false;
     });
-    fixed += beforeDupC - state.clients.length;
+    fixed += beforeDupC - (state.clients || []).length;
 
     saveState();
     logActivity('repair', 'Riparim automatik i të dhënave - ' + fixed + ' probleme u rregulluan');
@@ -17187,7 +17187,7 @@ function restoreFromTrash(trashId) {
     // Restore to appropriate collection
     switch(item.type) {
         case 'sale':
-            state.sales.push(item.data);
+            (state.sales = state.sales || []).push(item.data);
             // Restore debt if it was a debt sale
             if (item.data.isDebt && item.data.clientId) {
                 const client = (state.clients || []).find(c => c && c.id === item.data.clientId);
@@ -17195,7 +17195,7 @@ function restoreFromTrash(trashId) {
             }
             break;
         case 'client':
-            state.clients.push(item.data);
+            (state.clients = state.clients || []).push(item.data);
             break;
         case 'payment':
             if (!state.clientPayments) state.clientPayments = [];
@@ -17207,13 +17207,13 @@ function restoreFromTrash(trashId) {
             }
             break;
         case 'expense':
-            state.expenses.push(item.data);
+            (state.expenses = state.expenses || []).push(item.data);
             break;
         case 'contact':
-            state.contacts.push(item.data);
+            (state.contacts = state.contacts || []).push(item.data);
             break;
         case 'note':
-            state.notes.push(item.data);
+            (state.notes = state.notes || []).push(item.data);
             break;
     }
 
@@ -17257,8 +17257,8 @@ function showVersionPreview(n) {
         const totalRevenue = (d.sales || []).reduce((s, x) => s + (x.sellTotal || 0), 0);
 
         // Compare with current
-        const curSales = state.sales.length;
-        const curClients = state.clients.length;
+        const curSales = (state.sales || []).length;
+        const curClients = (state.clients || []).length;
         const diff = (cur, old) => { const d = cur - old; return d > 0 ? '+' + d : d === 0 ? '=' : '' + d; };
 
         openModal('Parashikim Version #' + n, `
@@ -17313,14 +17313,14 @@ function _onSelectiveFileSelected(input) {
             const data = JSON.parse(ev.target.result);
                 window._selectiveRestoreData = data;
                 const cats = [
-                    { key: 'sales', name: 'Shitje', icon: 'shopping-cart', count: (data.sales||[]).length, current: state.sales.length },
-                    { key: 'clients', name: 'Klientë', icon: 'users', count: (data.clients||[]).length, current: state.clients.length },
+                    { key: 'sales', name: 'Shitje', icon: 'shopping-cart', count: (data.sales||[]).length, current: (state.sales || []).length },
+                    { key: 'clients', name: 'Klientë', icon: 'users', count: (data.clients||[]).length, current: (state.clients || []).length },
                     { key: 'clientPayments', name: 'Pagesa', icon: 'money-bill', count: (data.clientPayments||[]).length, current: (state.clientPayments||[]).length },
                     { key: 'expenses', name: 'Shpenzime', icon: 'receipt', count: (data.expenses||[]).length, current: state.expenses.length },
                     { key: 'contacts', name: 'Kontakte', icon: 'address-book', count: (data.contacts||[]).length, current: state.contacts.length },
-                    { key: 'notes', name: 'Shënime', icon: 'sticky-note', count: (data.notes||[]).length, current: state.notes.length },
+                    { key: 'notes', name: 'Shënime', icon: 'sticky-note', count: (data.notes||[]).length, current: (state.notes || []).length },
                     { key: 'stock', name: 'Stoku', icon: 'boxes', count: data.stock ? Object.keys(data.stock).length : 0, current: Object.keys(state.stock||{}).length },
-                    { key: 'orders', name: 'Porosi', icon: 'truck', count: (data.orders||[]).length, current: state.orders.length }
+                    { key: 'orders', name: 'Porosi', icon: 'truck', count: (data.orders||[]).length, current: (state.orders || []).length }
                 ];
 
                 const checkboxes = cats.map(c => `
@@ -17443,7 +17443,7 @@ function showRestoreComparison(backupData) {
 function sendBackupToEmailBeforeRestore() {
     const backupData = JSON.stringify(state, null, 2);
     const subject = encodeURIComponent('Hurma Backup Para Restore - ' + new Date().toLocaleDateString('sq-AL'));
-    const body = encodeURIComponent('Backup automatik para restore.\n\nShitje: ' + state.sales.length + '\nKlientë: ' + state.clients.length + '\n\nKopjo JSON-in nga attachment ose nga ktu poshtë:\n\n' + backupData.substring(0, 500) + '...');
+    const body = encodeURIComponent('Backup automatik para restore.\n\nShitje: ' + (state.sales || []).length + '\nKlientë: ' + (state.clients || []).length + '\n\nKopjo JSON-in nga attachment ose nga ktu poshtë:\n\n' + backupData.substring(0, 500) + '...');
     window.open('mailto:?subject=' + subject + '&body=' + body, '_blank');
     showToast('Email po hapet me backup...', 'info');
 }
@@ -17461,8 +17461,8 @@ function saveHourlySnapshot() {
     const snapshot = {
         hour: hourKey,
         date: now.toISOString(),
-        sales: state.sales.length,
-        clients: state.clients.length,
+        sales: (state.sales || []).length,
+        clients: (state.clients || []).length,
         payments: (state.clientPayments || []).length,
         totalDebt: state.clients.reduce((s, c) => s + (c.debt || 0), 0),
         totalRevenue: (state.sales || []).reduce((s, x) => s + (x.sellTotal || 0), 0),
@@ -17669,8 +17669,8 @@ function downloadVerifiedBackup() {
         hash: hash,
         date: new Date().toISOString(),
         version: '2.0',
-        salesCount: state.sales.length,
-        clientsCount: state.clients.length
+        salesCount: (state.sales || []).length,
+        clientsCount: (state.clients || []).length
     };
     const json = JSON.stringify(data, null, 2);
     const filename = 'hurma_verified_' + new Date().toISOString().slice(0, 10) + '_' + hash + '.json';
@@ -17739,8 +17739,8 @@ function addRestoreLog(action, details) {
         date: new Date().toISOString(),
         action: action,
         details: details,
-        salesBefore: state.sales.length,
-        clientsBefore: state.clients.length,
+        salesBefore: (state.sales || []).length,
+        clientsBefore: (state.clients || []).length,
         debtBefore: state.clients.reduce((s, c) => s + (c.debt || 0), 0)
     });
     if (state.restoreLog.length > 50) state.restoreLog = state.restoreLog.slice(-50);
@@ -17852,8 +17852,8 @@ function uploadToGoogleDrive() {
 
 function sendBackupViaWhatsApp() {
     const stats = 'Hurma Backup ' + new Date().toLocaleDateString('sq-AL') + '\n' +
-        'Shitje: ' + state.sales.length + '\n' +
-        'Kliente: ' + state.clients.length + '\n' +
+        'Shitje: ' + (state.sales || []).length + '\n' +
+        'Kliente: ' + (state.clients || []).length + '\n' +
         'Borxh total: ' + state.clients.reduce((s, c) => s + (c.debt || 0), 0) + ' den\n\n' +
         '(Backup JSON u shkarkua si skedar)';
     downloadVerifiedBackup();
@@ -18990,7 +18990,7 @@ function createCorrectiveInvoice(originalIndex) {
             paidAmount: 0,
             discount: 0
         };
-        state.sales.push(corrective);
+        (state.sales = state.sales || []).push(corrective);
 
         // Record history
         if (!sale.paymentHistory) sale.paymentHistory = [];
@@ -20527,7 +20527,7 @@ function saveDistPayToFaton(e) {
 
     // #3 Cross-tab: When giving cash to Faton, link to main Faton account
     if (state.fatonPayments) {
-        state.fatonPayments.push({
+        (state.fatonPayments = state.fatonPayments || []).push({
             id: Date.now() + Math.random(),
             amount: payment.amount,
             date: payment.date,
@@ -22811,8 +22811,8 @@ function computeStorageStats() {
         sizeKB: sizeKB,
         sizeMB: sizeMB,
         products: (typeof PRODUCTS !== 'undefined' && PRODUCTS) ? PRODUCTS.length : 0,
-        sales: (state && state.sales) ? state.sales.length : 0,
-        clients: (state && state.clients) ? state.clients.length : 0,
+        sales: (state && state.sales) ? (state.sales || []).length : 0,
+        clients: (state && state.clients) ? (state.clients || []).length : 0,
         deliveries: deliveries.length,
         podPhotos: podPhotos,
         podGPS: podGPS,

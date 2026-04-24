@@ -6403,3 +6403,289 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
         margin-bottom: 10px;
     }
 }
+
+/* ===================== DESIGN POLISH BATCH 4 (D74-D106) ===================== */
+/* D74: Top-right toast stack spacing */
+#toast-container > div + div { margin-top: 8px; }
+
+/* D75: Better sale status pills */
+.status-paid { background: rgba(0,184,148,0.12); color: #00745a; border-radius: 999px; padding: 3px 10px; font-size: 0.78em; font-weight: 600; }
+.status-unpaid { background: rgba(214,48,49,0.12); color: #a12523; border-radius: 999px; padding: 3px 10px; font-size: 0.78em; font-weight: 600; }
+.status-partial { background: rgba(253,203,110,0.2); color: #8a5a00; border-radius: 999px; padding: 3px 10px; font-size: 0.78em; font-weight: 600; }
+.status-overdue { background: rgba(225,112,85,0.12); color: #b04424; border-radius: 999px; padding: 3px 10px; font-size: 0.78em; font-weight: 600; }
+
+/* D76: Section heading with accent bar */
+.page > h2 {
+    position: relative;
+    padding-left: 14px;
+}
+.page > h2::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 6px; bottom: 6px;
+    width: 4px;
+    background: linear-gradient(180deg, var(--primary, #e17055), #d35400);
+    border-radius: 3px;
+}
+
+/* D77: Full-width button */
+.btn-block { width: 100%; justify-content: center; }
+
+/* D78: Secondary button refined */
+.btn-secondary {
+    background: rgba(0,0,0,0.04);
+    color: var(--text-primary, #333);
+    border: 1px solid rgba(0,0,0,0.08);
+}
+.btn-secondary:hover { background: rgba(0,0,0,0.08); }
+
+/* D79: Ghost button */
+.btn-ghost {
+    background: transparent;
+    color: var(--primary, #e17055);
+    border: 1px solid transparent;
+}
+.btn-ghost:hover { background: rgba(225,112,85,0.08); }
+
+/* D80: Card with header separator */
+.card-with-header .card-header {
+    padding-bottom: 10px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    font-weight: 700;
+}
+
+/* D81: Better grid gap on mobile */
+@media (max-width: 640px) {
+    .stats-grid, .stock-grid, .contacts-grid { gap: 10px; }
+}
+
+/* D82: Focus trap visual for active modal */
+.modal:not(.hidden) { outline: 2px solid transparent; }
+
+/* D83: Subtle animation when value changes */
+.value-flash {
+    animation: valueFlash 0.5s ease;
+}
+@keyframes valueFlash {
+    0% { background: rgba(0,184,148,0.24); }
+    100% { background: transparent; }
+}
+
+/* D84: Debt card emphasis */
+.debt-card {
+    border-left: 4px solid var(--danger, #e74c3c);
+    padding-left: 14px;
+}
+
+/* D85: Success card */
+.success-card {
+    border-left: 4px solid var(--success, #00b894);
+    padding-left: 14px;
+}
+
+/* D86: Info banner */
+.info-banner {
+    background: linear-gradient(135deg, rgba(9,132,227,0.08), rgba(9,132,227,0.02));
+    border: 1px solid rgba(9,132,227,0.18);
+    padding: 10px 14px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.92em;
+}
+.info-banner i { color: #0984e3; }
+
+/* D87: Warning banner */
+.warning-banner {
+    background: linear-gradient(135deg, rgba(253,203,110,0.14), rgba(253,203,110,0.04));
+    border: 1px solid rgba(253,203,110,0.4);
+    padding: 10px 14px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.92em;
+}
+.warning-banner i { color: #e67e22; }
+
+/* D88: Danger banner */
+.danger-banner {
+    background: linear-gradient(135deg, rgba(214,48,49,0.08), rgba(214,48,49,0.02));
+    border: 1px solid rgba(214,48,49,0.2);
+    padding: 10px 14px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.92em;
+}
+.danger-banner i { color: #d63031; }
+
+/* D89: Metric card with icon on side */
+.metric-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: var(--bg-primary, #fff);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.metric-card .metric-icon {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(225,112,85,0.1);
+    color: var(--primary, #e17055);
+    font-size: 1.3em;
+}
+.metric-card .metric-value { font-size: 1.4em; font-weight: 700; line-height: 1; }
+.metric-card .metric-label { font-size: 0.78em; color: var(--text-secondary, #888); text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* D90: Tab content smooth transition */
+.tab-content { animation: tabFade 0.22s ease; }
+@keyframes tabFade { from { opacity: 0; } to { opacity: 1; } }
+
+/* D91: Action row top alignment */
+.action-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+    align-items: center;
+}
+
+/* D92: Keyboard focus visible on pill chips */
+.chip:focus-visible { outline: 2px solid var(--primary, #e17055); outline-offset: 2px; }
+
+/* D93: Disabled input state */
+input:disabled, select:disabled, textarea:disabled {
+    opacity: 0.6;
+    background: rgba(0,0,0,0.04);
+    cursor: not-allowed;
+}
+
+/* D94: Placeholder refinement */
+::placeholder { color: var(--text-secondary, #aaa); opacity: 0.7; }
+
+/* D95: Better details/summary */
+details summary {
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-weight: 600;
+    list-style: none;
+}
+details summary::-webkit-details-marker { display: none; }
+details summary::before { content: '▸ '; display: inline-block; transition: transform 0.15s ease; }
+details[open] summary::before { transform: rotate(90deg); }
+
+/* D96: Mark/highlight tag */
+mark {
+    background: rgba(253,203,110,0.4);
+    padding: 1px 4px;
+    border-radius: 3px;
+    color: inherit;
+}
+
+/* D97: Subtle table caption */
+.data-table caption {
+    caption-side: top;
+    text-align: left;
+    font-weight: 600;
+    padding: 6px 0 10px;
+    color: var(--text-secondary, #666);
+}
+
+/* D98: Row separator on desktop */
+@media (min-width: 769px) {
+    .data-table tbody tr { border-bottom: 1px solid rgba(0,0,0,0.04); }
+}
+
+/* D99: Mobile stacked table rows */
+@media (max-width: 640px) {
+    .data-table.stack-mobile, .data-table.stack-mobile thead { display: block; }
+    .data-table.stack-mobile thead { display: none; }
+    .data-table.stack-mobile tbody tr {
+        display: block;
+        margin-bottom: 10px;
+        padding: 10px;
+        border: 1px solid rgba(0,0,0,0.06);
+        border-radius: 10px;
+    }
+    .data-table.stack-mobile td {
+        display: flex;
+        justify-content: space-between;
+        padding: 4px 0;
+    }
+    .data-table.stack-mobile td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--text-secondary, #666);
+    }
+}
+
+/* D100: Floating action button (FAB) */
+.fab {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary, #e17055), #d35400);
+    color: #fff;
+    border: none;
+    font-size: 1.4em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 20px rgba(225,112,85,0.35);
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+    z-index: 999;
+}
+.fab:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(225,112,85,0.45); }
+
+/* D101: Avatar color palette fallback variations */
+.contact-avatar.color-2 { background: linear-gradient(135deg, #0984e3, #0866b2); }
+.contact-avatar.color-3 { background: linear-gradient(135deg, #00b894, #007a60); }
+.contact-avatar.color-4 { background: linear-gradient(135deg, #6c5ce7, #4b3fb0); }
+.contact-avatar.color-5 { background: linear-gradient(135deg, #e84393, #b0316f); }
+
+/* D102: Breadcrumb */
+.breadcrumb { display: flex; flex-wrap: wrap; gap: 6px; font-size: 0.88em; color: var(--text-secondary, #888); margin-bottom: 10px; }
+.breadcrumb a { color: var(--text-secondary, #888); }
+.breadcrumb a:hover { color: var(--primary, #e17055); }
+.breadcrumb > * + *::before { content: '/ '; opacity: 0.5; margin-right: 2px; }
+
+/* D103: Tag list */
+.tag-list { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.tag {
+    background: rgba(0,0,0,0.05);
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.78em;
+    font-weight: 500;
+}
+
+/* D104: Better table row click affordance */
+.data-table tbody tr[onclick] { cursor: pointer; }
+
+/* D105: Animated hamburger for mobile menu */
+.hamburger { width: 24px; height: 18px; position: relative; display: inline-block; }
+.hamburger span { display: block; position: absolute; height: 2px; width: 100%; background: currentColor; border-radius: 2px; transition: 0.25s ease; }
+.hamburger span:nth-child(1) { top: 0; }
+.hamburger span:nth-child(2) { top: 8px; }
+.hamburger span:nth-child(3) { top: 16px; }
+.hamburger.open span:nth-child(1) { top: 8px; transform: rotate(45deg); }
+.hamburger.open span:nth-child(2) { opacity: 0; }
+.hamburger.open span:nth-child(3) { top: 8px; transform: rotate(-45deg); }
+
+/* D106: Respect safe-area on iOS */
+@supports (padding: max(0px)) {
+    body { padding-left: max(0px, env(safe-area-inset-left)); padding-right: max(0px, env(safe-area-inset-right)); }
+    .fab { bottom: max(24px, env(safe-area-inset-bottom)); right: max(24px, env(safe-area-inset-right)); }
+}
