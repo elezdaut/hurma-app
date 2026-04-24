@@ -2697,6 +2697,43 @@ input:checked + .slider:before {
     overflow: hidden;
     text-overflow: ellipsis;
 }
+/* Quick actions inside product search result chip */
+.search-result-item .sr-quick-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+    margin-right: 8px;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+.search-result-item:hover .sr-quick-actions,
+.search-result-item.sr-active .sr-quick-actions,
+.search-result-item:focus-within .sr-quick-actions { opacity: 1; }
+@media (max-width: 768px) {
+    /* On mobile, always show quick actions (no hover) */
+    .search-result-item .sr-quick-actions { opacity: 1; }
+}
+.search-result-item .sr-qa-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    transition: background 0.12s, transform 0.08s, color 0.12s;
+}
+.search-result-item .sr-qa-btn:hover {
+    background: var(--primary, #e17055);
+    color: white;
+    transform: translateY(-1px);
+}
+.search-result-item .sr-qa-btn:active { transform: translateY(0); }
+
 .sr-hi {
     background: rgba(253, 203, 110, 0.45);
     color: inherit;

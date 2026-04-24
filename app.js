@@ -10726,11 +10726,38 @@ function _doGlobalSearch(query, results) {
     if (prodMatches.length) {
         let html = '<div class="sr-section-header"><i class="fas fa-box"></i> Produkte (' + prodMatches.length + ')</div>';
         prodMatches.slice(0, 5).forEach(p => {
-            html += `<div class="search-result-item" data-sr-action="product" data-sr-id="${_srEsc(p.id)}" onclick="_srOpen('product','${_srEsc(p.id)}')">
+            const stk = ((state.stock || {})[p.id] || 0);
+            const stkColor = stk === 0 ? 'var(--danger)' : (stk < 5 ? 'var(--warning)' : 'var(--success)');
+            // Build detail line — only show fields that have meaningful values
+            const parts = [];
+            if (p.weight) parts.push(_srEsc(p.weight));
+            if (p.sellPrice) parts.push('💰 ' + p.sellPrice + ' ден');
+            else if (p.buyPrice) parts.push('Blerje: ' + p.buyPrice + ' ден');
+            parts.push('<span style="color:' + stkColor + ';font-weight:600;">📦 Stok: ' + stk + '</span>');
+            const detail = parts.join(' · ');
+            const pidEsc = _srEsc(p.id);
+            // Quick actions: Shit (sale), Shto Stok (add stock), 360° (full view)
+            const actions = `
+                <div class="sr-quick-actions" onclick="event.stopPropagation();">
+                    <button class="sr-qa-btn" title="Shit menjëherë" onclick="hideSearchResults();navigateTo('sales');setTimeout(()=>{if(typeof openSaleModal==='function'){openSaleModal();setTimeout(()=>{const sel=document.getElementById('sale-product');if(sel){sel.value='${pidEsc}';sel.dispatchEvent(new Event('change'));}},100);}},150);">
+                        <i class="fas fa-cash-register"></i>
+                    </button>
+                    <button class="sr-qa-btn" title="Shto stok" onclick="hideSearchResults();navigateTo('stock');setTimeout(()=>{const el=document.getElementById('stock-product-${pidEsc}');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},150);">
+                        <i class="fas fa-plus-circle"></i>
+                    </button>
+                    <button class="sr-qa-btn" title="Pamja 360°" onclick="_srOpen('product','${pidEsc}');">
+                        <i class="fas fa-chart-pie"></i>
+                    </button>
+                </div>`;
+            html += `<div class="search-result-item search-result-product" data-sr-action="product" data-sr-id="${pidEsc}" onclick="_srOpen('product','${pidEsc}')">
                 <i class="fas fa-box"></i>
-                <div class="sr-body"><div class="sr-name">${_srHi(p.name, query)}</div>
-                <div class="sr-detail">${_srEsc(p.weight || '')} | Blerje: ${p.buyPrice || 0} | Shitje: ${p.sellPrice || 0} ден | Stok: ${((state.stock || {})[p.id] || 0)}</div></div>
-                <span class="sr-type">Produkt</span></div>`;
+                <div class="sr-body">
+                    <div class="sr-name">${_srHi(p.name, query)}</div>
+                    <div class="sr-detail">${detail}</div>
+                </div>
+                ${actions}
+                <span class="sr-type">Produkt</span>
+            </div>`;
         });
         sections.push(html);
     }
