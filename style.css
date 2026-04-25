@@ -2697,6 +2697,191 @@ input:checked + .slider:before {
     overflow: hidden;
     text-overflow: ellipsis;
 }
+/* ============================================================
+   Last Sale Chip — "Klienti i fundit në header"
+   Badge i bukur me info të vërtetë + menu kontekstuale
+   ============================================================ */
+.last-sale-chip {
+    display: inline-flex;
+    align-items: stretch;
+    gap: 0;
+    background: linear-gradient(135deg, var(--bg-secondary, #f8f5f0), var(--bg, #fff));
+    border: 1px solid var(--border, #e5e1d8);
+    border-radius: 14px;
+    padding: 0;
+    margin-left: auto;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    transition: box-shadow 0.18s, transform 0.12s, border-color 0.18s;
+    overflow: hidden;
+    max-width: 320px;
+}
+.last-sale-chip:hover {
+    box-shadow: 0 4px 12px rgba(225, 112, 85, 0.12);
+    border-color: color-mix(in srgb, var(--primary, #e17055) 30%, var(--border, #e5e1d8));
+}
+.last-sale-chip:active { transform: translateY(1px); }
+
+.lsc-main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 8px 7px 12px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: var(--text);
+    text-align: left;
+    flex: 1;
+    min-width: 0;
+    font: inherit;
+    border-radius: 14px 0 0 14px;
+}
+.lsc-main:hover { background: color-mix(in srgb, var(--primary, #e17055) 6%, transparent); }
+.lsc-main:focus-visible { outline: 2px solid var(--primary, #e17055); outline-offset: -2px; }
+
+.lsc-icon {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.lsc-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+}
+.lsc-line1 {
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+    font-size: 0.82rem;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+.lsc-client {
+    color: var(--text);
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 1;
+    min-width: 0;
+}
+.lsc-product {
+    color: var(--text-secondary, #666);
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 1;
+    min-width: 0;
+}
+.lsc-sep { color: var(--text-secondary, #999); font-weight: 400; opacity: 0.6; }
+.lsc-qty {
+    color: var(--primary, #e17055);
+    font-weight: 700;
+    font-size: 0.78rem;
+    background: color-mix(in srgb, var(--primary, #e17055) 12%, transparent);
+    padding: 1px 6px;
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+
+.lsc-line2 {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    line-height: 1.2;
+    color: var(--text-secondary, #777);
+}
+.lsc-amount { font-weight: 700; color: var(--success, #27ae60); }
+.lsc-time { font-style: italic; opacity: 0.75; }
+
+.lsc-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.lsc-dot-ok { background: var(--success, #27ae60); box-shadow: 0 0 0 2px color-mix(in srgb, var(--success, #27ae60) 20%, transparent); }
+.lsc-dot-warn { background: var(--warning, #f39c12); box-shadow: 0 0 0 2px color-mix(in srgb, var(--warning, #f39c12) 20%, transparent); }
+
+.lsc-menu-btn {
+    width: 32px;
+    border: none;
+    border-left: 1px solid var(--border, #e5e1d8);
+    background: transparent;
+    cursor: pointer;
+    color: var(--text-secondary, #666);
+    font-size: 0.85rem;
+    padding: 0;
+    flex-shrink: 0;
+    transition: background 0.12s, color 0.12s;
+}
+.lsc-menu-btn:hover {
+    background: color-mix(in srgb, var(--primary, #e17055) 8%, transparent);
+    color: var(--primary, #e17055);
+}
+.lsc-menu-btn:focus-visible { outline: 2px solid var(--primary, #e17055); outline-offset: -2px; }
+
+/* Context menu */
+.lsc-menu {
+    background: var(--bg, #fff);
+    border: 1px solid var(--border, #e5e1d8);
+    border-radius: 12px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14), 0 2px 6px rgba(0, 0, 0, 0.06);
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 220px;
+    animation: lscMenuIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes lscMenuIn {
+    from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.lsc-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: var(--text);
+    text-align: left;
+    border-radius: 8px;
+    font: inherit;
+    font-size: 0.88rem;
+    transition: background 0.1s;
+    width: 100%;
+}
+.lsc-menu-item:hover { background: color-mix(in srgb, var(--primary, #e17055) 10%, transparent); }
+.lsc-menu-item i { width: 18px; text-align: center; color: var(--primary, #e17055); }
+.lsc-menu-item-danger { color: var(--danger, #e74c3c); }
+.lsc-menu-item-danger i { color: var(--danger, #e74c3c); }
+.lsc-menu-item-danger:hover { background: color-mix(in srgb, var(--danger, #e74c3c) 10%, transparent); }
+
+/* Dark mode polish */
+[data-theme="dark"] .last-sale-chip {
+    background: linear-gradient(135deg, var(--bg-secondary), var(--bg));
+}
+[data-theme="dark"] .lsc-menu {
+    background: var(--bg-secondary);
+}
+
+/* Mobile: kompakt */
+@media (max-width: 768px) {
+    .last-sale-chip { max-width: 220px; }
+    .lsc-line2 { display: none; }
+    .lsc-line1 { font-size: 0.78rem; }
+}
+
 /* Quick actions inside product search result chip */
 .search-result-item .sr-quick-actions {
     display: flex;

@@ -13885,33 +13885,198 @@ function sendThankYouWhatsApp(clientId, amount) {
 }
 
 // ============================================================
-// FEATURE 16: Klienti i fundit ne header
+// FEATURE 16: Shitja e fundit në header — "Quick Recap" chip
 // ============================================================
+// Tregon shitjen më të fundit me info të vërtetë (klient, produkt, sasi,
+// shumë, kohë) dhe ofron menu të shpejtë me veprime: shih detajet e klientit,
+// shih produktin, përsërit shitjen, ose mbyll chip-in.
 function updateLastClientHeader() {
     const sales = (state.sales || []);
-    if (sales.length === 0) return;
+    let badge = document.getElementById('last-client-header-badge');
+
+    // Nëse përdoruesi e ka mbyllur, mos e rishfaq deri në sesionin tjetër
+    if (sessionStorage.getItem('hurma-last-client-dismissed') === '1') {
+        if (badge) badge.remove();
+        return;
+    }
+
+    if (sales.length === 0) {
+        if (badge) badge.remove();
+        return;
+    }
+
+    // Gjej shitjen më të fundit
     const sorted = sales.slice().sort((a, b) => {
-        const da = new Date((b.createdAt || b.date));
-        const db = new Date((a.createdAt || a.date));
+        const da = new Date(b.createdAt || b.date || 0);
+        const db = new Date(a.createdAt || a.date || 0);
         return da - db;
     });
     const lastSale = sorted[0];
-    const client = (state.clients || []).find(c => c.id === lastSale.clientId);
-    if (!client) return;
-    const productName = lastSale.product || lastSale.productName || 'Produkt';
+    if (!lastSale) { if (badge) badge.remove(); return; }
 
-    let badge = document.getElementById('last-client-header-badge');
+    // Lookup-e të sigurta
+    const client = lastSale.clientId
+        ? (state.clients || []).find(c => c && c.id === lastSale.clientId)
+        : null;
+    const product = (typeof getProduct === 'function' && lastSale.productId)
+        ? getProduct(lastSale.productId)
+        : null;
+
+    // Klient & produkt me fallback të bukura (jo "Produkt" placeholder!)
+    const clientName = client && client.name ? client.name : 'Pa klient';
+    const productName = product && product.name
+        ? product.name
+        : (lastSale.productId || 'Produkt i fshirë');
+    const qty = lastSale.quantity || lastSale.qty || 1;
+    const total = lastSale.sellTotal || lastSale.total || 0;
+    const payType = lastSale.paymentType || 'cash';
+    const isCredit = payType === 'invoice_60' && !lastSale.invoicePaid;
+
+    // Kohë relative ("para 5 min", "1 orë më parë", etj.)
+    const ts = new Date(lastSale.createdAt || lastSale.date || Date.now()).getTime();
+    const ago = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+    let timeAgo;
+    if (ago < 60) timeAgo = 'tani';
+    else if (ago < 3600) timeAgo = Math.floor(ago / 60) + ' min më parë';
+    else if (ago < 86400) timeAgo = Math.floor(ago / 3600) + ' orë më parë';
+    else if (ago < 86400 * 7) timeAgo = Math.floor(ago / 86400) + ' ditë më parë';
+    else timeAgo = new Date(ts).toLocaleDateString('sq-AL', { day: 'numeric', month: 'short' });
+
+    // Krijo chip-in nëse nuk ekziston
     if (!badge) {
         const topbar = document.querySelector('.topbar') || document.querySelector('header') || document.querySelector('.header');
         if (!topbar) return;
         badge = document.createElement('div');
         badge.id = 'last-client-header-badge';
-        badge.style.cssText = 'display:flex;align-items:center;gap:6px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:0.8rem;cursor:pointer;margin-left:auto;';
-        badge.title = 'Shitja e fundit';
+        badge.className = 'last-sale-chip';
         topbar.appendChild(badge);
     }
-    badge.innerHTML = `<span style="color:var(--primary);">🛒</span><span><strong>${client.name}</strong> &mdash; ${productName}</span>`;
-    badge.onclick = () => showClientDebtHistory(client.id);
+
+    const statusDot = isCredit
+        ? '<span class="lsc-dot lsc-dot-warn" title="Fatura e papaguar"></span>'
+        : '<span class="lsc-dot lsc-dot-ok" title="Cash"></span>';
+
+    badge.innerHTML = `
+        <button class="lsc-main" type="button" aria-label="Shiko shitjen e fundit">
+            <span class="lsc-icon">🛒</span>
+            <span class="lsc-body">
+                <span class="lsc-line1">
+                    <strong class="lsc-client">${_escapeHtml(clientName)}</strong>
+                    <span class="lsc-sep">·</span>
+                    <span class="lsc-product">${_escapeHtml(productName)}</span>
+                    ${qty > 1 ? '<span class="lsc-qty">×' + qty + '</span>' : ''}
+                </span>
+                <span class="lsc-line2">
+                    ${statusDot}
+                    <span class="lsc-amount">${total.toLocaleString('sq-AL')} ден</span>
+                    <span class="lsc-sep">·</span>
+                    <span class="lsc-time">${timeAgo}</span>
+                </span>
+            </span>
+        </button>
+        <button class="lsc-menu-btn" type="button" aria-label="Më shumë veprime" title="Veprime">
+            <i class="fas fa-ellipsis-vertical"></i>
+        </button>
+    `;
+
+    // Click on main → open client 360 (or product 360 if no client)
+    const mainBtn = badge.querySelector('.lsc-main');
+    if (mainBtn) {
+        mainBtn.onclick = () => {
+            if (client && typeof openClient360 === 'function') openClient360(client.id);
+            else if (product && typeof openProduct360 === 'function') openProduct360(product.id);
+            else if (typeof navigateTo === 'function') navigateTo('sales');
+        };
+    }
+
+    // Menu button → context menu with quick actions
+    const menuBtn = badge.querySelector('.lsc-menu-btn');
+    if (menuBtn) {
+        menuBtn.onclick = (e) => {
+            e.stopPropagation();
+            _openLastSaleMenu(badge, client, product, lastSale);
+        };
+    }
+}
+
+function _escapeHtml(s) {
+    return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
+function _openLastSaleMenu(badge, client, product, sale) {
+    // Mbyll çdo menu ekzistues
+    const existing = document.getElementById('lsc-menu');
+    if (existing) { existing.remove(); return; }
+
+    const menu = document.createElement('div');
+    menu.id = 'lsc-menu';
+    menu.className = 'lsc-menu';
+    const items = [];
+
+    if (client) {
+        items.push({ icon: 'fa-user', label: 'Pamja 360° e klientit', action: () => openClient360(client.id) });
+        if (client.phone) {
+            items.push({ icon: 'fa-comment', label: 'WhatsApp ' + client.name, action: () => sendWhatsApp(client.phone, 'Përshëndetje ' + client.name) });
+        }
+    }
+    if (product) {
+        items.push({ icon: 'fa-box', label: 'Pamja 360° e produktit', action: () => openProduct360(product.id) });
+        items.push({ icon: 'fa-cash-register', label: 'Përsërit këtë shitje', action: () => {
+            if (typeof openSaleModal === 'function') {
+                openSaleModal();
+                setTimeout(() => {
+                    const sel = document.getElementById('sale-product');
+                    if (sel) { sel.value = product.id; sel.dispatchEvent(new Event('change')); }
+                    const qtyInput = document.getElementById('sale-quantity');
+                    if (qtyInput) qtyInput.value = sale.quantity || 1;
+                    const cliSel = document.getElementById('sale-client');
+                    if (cliSel && client) cliSel.value = client.id;
+                }, 100);
+            }
+        }});
+    }
+    items.push({ icon: 'fa-list', label: 'Të gjitha shitjet', action: () => navigateTo('sales') });
+    items.push({ icon: 'fa-eye-slash', label: 'Mbyll për sot', action: () => {
+        sessionStorage.setItem('hurma-last-client-dismissed', '1');
+        const b = document.getElementById('last-client-header-badge');
+        if (b) b.remove();
+    }, danger: true });
+
+    menu.innerHTML = items.map((it, i) =>
+        `<button class="lsc-menu-item ${it.danger ? 'lsc-menu-item-danger' : ''}" data-i="${i}">
+            <i class="fas ${it.icon}"></i><span>${it.label}</span>
+        </button>`
+    ).join('');
+
+    document.body.appendChild(menu);
+
+    // Pozicionim afër badge-it
+    const rect = badge.getBoundingClientRect();
+    menu.style.position = 'fixed';
+    menu.style.top = (rect.bottom + 6) + 'px';
+    menu.style.right = Math.max(8, window.innerWidth - rect.right) + 'px';
+    menu.style.zIndex = '10000';
+
+    // Lidh handlerët
+    menu.querySelectorAll('.lsc-menu-item').forEach((btn, i) => {
+        btn.onclick = () => {
+            menu.remove();
+            try { items[i].action(); } catch (e) { console.warn('lsc menu action failed:', e); }
+        };
+    });
+
+    // Mbyll në click jashtë
+    setTimeout(() => {
+        const closeOnOutside = (ev) => {
+            if (!menu.contains(ev.target)) {
+                menu.remove();
+                document.removeEventListener('click', closeOnOutside);
+            }
+        };
+        document.addEventListener('click', closeOnOutside);
+    }, 50);
 }
 
 // ============================================================
