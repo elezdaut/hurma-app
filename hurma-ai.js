@@ -1474,25 +1474,58 @@ Kur ka kuptim, mund të shtosh **butona veprimi** në përgjigjen tënde që Ele
         const formData = new FormData();
         formData.append('file', blob, 'audio.' + ext);
         formData.append('model', 'whisper-1');
-        formData.append('language', 'sq'); // Shqip — Whisper e mbështet shumë mirë
+        // ⚠️ NUK specifikojmë "language" sepse:
+        //  - "sq" (Shqipja) NUK është në listën zyrtare të Whisper → returns 400 error
+        //  - Pa specifikim → Whisper auto-detekton dhe transkripton Shqipen mjaft mirë
+        // Prompt hint përmirëson saktësinë e termave specifikë të aplikacionit
+        formData.append('prompt', 'Pyetje për dyqanin Hurma në Shqip. Termat: Faton, Sulejmani, Medjool, Sukeri, Mexhdul, ден, fitim, klient, borxh, faturë, stok, shitje, kuti, copë.');
+        // Përgjigje në tekst të thjeshtë (më e shpejtë + më e lehtë për përpunim)
+        formData.append('response_format', 'json');
 
-        try {
-            const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+        // Fallback chain: pa-gjuhë (auto-detect) → 'mk' Maqedonisht
+        const tryWhisper = async (langCode) => {
+            const fd = new FormData();
+            fd.append('file', blob, 'audio.' + ext);
+            fd.append('model', 'whisper-1');
+            fd.append('prompt', 'Pyetje për dyqanin Hurma në Shqip. Termat: Faton, Sulejmani, Medjool, Sukeri, Mexhdul, ден, fitim, klient, borxh, faturë, stok, shitje, kuti, copë.');
+            fd.append('response_format', 'json');
+            if (langCode) fd.append('language', langCode);
+            const r = await fetch('https://api.openai.com/v1/audio/transcriptions', {
                 method: 'POST',
                 headers: { 'Authorization': 'Bearer ' + openaiKey },
-                body: formData
+                body: fd
             });
-            if (!response.ok) {
-                const errText = await response.text();
-                let msg = 'Whisper error ' + response.status;
+            if (!r.ok) {
+                const errText = await r.text();
+                let msg = 'Whisper error ' + r.status;
                 try {
                     const errJson = JSON.parse(errText);
                     if (errJson.error && errJson.error.message) msg = errJson.error.message;
                 } catch(e) {}
-                throw new Error(msg);
+                const err = new Error(msg);
+                err.status = r.status;
+                throw err;
             }
-            const data = await response.json();
-            const text = (data.text || '').trim();
+            const data = await r.json();
+            return (data.text || '').trim();
+        };
+
+        try {
+            let text = '';
+            try {
+                // Provë 1: pa-gjuhë (auto-detect — më i sakti për Shqipen)
+                console.log('[whisper] try 1: auto-detect');
+                text = await tryWhisper(null);
+            } catch (e1) {
+                console.warn('[whisper] auto-detect failed:', e1.message);
+                // Provë 2: 'mk' (Maqedonisht — gjuha më e afërt e mbështetur)
+                if (e1.status >= 400 && e1.status < 500) {
+                    console.log('[whisper] try 2: mk');
+                    text = await tryWhisper('mk');
+                } else {
+                    throw e1;
+                }
+            }
             console.log('[whisper] transcript:', text);
 
             _hideLiveBubble();
