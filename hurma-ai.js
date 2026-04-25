@@ -14,6 +14,7 @@
     const STORAGE_KEY_MODEL = 'hurma-ai-model';
     const STORAGE_KEY_TTS = 'hurma-ai-tts-enabled';
     const STORAGE_KEY_BRIEFING = 'hurma-ai-last-briefing';
+    const STORAGE_KEY_OPENAI = 'hurma-ai-openai-key'; // për Whisper transcription
 
     // ═══════════════════════════════════════════════════════════════════
     // SLASH COMMANDS — komanda të shpejta që zgjerohen në pyetje të plota
@@ -890,6 +891,11 @@ Kur ka kuptim, mund të shtosh **butona veprimi** në përgjigjen tënde që Ele
                 </label>
             </div>
             <div class="ai-sm-section">
+                <button class="ai-sm-btn" id="ai-sm-whisper">
+                    <i class="fas fa-microphone"></i> ${getOpenAIKey() ? 'Voice (Whisper) ✓ aktiv' : 'Konfiguro Voice (Whisper)'}
+                </button>
+            </div>
+            <div class="ai-sm-section">
                 <button class="ai-sm-btn ai-sm-btn-danger" id="ai-sm-clear-key">
                     <i class="fas fa-key"></i> Hiq çelësin API
                 </button>
@@ -919,6 +925,11 @@ Kur ka kuptim, mund të shtosh **butona veprimi** në përgjigjen tënde që Ele
             if (typeof showToast === 'function') {
                 showToast(ttsCheck.checked ? '🔊 TTS u ndez' : '🔇 TTS u shua', 'success');
             }
+        };
+        const whisperBtn = menu.querySelector('#ai-sm-whisper');
+        if (whisperBtn) whisperBtn.onclick = () => {
+            menu.remove();
+            _showWhisperSetupModal('Konfiguro Whisper për voice që punon në çdo browser:');
         };
         const clearBtn = menu.querySelector('#ai-sm-clear-key');
         if (clearBtn) clearBtn.onclick = () => {
@@ -1170,19 +1181,32 @@ Kur ka kuptim, mund të shtosh **butona veprimi** në përgjigjen tënde që Ele
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // 🎤 PRESS-AND-HOLD MIC — UX si WhatsApp (shtyp, fol, lësho)
+    // 🎤 PRESS-AND-HOLD MIC — MediaRecorder + Whisper (punon në çdo browser)
     // ═══════════════════════════════════════════════════════════════════
-    // - pointerdown te mic → fillon Web Speech menjëherë
-    // - tekst shfaqet live në bubble mbi input
-    // - pointerup → ndalon dhe dërgon transkriptin
-    // - nëse browser-i bllokon, hap modalin e udhëzimeve
+    // - pointerdown → MediaRecorder.start() (RELIABLE, jo si Web Speech)
+    // - bubble e kuqe me kohëmatës dhe waveform animim
+    // - pointerup → MediaRecorder.stop() → POST te Whisper → Claude
+    // - Fallback: nëse s'ka OpenAI key, përdor Web Speech (jo e besueshme)
     // ═══════════════════════════════════════════════════════════════════
     let _holdRecording = false;
-    let _holdRecognition = null;
-    let _holdTranscriptFinal = '';
+    let _holdMediaRecorder = null;
+    let _holdAudioChunks = [];
+    let _holdAudioStream = null;
+    let _holdRecognition = null; // fallback Web Speech
+    let _holdTranscriptFinal = ''; // për Web Speech fallback
     let _holdBubble = null;
     let _holdLangIdx = 0;
     let _holdHelpShown = false;
+    let _holdStartTime = 0;
+    let _holdTimerInterval = null;
+    let _holdMode = 'whisper'; // 'whisper' ose 'webspeech'
+
+    function getOpenAIKey() {
+        try { return localStorage.getItem(STORAGE_KEY_OPENAI) || ''; } catch(e) { return ''; }
+    }
+    function setOpenAIKey(k) {
+        try { localStorage.setItem(STORAGE_KEY_OPENAI, k); } catch(e) {}
+    }
 
     function _showLiveBubble() {
         if (_holdBubble) return;
@@ -1190,14 +1214,27 @@ Kur ka kuptim, mund të shtosh **butona veprimi** në përgjigjen tënde që Ele
         _holdBubble.id = 'mic-hold-bubble';
         _holdBubble.className = 'mic-hold-bubble';
         _holdBubble.innerHTML = `
-            <div class="mhb-pulse"><span></span><span></span><span></span></div>
-            <div class="mhb-text" id="mhb-text">Po dëgjoj... fol tani</div>
-            <div class="mhb-hint">🎤 Lësho butonin për të dërguar</div>
+            <div class="mhb-waveform">
+                <span></span><span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <div class="mhb-text" id="mhb-text">Po regjistroj... fol tani</div>
+            <div class="mhb-time" id="mhb-time">0:00</div>
+            <div class="mhb-hint">🎤 Lësho për të dërguar · Esc për të anuluar</div>
         `;
-        // Pozicio mbi input area
         const wrap = document.getElementById('ai-input-wrap');
         if (wrap) wrap.appendChild(_holdBubble);
         else document.body.appendChild(_holdBubble);
+
+        // Timer
+        _holdStartTime = Date.now();
+        if (_holdTimerInterval) clearInterval(_holdTimerInterval);
+        _holdTimerInterval = setInterval(() => {
+            const sec = Math.floor((Date.now() - _holdStartTime) / 1000);
+            const m = Math.floor(sec / 60), s = sec % 60;
+            const tEl = document.getElementById('mhb-time');
+            if (tEl) tEl.textContent = m + ':' + (s < 10 ? '0' + s : s);
+        }, 200);
     }
     function _updateLiveBubble(text) {
         if (!_holdBubble) return;
@@ -1209,6 +1246,7 @@ Kur ka kuptim, mund të shtosh **butona veprimi** në përgjigjen tënde që Ele
         }
     }
     function _hideLiveBubble() {
+        if (_holdTimerInterval) { clearInterval(_holdTimerInterval); _holdTimerInterval = null; }
         if (_holdBubble) {
             _holdBubble.classList.add('mhb-out');
             const ref = _holdBubble;
@@ -1216,40 +1254,110 @@ Kur ka kuptim, mund të shtosh **butona veprimi** në përgjigjen tënde që Ele
             setTimeout(() => { try { ref.remove(); } catch(e) {} }, 200);
         }
     }
+    function _setBubbleStatus(text) {
+        if (!_holdBubble) return;
+        const tEl = _holdBubble.querySelector('#mhb-text');
+        if (tEl) tEl.textContent = text;
+    }
 
-    function _startHoldRecording() {
+    async function _startHoldRecording() {
         if (_holdRecording) return;
 
-        // Nëse browser-i s'e mbështet, hap helper modal vetëm njëherë në sesion
-        if (!_supportsVoice()) {
-            if (!_holdHelpShown) {
-                _holdHelpShown = true;
-                _showOSDictationHelp();
-            } else {
-                if (typeof showToast === 'function') showToast('🎤 Browser-i nuk e mbështet input me zë. Përdor Chrome ose dictation të Mac-ut (fn fn).', 'error');
-            }
+        // Vendos modin: Whisper nëse ka OpenAI key (më i besueshëm), përndryshe Web Speech
+        const openaiKey = getOpenAIKey();
+        _holdMode = openaiKey ? 'whisper' : 'webspeech';
+        console.log('[voice] mode:', _holdMode);
+
+        if (_holdMode === 'whisper') {
+            await _startWhisperRecording();
+        } else {
+            // Web Speech fallback (mund të dështojë në Safari)
+            _startWebSpeechRecording();
+        }
+    }
+
+    // ── 🎙️ Whisper recording (RELIABLE — punon në Safari, Chrome, Firefox) ──
+    async function _startWhisperRecording() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            if (typeof showToast === 'function') showToast('🎤 Browser-i nuk e mbështet regjistrimin e zërit.', 'error');
+            return;
+        }
+        if (typeof MediaRecorder === 'undefined') {
+            if (typeof showToast === 'function') showToast('🎤 MediaRecorder nuk mbështetet.', 'error');
             return;
         }
 
+        try {
+            _holdAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        } catch (e) {
+            console.warn('[whisper] getUserMedia failed:', e);
+            const errMap = {
+                'NotAllowedError': '🚫 Lejoje aksesin në mikrofon te ikona e shiritit të adresës.',
+                'NotFoundError': '🎤 Nuk u gjet mikrofon.',
+                'NotReadableError': '⚠️ Mikrofoni është në përdorim nga një app tjetër.'
+            };
+            const msg = errMap[e.name] || ('🎤 ' + (e.message || e.name));
+            if (typeof showToast === 'function') showToast(msg, 'error');
+            return;
+        }
+
+        // Zgjedh mime type të mbështetur
+        let mimeType = 'audio/webm';
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+            mimeType = 'audio/mp4'; // Safari preferon mp4
+            if (!MediaRecorder.isTypeSupported(mimeType)) {
+                mimeType = ''; // default
+            }
+        }
+        console.log('[whisper] mimeType:', mimeType || 'default');
+
+        try {
+            _holdMediaRecorder = mimeType
+                ? new MediaRecorder(_holdAudioStream, { mimeType })
+                : new MediaRecorder(_holdAudioStream);
+        } catch (e) {
+            console.warn('[whisper] MediaRecorder failed:', e);
+            _holdAudioStream.getTracks().forEach(t => t.stop());
+            _holdAudioStream = null;
+            if (typeof showToast === 'function') showToast('🎤 Gabim regjistrimi: ' + e.message, 'error');
+            return;
+        }
+
+        _holdAudioChunks = [];
+        _holdMediaRecorder.ondataavailable = (e) => {
+            if (e.data && e.data.size > 0) _holdAudioChunks.push(e.data);
+        };
+        _holdMediaRecorder.onerror = (e) => {
+            console.warn('[whisper] recorder error:', e);
+        };
+
+        _holdMediaRecorder.start(250); // dump çdo 250ms
+        _holdRecording = true;
+        const micBtn = document.getElementById('ai-mic-btn');
+        if (micBtn) micBtn.classList.add('ai-mic-recording');
+        _showLiveBubble();
+        if (navigator.vibrate) try { navigator.vibrate(15); } catch(e) {}
+    }
+
+    // ── 🌐 Web Speech fallback (jo i besueshëm në Safari) ──
+    function _startWebSpeechRecording() {
+        if (!_supportsVoice()) {
+            // Nuk mbështetet — sugjero të shtosh OpenAI key
+            _showWhisperSetupModal('Voice nuk funksionon në këtë browser. Për të folur me AI, instalo Whisper (5 sekonda):');
+            return;
+        }
         const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         try {
             _holdRecognition = new Recognition();
-        } catch(e) {
-            console.warn('[hold-voice] new Recognition failed:', e);
-            return;
-        }
-
+        } catch(e) { return; }
         _holdRecognition.lang = VOICE_LANGS[_holdLangIdx] || 'sq-AL';
         _holdRecognition.continuous = true;
         _holdRecognition.interimResults = true;
         _holdTranscriptFinal = '';
         _holdRecording = true;
-
         const micBtn = document.getElementById('ai-mic-btn');
         if (micBtn) micBtn.classList.add('ai-mic-recording');
         _showLiveBubble();
-
-        // Vibrate (mobile haptic)
         if (navigator.vibrate) try { navigator.vibrate(15); } catch(e) {}
 
         _holdRecognition.onresult = (event) => {
@@ -1260,69 +1368,195 @@ Kur ka kuptim, mund të shtosh **butona veprimi** në përgjigjen tënde që Ele
             }
             _updateLiveBubble(_holdTranscriptFinal + interim);
         };
-
         _holdRecognition.onerror = (event) => {
-            console.warn('[hold-voice] error:', event.error);
-            const isSafari = _isSafari();
-
+            console.warn('[webspeech] error:', event.error);
             if (event.error === 'language-not-supported') {
                 _holdLangIdx++;
                 if (_holdLangIdx < VOICE_LANGS.length) {
                     _stopHoldRecording(false);
-                    setTimeout(() => _startHoldRecording(), 100);
+                    setTimeout(() => _startWebSpeechRecording(), 100);
                     return;
                 }
                 _holdLangIdx = 0;
             }
-
-            if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-                if (!_holdHelpShown) {
-                    _holdHelpShown = true;
-                    if (isSafari) _showSafariVoiceHelp();
-                    else _showOSDictationHelp();
-                } else {
-                    if (typeof showToast === 'function') showToast('🚫 Aksesi në mikrofon është i bllokuar.', 'error');
-                }
+            if ((event.error === 'not-allowed' || event.error === 'service-not-allowed') && !_holdHelpShown) {
+                _holdHelpShown = true;
+                _showWhisperSetupModal('Web Speech API u bllokua nga browser-i. Përdor Whisper për voice që punon kudo:');
             } else if (event.error === 'no-speech') {
-                if (typeof showToast === 'function') showToast('Nuk dëgjova asgjë. Provo prapë.', 'warning');
-            } else if (event.error && event.error !== 'aborted') {
-                if (typeof showToast === 'function') showToast('🎤 ' + event.error, 'error');
+                if (typeof showToast === 'function') showToast('Nuk dëgjova asgjë.', 'warning');
             }
             _stopHoldRecording(false);
         };
-
-        _holdRecognition.onend = () => {
-            // onend mund të vijë para se user-i të lëshojë
-            // por _stopHoldRecording(send) thirret nga pointerup, kështu OK
-        };
-
-        try {
-            _holdRecognition.start();
-        } catch(e) {
-            console.warn('[hold-voice] start() failed:', e);
-            _stopHoldRecording(false);
-        }
+        try { _holdRecognition.start(); }
+        catch(e) { _stopHoldRecording(false); }
     }
 
-    function _stopHoldRecording(send) {
+    async function _stopHoldRecording(send) {
         const wasRec = _holdRecording;
         _holdRecording = false;
         const micBtn = document.getElementById('ai-mic-btn');
         if (micBtn) micBtn.classList.remove('ai-mic-recording');
 
-        if (_holdRecognition) {
+        if (_holdMode === 'whisper' && _holdMediaRecorder) {
+            // Stop recorder + transkripto via Whisper
+            const recorder = _holdMediaRecorder;
+            _holdMediaRecorder = null;
+            const stream = _holdAudioStream;
+            _holdAudioStream = null;
+
+            try {
+                if (recorder.state !== 'inactive') recorder.stop();
+            } catch(e) {}
+            // Prit final dataavailable
+            await new Promise(resolve => {
+                recorder.onstop = resolve;
+                setTimeout(resolve, 1500); // safety timeout
+            });
+            // Mbyll mic stream
+            if (stream) stream.getTracks().forEach(t => t.stop());
+
+            if (!wasRec || !send) {
+                _hideLiveBubble();
+                _holdAudioChunks = [];
+                return;
+            }
+
+            if (_holdAudioChunks.length === 0) {
+                _setBubbleStatus('Asnjë audio nuk u regjistrua');
+                setTimeout(_hideLiveBubble, 1000);
+                return;
+            }
+
+            const blob = new Blob(_holdAudioChunks, { type: recorder.mimeType || 'audio/webm' });
+            _holdAudioChunks = [];
+            console.log('[whisper] audio blob size:', blob.size, 'type:', blob.type);
+
+            // Mos transkripto regjistrime shumë të shkurtra (< 0.3s zakonisht boshllëk)
+            if (blob.size < 1000) {
+                _setBubbleStatus('Regjistrimi shumë i shkurtër');
+                setTimeout(_hideLiveBubble, 1000);
+                return;
+            }
+
+            await _transcribeAndSend(blob);
+        } else if (_holdRecognition) {
+            // Web Speech path
             try { _holdRecognition.stop(); } catch(e) {}
             _holdRecognition = null;
+            _hideLiveBubble();
+            if (wasRec && send && _holdTranscriptFinal.trim()) {
+                const text = _holdTranscriptFinal.trim();
+                _holdTranscriptFinal = '';
+                if (navigator.vibrate) try { navigator.vibrate([15, 30, 15]); } catch(e) {}
+                sendMessage(text);
+            }
+        } else {
+            _hideLiveBubble();
         }
-        _hideLiveBubble();
+    }
 
-        if (wasRec && send && _holdTranscriptFinal.trim()) {
-            const text = _holdTranscriptFinal.trim();
-            _holdTranscriptFinal = '';
-            // Vibrate konfirmim (mobile)
-            if (navigator.vibrate) try { navigator.vibrate([15, 30, 15]); } catch(e) {}
-            sendMessage(text);
+    async function _transcribeAndSend(blob) {
+        const openaiKey = getOpenAIKey();
+        if (!openaiKey) {
+            _hideLiveBubble();
+            _showWhisperSetupModal('Konfiguro OpenAI key për transkriptim:');
+            return;
         }
+        _setBubbleStatus('🎙️ Po transkriptohet...');
+        // Përcakto extension
+        const blobType = blob.type || 'audio/webm';
+        let ext = 'webm';
+        if (blobType.includes('mp4')) ext = 'mp4';
+        else if (blobType.includes('mpeg')) ext = 'mp3';
+        else if (blobType.includes('ogg')) ext = 'ogg';
+        else if (blobType.includes('wav')) ext = 'wav';
+
+        const formData = new FormData();
+        formData.append('file', blob, 'audio.' + ext);
+        formData.append('model', 'whisper-1');
+        formData.append('language', 'sq'); // Shqip — Whisper e mbështet shumë mirë
+
+        try {
+            const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + openaiKey },
+                body: formData
+            });
+            if (!response.ok) {
+                const errText = await response.text();
+                let msg = 'Whisper error ' + response.status;
+                try {
+                    const errJson = JSON.parse(errText);
+                    if (errJson.error && errJson.error.message) msg = errJson.error.message;
+                } catch(e) {}
+                throw new Error(msg);
+            }
+            const data = await response.json();
+            const text = (data.text || '').trim();
+            console.log('[whisper] transcript:', text);
+
+            _hideLiveBubble();
+            if (text) {
+                if (navigator.vibrate) try { navigator.vibrate([15, 30, 15]); } catch(e) {}
+                sendMessage(text);
+            } else {
+                if (typeof showToast === 'function') showToast('Nuk u dëgjua asnjë fjalë.', 'warning');
+            }
+        } catch (e) {
+            console.warn('[whisper] failed:', e);
+            _setBubbleStatus('❌ ' + (e.message || 'Transkriptimi dështoi'));
+            setTimeout(_hideLiveBubble, 2500);
+            if (typeof showToast === 'function') showToast('Transkriptimi dështoi: ' + e.message, 'error');
+        }
+    }
+
+    // Modal për setup të OpenAI Whisper key
+    function _showWhisperSetupModal(introText) {
+        const existing = document.getElementById('whisper-setup-modal');
+        if (existing) { existing.remove(); return; }
+        const overlay = document.createElement('div');
+        overlay.id = 'whisper-setup-modal';
+        overlay.className = 'mic-helper-overlay';
+        overlay.innerHTML = `
+            <div class="mh-backdrop"></div>
+            <div class="mh-card" style="max-width:500px;">
+                <button class="mh-close" aria-label="Mbyll">×</button>
+                <div class="mh-icon">🎙️</div>
+                <h3>Konfiguro Voice (Whisper)</h3>
+                <p class="mh-sub" style="margin-bottom:12px;">${introText || 'Whisper transkripton zërin tënd në çdo browser, edhe Safari pa Dictation.'}</p>
+                <ol class="svh-steps" style="margin-bottom:14px;">
+                    <li><span class="svh-step-num">1</span><div>Shko te <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener" style="color:#e17055;font-weight:600;">platform.openai.com/api-keys</a></div></li>
+                    <li><span class="svh-step-num">2</span><div><strong>Create new secret key</strong> → kopjoje (fillon me <code style="background:var(--bg-secondary);padding:1px 5px;border-radius:4px;">sk-...</code>)</div></li>
+                    <li><span class="svh-step-num">3</span><div>Ngjite poshtë + ruaj. Mbahet vetëm në pajisjen tënde.</div></li>
+                </ol>
+                <div class="ai-setup-input-wrap" style="margin-bottom:10px;">
+                    <input type="password" id="whisper-key-input" placeholder="sk-..." autocomplete="off" spellcheck="false" style="flex:1;padding:11px 14px;border:1px solid var(--border);border-radius:10px;font-family:monospace;font-size:0.85rem;background:var(--bg);color:var(--text);">
+                </div>
+                <div class="svh-alt" style="margin-bottom:14px;">
+                    💰 <strong>Kosto:</strong> ~$0.006 për minutë audio (~0.3 ден). Top-up minimal $5 → mjafton për ~14.000 pyetje voice. Krejt e ekonomshme.
+                </div>
+                <div class="svh-actions">
+                    <button class="svh-btn svh-btn-primary" id="whisper-save-key">Ruaj çelësin</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        const close = () => overlay.remove();
+        overlay.querySelector('.mh-close').onclick = close;
+        overlay.querySelector('.mh-backdrop').onclick = close;
+        overlay.querySelector('#whisper-save-key').onclick = () => {
+            const inp = overlay.querySelector('#whisper-key-input');
+            const key = inp ? inp.value.trim() : '';
+            if (!key.startsWith('sk-')) {
+                if (typeof showToast === 'function') showToast('Çelësi duhet të fillojë me sk-', 'error');
+                return;
+            }
+            setOpenAIKey(key);
+            close();
+            if (typeof showToast === 'function') showToast('✅ Whisper u konfigurua! Provo mic-un tani.', 'success');
+        };
+        const inp = overlay.querySelector('#whisper-key-input');
+        if (inp) setTimeout(() => inp.focus(), 100);
     }
 
     // Modal i ri për shfaqjen e udhëzimeve të OS-it (zëvendëson handleMicClick old)

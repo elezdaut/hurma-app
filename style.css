@@ -3562,6 +3562,48 @@ body:has(#page-ai.active) #last-client-header-badge {
     0%, 100% { opacity: 0.4; transform: scale(0.85); }
     50% { opacity: 1; transform: scale(1.2); }
 }
+
+/* Waveform animation — bars që lëvizin si zëri */
+.mhb-waveform {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    height: 28px;
+    margin-bottom: 8px;
+}
+.mhb-waveform span {
+    display: inline-block;
+    width: 3px;
+    background: white;
+    border-radius: 2px;
+    animation: mhbWave 1s ease-in-out infinite;
+}
+.mhb-waveform span:nth-child(1)  { height: 30%; animation-delay: 0.0s; }
+.mhb-waveform span:nth-child(2)  { height: 60%; animation-delay: 0.1s; }
+.mhb-waveform span:nth-child(3)  { height: 90%; animation-delay: 0.2s; }
+.mhb-waveform span:nth-child(4)  { height: 50%; animation-delay: 0.3s; }
+.mhb-waveform span:nth-child(5)  { height: 80%; animation-delay: 0.4s; }
+.mhb-waveform span:nth-child(6)  { height: 40%; animation-delay: 0.5s; }
+.mhb-waveform span:nth-child(7)  { height: 70%; animation-delay: 0.4s; }
+.mhb-waveform span:nth-child(8)  { height: 95%; animation-delay: 0.3s; }
+.mhb-waveform span:nth-child(9)  { height: 55%; animation-delay: 0.2s; }
+.mhb-waveform span:nth-child(10) { height: 35%; animation-delay: 0.1s; }
+@keyframes mhbWave {
+    0%, 100% { transform: scaleY(0.5); opacity: 0.6; }
+    50% { transform: scaleY(1.1); opacity: 1; }
+}
+
+/* Timer */
+.mhb-time {
+    text-align: center;
+    font-size: 0.78rem;
+    font-weight: 700;
+    margin-top: 6px;
+    opacity: 0.95;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+}
 .mhb-text {
     font-size: 0.95rem;
     font-weight: 600;
