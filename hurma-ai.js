@@ -1069,15 +1069,25 @@ Kur ka kuptim, mund të shtosh **butona veprimi** në përgjigjen tënde që Ele
         };
         _recognition.onerror = (event) => {
             console.warn('[voice] error:', event.error, event);
+            const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
             const errMap = {
                 'no-speech': 'Nuk dëgjova asgjë. Klikoji 🎤 dhe fol më afër mikrofonit.',
                 'not-allowed': '🚫 Aksesi në mikrofon u bllokua. Lejoje te ikona e shiritit të adresës.',
-                'service-not-allowed': '🚫 Shërbimi i njohjes së zërit u bllokua nga browser-i.',
                 'aborted': '', // silent — user-initiated
                 'audio-capture': '🎤 Nuk lexohet dot mikrofoni. Kontrollo që është i lidhur.',
                 'network': '🌐 Gabim rrjeti. Web Speech API kërkon internet.',
                 'language-not-supported': null // trajtohet poshtë
             };
+            // service-not-allowed: trajtim special për Safari (kërkon Dictation të ndezur në macOS)
+            if (event.error === 'service-not-allowed') {
+                if (isSafari) {
+                    _showSafariVoiceHelp();
+                } else {
+                    if (typeof showToast === 'function') showToast('🚫 Shërbimi i njohjes së zërit u bllokua. Provo Chrome.', 'error');
+                }
+                stopVoiceInput();
+                return;
+            }
             if (event.error === 'language-not-supported') {
                 // Provo gjuhën tjetër në listë
                 _voiceLangIdx++;
@@ -1143,6 +1153,68 @@ Kur ka kuptim, mund të shtosh **butona veprimi** në përgjigjen tënde që Ele
             _recognition = null;
         }
         showStatus('');
+    }
+
+    // Modal me udhëzime për Safari kur dictation s'është i ndezur
+    function _showSafariVoiceHelp() {
+        const existing = document.getElementById('safari-voice-help');
+        if (existing) { existing.remove(); return; }
+        const overlay = document.createElement('div');
+        overlay.id = 'safari-voice-help';
+        overlay.className = 'svh-overlay';
+        overlay.innerHTML = `
+            <div class="svh-backdrop"></div>
+            <div class="svh-card">
+                <button class="svh-close" aria-label="Mbyll">×</button>
+                <div class="svh-icon">🎤</div>
+                <h2>Aktivizo Dictation për Safari</h2>
+                <p class="svh-intro">Safari përdor <strong>Dictation</strong> e macOS për të dëgjuar zërin. Duhet ta ndezësh një herë në cilësimet e Mac-ut:</p>
+                <ol class="svh-steps">
+                    <li>
+                        <span class="svh-step-num">1</span>
+                        <div>
+                            <strong>Hap System Settings</strong> (ikona e Apple →  System Settings)
+                        </div>
+                    </li>
+                    <li>
+                        <span class="svh-step-num">2</span>
+                        <div>
+                            <strong>Keyboard → Dictation</strong> → <em>Aktivizoje (toggle ON)</em>
+                            <div class="svh-step-note">Mund të kërkojë të shkarkojë gjuhën — pranoje</div>
+                        </div>
+                    </li>
+                    <li>
+                        <span class="svh-step-num">3</span>
+                        <div>
+                            <strong>Privacy & Security → Speech Recognition</strong> → siguro që Safari është i lejuar
+                        </div>
+                    </li>
+                    <li>
+                        <span class="svh-step-num">4</span>
+                        <div>
+                            <strong>Privacy & Security → Microphone</strong> → siguro që Safari është i lejuar
+                        </div>
+                    </li>
+                    <li>
+                        <span class="svh-step-num">5</span>
+                        <div>
+                            <strong>Kthehu te Safari, ringarko faqen</strong> dhe klikoji përsëri 🎤
+                        </div>
+                    </li>
+                </ol>
+                <div class="svh-alt">
+                    <strong>Alternativa më e thjeshtë:</strong> Hape app-in në <strong>Chrome</strong> ose <strong>Edge</strong> — punon menjëherë pa cilësime shtesë.
+                </div>
+                <div class="svh-actions">
+                    <button class="svh-btn svh-btn-primary" id="svh-ok">E kuptova</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        const close = () => overlay.remove();
+        overlay.querySelector('.svh-close').onclick = close;
+        overlay.querySelector('.svh-backdrop').onclick = close;
+        overlay.querySelector('#svh-ok').onclick = close;
     }
 
     // ═══════════════════════════════════════════════════════════════════
