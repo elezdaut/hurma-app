@@ -3508,6 +3508,94 @@ body:has(#page-ai.active) #last-client-header-badge {
 .ai-input-wrap { position: relative; }
 
 /* ============================================================
+   MIC HOLD BUBBLE — live transcript bubble për press-and-hold
+   ============================================================ */
+.mic-hold-bubble {
+    position: absolute;
+    bottom: calc(100% + 12px);
+    right: 60px;
+    background: linear-gradient(135deg, #d32f2f, #b71c1c);
+    color: white;
+    padding: 14px 18px;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(211, 47, 47, 0.35), 0 2px 6px rgba(0,0,0,0.12);
+    min-width: 240px;
+    max-width: 380px;
+    z-index: 1000;
+    animation: mhbIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.mic-hold-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    right: 22px;
+    width: 0; height: 0;
+    border-left: 9px solid transparent;
+    border-right: 9px solid transparent;
+    border-top: 9px solid #b71c1c;
+}
+.mic-hold-bubble.mhb-out { animation: mhbOut 0.2s ease forwards; }
+@keyframes mhbIn {
+    from { opacity: 0; transform: translateY(8px) scale(0.92); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes mhbOut {
+    to { opacity: 0; transform: translateY(4px) scale(0.95); }
+}
+.mhb-pulse {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    margin-bottom: 6px;
+}
+.mhb-pulse span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: white;
+    animation: mhbPulse 1.2s ease-in-out infinite;
+}
+.mhb-pulse span:nth-child(2) { animation-delay: 0.15s; }
+.mhb-pulse span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes mhbPulse {
+    0%, 100% { opacity: 0.4; transform: scale(0.85); }
+    50% { opacity: 1; transform: scale(1.2); }
+}
+.mhb-text {
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.35;
+    text-align: center;
+    min-height: 22px;
+    word-wrap: break-word;
+}
+.mhb-text:not(.mhb-has-text) { opacity: 0.85; font-style: italic; font-weight: 500; }
+.mhb-text.mhb-has-text { font-style: normal; }
+.mhb-hint {
+    font-size: 0.72rem;
+    text-align: center;
+    margin-top: 6px;
+    opacity: 0.85;
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .mic-hold-bubble {
+        right: 14px;
+        left: 14px;
+        max-width: none;
+    }
+    .mic-hold-bubble::after { right: 50px; }
+}
+
+/* Mic button kur është recording — vizuale e fortë */
+.ai-mic-btn.ai-mic-recording {
+    transform: scale(1.1);
+    box-shadow: 0 0 0 4px rgba(211, 47, 47, 0.18), 0 0 0 8px rgba(211, 47, 47, 0.08);
+}
+
+/* ============================================================
    MIC HELPER OVERLAY — instruksione OS-native dictation
    ============================================================ */
 .mic-helper-overlay {

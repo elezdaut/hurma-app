@@ -1170,13 +1170,196 @@ Kur ka kuptim, mund të shtosh **butona veprimi** në përgjigjen tënde që Ele
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // 🎤 MIC BUTTON HANDLER — strategji hibride që GARANTON të punojë
+    // 🎤 PRESS-AND-HOLD MIC — UX si WhatsApp (shtyp, fol, lësho)
     // ═══════════════════════════════════════════════════════════════════
-    // 1. Fokuson input-in (kursori brenda)
-    // 2. Tregon overlay me udhëzime sipas OS-it për dictation native
-    // 3. Vëzhgon input-in: kur shfaqet tekst (nga dictation), auto-dërgon
-    // 4. Bonus: nëse Chrome/Edge/Firefox në desktop, provon edhe Web Speech
+    // - pointerdown te mic → fillon Web Speech menjëherë
+    // - tekst shfaqet live në bubble mbi input
+    // - pointerup → ndalon dhe dërgon transkriptin
+    // - nëse browser-i bllokon, hap modalin e udhëzimeve
     // ═══════════════════════════════════════════════════════════════════
+    let _holdRecording = false;
+    let _holdRecognition = null;
+    let _holdTranscriptFinal = '';
+    let _holdBubble = null;
+    let _holdLangIdx = 0;
+    let _holdHelpShown = false;
+
+    function _showLiveBubble() {
+        if (_holdBubble) return;
+        _holdBubble = document.createElement('div');
+        _holdBubble.id = 'mic-hold-bubble';
+        _holdBubble.className = 'mic-hold-bubble';
+        _holdBubble.innerHTML = `
+            <div class="mhb-pulse"><span></span><span></span><span></span></div>
+            <div class="mhb-text" id="mhb-text">Po dëgjoj... fol tani</div>
+            <div class="mhb-hint">🎤 Lësho butonin për të dërguar</div>
+        `;
+        // Pozicio mbi input area
+        const wrap = document.getElementById('ai-input-wrap');
+        if (wrap) wrap.appendChild(_holdBubble);
+        else document.body.appendChild(_holdBubble);
+    }
+    function _updateLiveBubble(text) {
+        if (!_holdBubble) return;
+        const el = _holdBubble.querySelector('#mhb-text');
+        if (el) {
+            el.textContent = text || 'Po dëgjoj...';
+            if (text && text.trim().length > 0) el.classList.add('mhb-has-text');
+            else el.classList.remove('mhb-has-text');
+        }
+    }
+    function _hideLiveBubble() {
+        if (_holdBubble) {
+            _holdBubble.classList.add('mhb-out');
+            const ref = _holdBubble;
+            _holdBubble = null;
+            setTimeout(() => { try { ref.remove(); } catch(e) {} }, 200);
+        }
+    }
+
+    function _startHoldRecording() {
+        if (_holdRecording) return;
+
+        // Nëse browser-i s'e mbështet, hap helper modal vetëm njëherë në sesion
+        if (!_supportsVoice()) {
+            if (!_holdHelpShown) {
+                _holdHelpShown = true;
+                _showOSDictationHelp();
+            } else {
+                if (typeof showToast === 'function') showToast('🎤 Browser-i nuk e mbështet input me zë. Përdor Chrome ose dictation të Mac-ut (fn fn).', 'error');
+            }
+            return;
+        }
+
+        const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        try {
+            _holdRecognition = new Recognition();
+        } catch(e) {
+            console.warn('[hold-voice] new Recognition failed:', e);
+            return;
+        }
+
+        _holdRecognition.lang = VOICE_LANGS[_holdLangIdx] || 'sq-AL';
+        _holdRecognition.continuous = true;
+        _holdRecognition.interimResults = true;
+        _holdTranscriptFinal = '';
+        _holdRecording = true;
+
+        const micBtn = document.getElementById('ai-mic-btn');
+        if (micBtn) micBtn.classList.add('ai-mic-recording');
+        _showLiveBubble();
+
+        // Vibrate (mobile haptic)
+        if (navigator.vibrate) try { navigator.vibrate(15); } catch(e) {}
+
+        _holdRecognition.onresult = (event) => {
+            let interim = '';
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                if (event.results[i].isFinal) _holdTranscriptFinal += event.results[i][0].transcript;
+                else interim += event.results[i][0].transcript;
+            }
+            _updateLiveBubble(_holdTranscriptFinal + interim);
+        };
+
+        _holdRecognition.onerror = (event) => {
+            console.warn('[hold-voice] error:', event.error);
+            const isSafari = _isSafari();
+
+            if (event.error === 'language-not-supported') {
+                _holdLangIdx++;
+                if (_holdLangIdx < VOICE_LANGS.length) {
+                    _stopHoldRecording(false);
+                    setTimeout(() => _startHoldRecording(), 100);
+                    return;
+                }
+                _holdLangIdx = 0;
+            }
+
+            if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+                if (!_holdHelpShown) {
+                    _holdHelpShown = true;
+                    if (isSafari) _showSafariVoiceHelp();
+                    else _showOSDictationHelp();
+                } else {
+                    if (typeof showToast === 'function') showToast('🚫 Aksesi në mikrofon është i bllokuar.', 'error');
+                }
+            } else if (event.error === 'no-speech') {
+                if (typeof showToast === 'function') showToast('Nuk dëgjova asgjë. Provo prapë.', 'warning');
+            } else if (event.error && event.error !== 'aborted') {
+                if (typeof showToast === 'function') showToast('🎤 ' + event.error, 'error');
+            }
+            _stopHoldRecording(false);
+        };
+
+        _holdRecognition.onend = () => {
+            // onend mund të vijë para se user-i të lëshojë
+            // por _stopHoldRecording(send) thirret nga pointerup, kështu OK
+        };
+
+        try {
+            _holdRecognition.start();
+        } catch(e) {
+            console.warn('[hold-voice] start() failed:', e);
+            _stopHoldRecording(false);
+        }
+    }
+
+    function _stopHoldRecording(send) {
+        const wasRec = _holdRecording;
+        _holdRecording = false;
+        const micBtn = document.getElementById('ai-mic-btn');
+        if (micBtn) micBtn.classList.remove('ai-mic-recording');
+
+        if (_holdRecognition) {
+            try { _holdRecognition.stop(); } catch(e) {}
+            _holdRecognition = null;
+        }
+        _hideLiveBubble();
+
+        if (wasRec && send && _holdTranscriptFinal.trim()) {
+            const text = _holdTranscriptFinal.trim();
+            _holdTranscriptFinal = '';
+            // Vibrate konfirmim (mobile)
+            if (navigator.vibrate) try { navigator.vibrate([15, 30, 15]); } catch(e) {}
+            sendMessage(text);
+        }
+    }
+
+    // Modal i ri për shfaqjen e udhëzimeve të OS-it (zëvendëson handleMicClick old)
+    function _showOSDictationHelp() {
+        const existing = document.getElementById('mic-helper-overlay');
+        if (existing) { existing.remove(); return; }
+        const os = _detectOS();
+        let osBlock = '';
+        if (os === 'mac') {
+            osBlock = '<div class="mh-key-cue"><kbd class="mh-kbd-big">fn</kbd><span class="mh-plus">+</span><kbd class="mh-kbd-big">fn</kbd></div><p class="mh-hint">Shtyp <strong>fn dy herë radhazi</strong></p><p class="mh-sub">Alternativisht: aktivizo Dictation te System Settings → Keyboard → Dictation</p>';
+        } else if (os === 'ios') {
+            osBlock = '<div class="mh-key-cue"><i class="fas fa-microphone mh-ios-mic"></i></div><p class="mh-hint">Klikoji 🎤 te tastiera iOS</p>';
+        } else if (os === 'windows') {
+            osBlock = '<div class="mh-key-cue"><kbd class="mh-kbd-big">⊞ Win</kbd><span class="mh-plus">+</span><kbd class="mh-kbd-big">H</kbd></div><p class="mh-hint">Shtyp <strong>Win + H</strong></p>';
+        } else {
+            osBlock = '<p class="mh-hint">Përdor dictation të sistemit</p>';
+        }
+        const overlay = document.createElement('div');
+        overlay.id = 'mic-helper-overlay';
+        overlay.className = 'mic-helper-overlay';
+        overlay.innerHTML = `
+            <div class="mh-backdrop"></div>
+            <div class="mh-card">
+                <button class="mh-close" aria-label="Mbyll">×</button>
+                <div class="mh-icon">🎤</div>
+                <h3>Voice nuk funksionon këtu</h3>
+                <p class="mh-sub" style="margin-bottom:16px;">Browser-i bllokoi njohjen e zërit. Përdor dictation të sistemit:</p>
+                ${osBlock}
+                <div class="mh-actions"><button class="mh-btn mh-btn-cancel" id="mh-cancel">E kuptova</button></div>
+            </div>`;
+        document.body.appendChild(overlay);
+        const close = () => overlay.remove();
+        overlay.querySelector('.mh-close').onclick = close;
+        overlay.querySelector('.mh-backdrop').onclick = close;
+        overlay.querySelector('#mh-cancel').onclick = close;
+    }
+
     function handleMicClick() {
         const input = document.getElementById('ai-input');
         if (!input) return;
@@ -1648,11 +1831,46 @@ Kur ka kuptim, mund të shtosh **butona veprimi** në përgjigjen tënde që Ele
             };
         }
 
-        // Voice input (mic) — tani përdor OS-native dictation si zgjidhje primare
-        // (Web Speech API është i pabesueshëm në Safari/iOS)
+        // Voice input — PRESS AND HOLD (UX si WhatsApp)
         const micBtn = document.getElementById('ai-mic-btn');
         if (micBtn) {
-            micBtn.onclick = handleMicClick;
+            // Pengo context menu në long-press (mobile)
+            micBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+
+            // pointerdown → fillon recording (funksionon për mouse, touch, pen)
+            micBtn.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                try { micBtn.setPointerCapture(e.pointerId); } catch(_){}
+                _startHoldRecording();
+            });
+
+            // pointerup → ndalon dhe dërgon
+            micBtn.addEventListener('pointerup', (e) => {
+                e.preventDefault();
+                if (_holdRecording) _stopHoldRecording(true);
+            });
+            // pointercancel ose leave → ndalon pa dërguar
+            micBtn.addEventListener('pointercancel', () => {
+                if (_holdRecording) _stopHoldRecording(false);
+            });
+
+            // Edhe document.pointerup në rast se user lëviz jashtë butonit
+            document.addEventListener('pointerup', () => {
+                if (_holdRecording) _stopHoldRecording(true);
+            });
+            document.addEventListener('pointercancel', () => {
+                if (_holdRecording) _stopHoldRecording(false);
+            });
+
+            // Esc anulon (jo dërgo)
+            document.addEventListener('keydown', (e) => {
+                if (_holdRecording && e.key === 'Escape') {
+                    _stopHoldRecording(false);
+                }
+            });
+
+            // Tooltip update
+            micBtn.title = 'Shtyp dhe mbaj për të folur — lësho për të dërguar';
         }
 
         // Lidhe action buttons për mesazhet ekzistuese (pas re-render)
