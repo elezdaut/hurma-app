@@ -27,106 +27,357 @@
     let abortController = null;
 
     // ═══════════════════════════════════════════════════════════════════
-    // System prompt — i jep AI-it kontekstin e plotë të dyqanit
+    // System prompt — kontekst i plotë: çdo të dhënë e app-it
+    // Përditësohet automatikisht në çdo mesazh (snapshot freskët).
     // ═══════════════════════════════════════════════════════════════════
     function buildSystemPrompt() {
         const state = window.state || {};
         const PRODUCTS = (typeof window.PRODUCTS !== 'undefined' && window.PRODUCTS) ? window.PRODUCTS : [];
 
-        const today = new Date().toISOString().split('T')[0];
-        const todaySales = (state.sales || []).filter(s => s && s.date === today);
-        const todayProfit = todaySales.reduce((sum, s) => sum + ((s && s.profit) || 0), 0);
-        const todayRevenue = todaySales.reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0);
-
+        const now = new Date();
+        const today = now.toISOString().split('T')[0];
         const monthStart = today.substring(0, 7);
-        const monthSales = (state.sales || []).filter(s => s && s.date && s.date.startsWith(monthStart));
-        const monthProfit = monthSales.reduce((sum, s) => sum + ((s && s.profit) || 0), 0);
-        const monthRevenue = monthSales.reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0);
 
-        // Klientët me borxh
+        // ── Klientët (TË GJITHË) ──────────────────────────────────────────
         const clients = (state.clients || []).map(c => {
+            const cSales = (state.sales || []).filter(s => s && s.clientId === c.id);
+            const cPayments = (state.clientPayments || []).filter(p => p && p.clientId === c.id);
+            const totalRevenue = cSales.reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0);
+            const totalProfit = cSales.reduce((sum, s) => sum + ((s && s.profit) || 0), 0);
+            const totalPaid = cPayments.reduce((sum, p) => sum + ((p && p.amount) || 0), 0);
             const debt = calcClientDebt(c.id);
-            const lastSale = (state.sales || [])
-                .filter(s => s && s.clientId === c.id)
-                .sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0];
+            const lastSale = cSales.sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0];
+            const lastPay = cPayments.sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0];
+            const daysSinceLastBuy = lastSale && lastSale.date
+                ? Math.floor((now - new Date(lastSale.date)) / (1000*60*60*24))
+                : null;
             return {
                 id: c.id,
-                name: c.name,
-                phone: c.phone || null,
-                debt,
-                lastPurchase: lastSale ? lastSale.date : null,
-                totalPurchases: (state.sales || []).filter(s => s && s.clientId === c.id).length
+                emri: c.name,
+                telefoni: c.phone || null,
+                email: c.email || null,
+                adresa: c.address || null,
+                lokacioni: c.location || null,
+                shenim: c.note || null,
+                borxh_aktual: debt,
+                shitje_count: cSales.length,
+                qarkullim_total: totalRevenue,
+                fitim_total: totalProfit,
+                paguar_total: totalPaid,
+                blerja_e_fundit: lastSale ? lastSale.date : null,
+                ditë_pa_blerë: daysSinceLastBuy,
+                pagesa_e_fundit: lastPay ? lastPay.date : null,
+                është_pinned: (state.pinnedClients || []).includes(c.id)
             };
         });
 
-        // Produkte me stok
+        // ── Produktet (TË GJITHË me stok + analitikë) ────────────────────
         const products = PRODUCTS.map(p => {
             const stk = ((state.stock || {})[p.id] || 0);
-            const sold = (state.sales || []).filter(s => s && s.productId === p.id).reduce((sum, s) => sum + (s.quantity || 0), 0);
+            const pSales = (state.sales || []).filter(s => s && s.productId === p.id);
+            const totalSold = pSales.reduce((sum, s) => sum + (s.quantity || 0), 0);
+            const totalRevenue = pSales.reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0);
+            const totalProfit = pSales.reduce((sum, s) => sum + ((s && s.profit) || 0), 0);
+            // Velocity 30 ditë (sa shitet në ditë mesatarisht)
+            const recent30 = pSales.filter(s => {
+                if (!s.date) return false;
+                const d = new Date(s.date);
+                const days = (now - d) / (1000*60*60*24);
+                return days <= 30 && days >= 0;
+            });
+            const sold30 = recent30.reduce((sum, s) => sum + (s.quantity || 0), 0);
+            const velocityPerDay = sold30 / 30;
+            const daysOfStock = velocityPerDay > 0 ? Math.round(stk / velocityPerDay) : null;
             return {
                 id: p.id,
-                name: p.name,
-                weight: p.weight || '',
-                buyPrice: p.buyPrice || 0,
-                sellPrice: p.sellPrice || 0,
-                margin: ((p.sellPrice || 0) - (p.buyPrice || 0)),
-                marginPct: p.buyPrice ? Math.round((((p.sellPrice || 0) - p.buyPrice) / p.buyPrice) * 100) : 0,
-                stock: stk,
-                totalSold: sold,
-                stockStatus: stk === 0 ? 'mungon' : stk < 5 ? 'i ulët' : 'OK'
+                emri: p.name,
+                pesha: p.weight || '',
+                kategoria: p.category || null,
+                cmim_blerje: p.buyPrice || 0,
+                cmim_shitje: p.sellPrice || 0,
+                margjina_për_copë: ((p.sellPrice || 0) - (p.buyPrice || 0)),
+                margjina_pct: p.buyPrice ? Math.round((((p.sellPrice || 0) - p.buyPrice) / p.buyPrice) * 100) : 0,
+                stok_aktual: stk,
+                shitur_30_ditë: sold30,
+                velocity_ditore: Math.round(velocityPerDay * 100) / 100,
+                ditë_stoku_mbeten: daysOfStock,
+                shitur_total: totalSold,
+                qarkullim_total: totalRevenue,
+                fitim_total: totalProfit,
+                statusi_stokut: stk === 0 ? '🔴 MUNGON' : stk < 3 ? '🔴 URGJENT' : stk < 5 ? '🟠 i ulët' : '🟢 OK',
+                ka_skadencë: !!p.expiryDate
             };
         });
 
-        // Borxhi i Fatonit
-        const fatonDebt = (typeof calcFatonDebt === 'function') ? calcFatonDebt() : 0;
+        // ── Statistikat e ditës / javës / muajit ─────────────────────────
+        const todaySales = (state.sales || []).filter(s => s && s.date === today);
+        const monthSales = (state.sales || []).filter(s => s && s.date && s.date.startsWith(monthStart));
+        const weekStart = new Date(now); weekStart.setDate(weekStart.getDate() - 7);
+        const weekStartStr = weekStart.toISOString().split('T')[0];
+        const weekSales = (state.sales || []).filter(s => s && s.date && s.date >= weekStartStr);
 
-        // Përmbledhje e gjendjes
-        const stateContext = {
-            data_aktuale: today,
-            shitje_sot: { count: todaySales.length, fitim: todayProfit, qarkullim: todayRevenue },
-            shitje_muaji: { count: monthSales.length, fitim: monthProfit, qarkullim: monthRevenue },
-            borxhi_fatoni: fatonDebt,
-            klientet: clients.slice(0, 50), // limit për mos kaluar token-et
-            produktet: products,
-            shitjet_e_fundit_10: (state.sales || []).slice(-10).reverse().map(s => {
-                const c = clients.find(cl => cl.id === s.clientId);
-                const p = products.find(pr => pr.id === s.productId);
+        const sumProfit = arr => arr.reduce((sum, s) => sum + ((s && s.profit) || 0), 0);
+        const sumRevenue = arr => arr.reduce((sum, s) => sum + ((s && s.sellTotal) || 0), 0);
+
+        const stats = {
+            sot: { count: todaySales.length, fitim: sumProfit(todaySales), qarkullim: sumRevenue(todaySales) },
+            javë_e_fundit: { count: weekSales.length, fitim: sumProfit(weekSales), qarkullim: sumRevenue(weekSales) },
+            muaji_aktual: { count: monthSales.length, fitim: sumProfit(monthSales), qarkullim: sumRevenue(monthSales) },
+            shitje_total_gjithë_kohërave: { count: (state.sales || []).length, fitim: sumProfit(state.sales || []), qarkullim: sumRevenue(state.sales || []) }
+        };
+
+        // ── Llogaria Fatoni (furnizuesi) ─────────────────────────────────
+        const fatonDebt = (typeof calcFatonDebt === 'function') ? calcFatonDebt() : 0;
+        const fatonPayments = (state.fatonPayments || []).slice(-30).reverse(); // 30 të fundit
+        const fatonPurchases = (state.fatonPurchases || []).slice(-30).reverse();
+        const lastFatonPay = fatonPayments[0];
+        const daysSinceFatonPay = lastFatonPay && lastFatonPay.date
+            ? Math.floor((now - new Date(lastFatonPay.date)) / (1000*60*60*24))
+            : null;
+
+        // ── Pjesa e fitimit (Elezi vs Partneri) ──────────────────────────
+        const profitSplit = state.profitSplit || { owner: 50, partner: 50 };
+        const partnerName = state.partnerName || 'Partneri';
+
+        // ── Faturat e hapura ──────────────────────────────────────────────
+        const openInvoices = (state.sales || [])
+            .filter(s => s && s.paymentType === 'invoice_60' && !s.invoicePaid)
+            .map(s => {
+                const c = (state.clients || []).find(cl => cl && cl.id === s.clientId);
+                const p = PRODUCTS.find(pr => pr.id === s.productId);
+                const dueDate = s.dueDate || (s.date ? (() => {
+                    const d = new Date(s.date); d.setDate(d.getDate() + 60);
+                    return d.toISOString().split('T')[0];
+                })() : null);
+                const overdue = dueDate && dueDate < today;
                 return {
-                    data: s.date,
+                    id: s.id || null,
                     klient: c ? c.name : '-',
-                    produkt: p ? p.name : '-',
+                    klient_id: s.clientId,
+                    produkt: p ? p.name : (s.productId || '-'),
                     sasi: s.quantity,
-                    total: s.sellTotal,
-                    fitim: s.profit,
-                    pagesa: s.paymentType || 'cash',
-                    invoice_paguar: s.invoicePaid || false
+                    shuma: s.sellTotal,
+                    paguar_pjesërisht: s.amountPaid || 0,
+                    mbetur: (s.sellTotal || 0) - (s.amountPaid || 0),
+                    data_shitjes: s.date,
+                    data_skadimit: dueDate,
+                    vonesë: overdue,
+                    ditë_vonesë: overdue && dueDate ? Math.floor((now - new Date(dueDate)) / (1000*60*60*24)) : 0
                 };
             })
+            .sort((a, b) => (b.mbetur || 0) - (a.mbetur || 0));
+
+        // ── Pagesa nga klientët ──────────────────────────────────────────
+        const clientPayments = (state.clientPayments || []).slice(-50).reverse();
+
+        // ── Shitjet e fundit (50, që AI ka kontekst të mjaftueshëm) ─────
+        const recentSales = (state.sales || []).slice(-50).reverse().map(s => {
+            const c = (state.clients || []).find(cl => cl && cl.id === s.clientId);
+            const p = PRODUCTS.find(pr => pr.id === s.productId);
+            return {
+                id: s.id || null,
+                data: s.date,
+                koha: s.createdAt || null,
+                klient: c ? c.name : '-',
+                klient_id: s.clientId,
+                produkt: p ? p.name : (s.productId || '-'),
+                produkt_id: s.productId,
+                sasi: s.quantity,
+                cmim_shitje: s.sellPrice,
+                cmim_blerje: s.buyPrice,
+                qarkullim: s.sellTotal,
+                fitim: s.profit,
+                pagesa: s.paymentType || 'cash',
+                fatura_paguar: s.invoicePaid || false,
+                lokacioni: s.location || null,
+                shenim: s.note || null,
+                zbritje: s.discount || 0
+            };
+        });
+
+        // ── Porositë (te Fatoni) ─────────────────────────────────────────
+        const orders = (state.orders || []).slice(-30).reverse().map(o => {
+            const p = PRODUCTS.find(pr => pr.id === o.productId);
+            return {
+                id: o.id,
+                data: o.date,
+                produkt: p ? p.name : (o.productId || '-'),
+                sasi: o.quantity,
+                cmim: o.price || 0,
+                statusi: o.status || 'pending',
+                shenim: o.note || null
+            };
+        });
+
+        // ── Kthimet ───────────────────────────────────────────────────────
+        const returns = (state.returns || []).slice(-30).reverse().map(r => {
+            const p = PRODUCTS.find(pr => pr.id === r.productId);
+            const c = (state.clients || []).find(cl => cl && cl.id === r.clientId);
+            return {
+                data: r.date,
+                produkt: p ? p.name : '-',
+                sasi: r.quantity,
+                klient: c ? c.name : null,
+                arsye: r.reason || null
+            };
+        });
+
+        // ── Shpenzimet ────────────────────────────────────────────────────
+        const expenses = (state.expenses || []).slice(-50).reverse().map(e => ({
+            data: e.date,
+            kategoria: e.category || 'tjetër',
+            shuma: e.amount,
+            përshkrimi: e.description || ''
+        }));
+        const monthExpenses = expenses.filter(e => e.data && e.data.startsWith(monthStart));
+        const totalMonthExpenses = monthExpenses.reduce((sum, e) => sum + (e.shuma || 0), 0);
+
+        // ── Shënimet ──────────────────────────────────────────────────────
+        const notes = (state.notes || []).slice(-30).reverse().map(n => ({
+            data: n.date || n.createdAt,
+            titull: n.title || '',
+            tekst: (n.text || '').substring(0, 500), // limit length
+            klient_lidhur: n.linkedClient || null,
+            tag: n.tag || null
+        }));
+
+        // ── Qëllimet ──────────────────────────────────────────────────────
+        const targets = (state.targets || []).map(t => ({
+            tipi: t.type || 'profit',
+            periudha: t.period || 'monthly',
+            vlera_synuar: t.target,
+            vlera_aktuale: t.actual || 0,
+            përqindje: t.target ? Math.round(((t.actual || 0) / t.target) * 100) : 0
+        }));
+
+        // ── Kontaktet ─────────────────────────────────────────────────────
+        const contacts = (state.contacts || []).map(c => ({
+            emri: c.name,
+            telefoni: c.phone,
+            email: c.email,
+            kategoria: c.category || null
+        }));
+
+        // ── Activity log (50 të fundit) ──────────────────────────────────
+        const activityLog = (state.activityLog || []).slice(-50).reverse().map(a => ({
+            koha: a.timestamp || a.time || a.date,
+            tipi: a.type || a.action,
+            detaji: (a.text || a.details || '').substring(0, 200),
+            faqja: a.page || null
+        }));
+
+        // ── Lokacionet ────────────────────────────────────────────────────
+        const locations = (state.locations || []);
+
+        // ── Quick Sale Presets ───────────────────────────────────────────
+        const presets = (state.salePresets || []).map(p => {
+            const prod = PRODUCTS.find(x => x.id === p.productId);
+            return {
+                emri: p.name,
+                produkt: prod ? prod.name : p.productId,
+                sasi: p.quantity,
+                cmim_përdoret: prod ? prod.sellPrice * p.quantity : 0
+            };
+        });
+
+        // ── Insight i shpejtë i AI (top performers, alarme) ──────────────
+        const insights = {
+            top_5_klientë_për_qarkullim: clients.slice().sort((a,b) => b.qarkullim_total - a.qarkullim_total).slice(0,5).map(c => ({ emri: c.emri, qarkullim: c.qarkullim_total, borxh: c.borxh_aktual })),
+            top_5_klientë_me_borxh: clients.filter(c => c.borxh_aktual > 0).sort((a,b) => b.borxh_aktual - a.borxh_aktual).slice(0,5).map(c => ({ emri: c.emri, borxh: c.borxh_aktual, telefoni: c.telefoni })),
+            klientë_pasivë_30d: clients.filter(c => c.ditë_pa_blerë !== null && c.ditë_pa_blerë >= 30).map(c => ({ emri: c.emri, ditë: c.ditë_pa_blerë })),
+            top_5_produkte_për_fitim: products.slice().sort((a,b) => b.fitim_total - a.fitim_total).slice(0,5).map(p => ({ emri: p.emri, fitim: p.fitim_total })),
+            produkte_me_stok_kritik: products.filter(p => p.stok_aktual < 5).map(p => ({ emri: p.emri, stok: p.stok_aktual, ditë_mbeten: p.ditë_stoku_mbeten })),
+            fatura_të_vonuara: openInvoices.filter(i => i.vonesë).slice(0, 10).map(i => ({ klient: i.klient, mbetur: i.mbetur, ditë_vonesë: i.ditë_vonesë })),
+            produkte_që_duhen_porositur: products.filter(p => p.ditë_stoku_mbeten !== null && p.ditë_stoku_mbeten <= 7).map(p => ({ emri: p.emri, stok: p.stok_aktual, velocity: p.velocity_ditore }))
         };
+
+        // ── Cilësimet (settings) ─────────────────────────────────────────
+        const settings = {
+            partner_emri: partnerName,
+            ndarja_fitimit: profitSplit,
+            currency: state.currency || 'ден',
+            biznes_emri: state.businessName || 'Hurma',
+            partner_telefoni: state.partnerPhone || null
+        };
+
+        // Krijo objektin e plotë të kontekstit
+        const fullContext = {
+            data_aktuale: today,
+            koha_aktuale: now.toISOString(),
+            statistika: stats,
+            klientë: clients,
+            produkte: products,
+            faton: {
+                borxhi_aktual: fatonDebt,
+                pagesa_e_fundit: lastFatonPay,
+                ditë_pa_paguar: daysSinceFatonPay,
+                pagesa_30_të_fundit: fatonPayments.slice(0, 10), // 10 të fundit
+                blerje_30_të_fundit: fatonPurchases.slice(0, 10)
+            },
+            shitje_50_të_fundit: recentSales,
+            fatura_hapura: openInvoices,
+            pagesa_klientësh_50_të_fundit: clientPayments,
+            porositë_30_të_fundit: orders,
+            kthimet_30_të_fundit: returns,
+            shpenzime: { total_muaji: totalMonthExpenses, lista_50_të_fundit: expenses },
+            shënime: notes,
+            qëllime: targets,
+            kontakte: contacts,
+            log_aktivitetesh_50_të_fundit: activityLog,
+            lokacionet: locations,
+            quick_sale_presets: presets,
+            insights_të_gatshme: insights,
+            cilësimet: settings
+        };
+
+        const contextJson = JSON.stringify(fullContext, null, 2);
+        const tokenEstimate = Math.round(contextJson.length / 4); // ~4 chars/token
 
         return `Ti je **Hurma AI**, asistenti personal i Elezit, pronar i një dyqani shumicë në Maqedoni që shet **hurma (datë)** dhe ëmbëlsira.
 
-## Konteksti i biznesit
+## 🏪 Konteksti i biznesit
 - **Pronari**: Elezi (gjuha shqipe, valuta = денарë / ден)
-- **Furnizuesi kryesor**: **Fatoni** — Elezi blen prej tij
+- **Furnizuesi kryesor**: **Fatoni** — Elezi blen prej tij me kushte 60-ditëshe ose cash
 - **Klientët**: dyqane më të vegjël që blejnë nga Elezi (p.sh. Sulejmani, Maxi Market)
-- **Produktet kryesore**: Medjool, Sukeri, Mexhdul (lloje hurmash) në kuti të ndryshme
+- **Produktet**: Medjool, Sukeri, Mexhdul (lloje hurmash) në kuti të ndryshme
+- **Modeli i fitimit**: Elezi blen nga Fatoni → shet me shumicë te klientët; fitimi ndahet me partnerin sipas %
 
-## Stili i përgjigjeve
-- **Përgjigju në SHQIP** (gjithmonë, përveç nëse përdoruesi pyet në gjuhë tjetër)
-- Ji **konciz dhe praktik** — Elezi është i zënë, jo akademik
-- Përdor **markdown** (lista, bold, tabela kur ka kuptim)
-- Përdor **emoji** me kursim (1-2 për pikëzim, jo nëpër çdo fjali)
-- Kur jep numra, përdor **ден** dhe formato (1.620 ден, jo 1620)
-- Kur sugjeron veprime, ji konkret: "Kontakto Sulejmanin sot — borxh 2.400 ден, s'ka blerë 12 ditë"
-- Mos shpik të dhëna që nuk i ke në kontekst — nëse nuk e di, thuaj qartë
+## 🎯 Stili i përgjigjeve
+- **Përgjigju në SHQIP gjithmonë** (përveç nëse përdoruesi ndërron gjuhën)
+- **Konciz dhe praktik** — Elezi është i zënë, jo akademik
+- Përdor **markdown** (lista, **bold**, tabela kur ndihmojnë)
+- **Emoji me kursim** (1-2 për pikëzim, jo nëpër çdo fjali)
+- Numrat: **formato me pikë mijëshjesh** dhe njësinë **ден** (p.sh. 1.620 ден, jo 1620)
+- Sugjerime **konkrete me veprim**: "Kontakto Sulejmanin sot — borxh 2.400 ден, s'ka blerë 12 ditë"
+- Mos shpik të dhëna që s'i ke. Nëse mungon info, thuaj qartë: "Nuk ka të dhëna për këtë"
 
-## Informacioni real i dyqanit (përdor SIGURT këto për përgjigje)
+## 🧠 Çfarë mund të bësh me të dhënat
+Ti ke akses **TË PLOTË** te:
+- ✅ TË GJITHË klientët (jo vetëm 50) me historik blerjesh, borxh, pagesa, kontakte
+- ✅ TË GJITHA produktet me stok, çmime, margjinë, velocity, ditë stoku të mbetura
+- ✅ Statistika: sot / javë / muaj / total (qarkullim, fitim, count)
+- ✅ Llogaria Fatoni: borxhi, pagesa, blerjet
+- ✅ 50 shitjet e fundit me detaje të plota
+- ✅ Të gjitha faturat e hapura (me ditë vonese të llogaritura)
+- ✅ Pagesa nga klientët, porosi, kthime, shpenzime, shënime
+- ✅ Qëllimet, log aktivitetesh, kontaktet
+- ✅ **Insights të para-llogaritura**: top klientë, produkte me stok kritik, fatura vonesa, etj.
+
+## 📊 Të dhënat aktuale të dyqanit (~${tokenEstimate} tokens)
+*Snapshot freskët në çdo mesazh që dërgon — informacioni i ri që fut në app shfaqet menjëherë këtu.*
+
 \`\`\`json
-${JSON.stringify(stateContext, null, 2)}
+${contextJson}
 \`\`\`
 
-Përdor **vetëm** të dhënat lart për pyetje konkrete. Nëse përdoruesi pyet diçka që s'është aty (p.sh. çmimet e konkurrencës), thuaj që s'ke akses te ato të dhëna por mund të japësh këshillë të përgjithshme.`;
+## 💡 Shembuj se si ta përdorësh kontekstin
+- Pyetje "Sa borxh ka X?" → Kërko në \`klientë\` për emrin → përdor \`borxh_aktual\`
+- "Çfarë duhet të porosis?" → Përdor \`insights_të_gatshme.produkte_që_duhen_porositur\`
+- "Sa fitova këtë muaj?" → Përdor \`statistika.muaji_aktual.fitim\`
+- "Kush janë top klientët?" → \`insights_të_gatshme.top_5_klientë_për_qarkullim\`
+- "Cilët klientë s'kanë blerë shumë kohë?" → \`insights_të_gatshme.klientë_pasivë_30d\`
+
+Përdor **VETËM** të dhënat lart për përgjigje konkrete. Për pyetje të përgjithshme (strategji biznesi, marketing) mund të kombinosh njohuritë e tua me të dhënat.`;
     }
 
     function calcClientDebt(clientId) {
@@ -265,6 +516,33 @@ Përdor **vetëm** të dhënat lart për pyetje konkrete. Nëse përdoruesi pyet
         if (!el) return;
         el.textContent = text || '';
         el.className = 'ai-status' + (isError ? ' ai-status-error' : '');
+    }
+
+    // Info badge: tregon sa të dhëna ka akses AI (rifreskon në çdo render)
+    function updateContextInfo() {
+        const el = document.getElementById('ai-context-info');
+        if (!el) return;
+        const state = window.state || {};
+        const PRODUCTS = (typeof window.PRODUCTS !== 'undefined' && window.PRODUCTS) ? window.PRODUCTS : [];
+        const counts = {
+            klientë: (state.clients || []).length,
+            produkte: PRODUCTS.length,
+            shitje: (state.sales || []).length,
+            fatura: (state.sales || []).filter(s => s && s.paymentType === 'invoice_60' && !s.invoicePaid).length,
+            shpenzime: (state.expenses || []).length,
+            shënime: (state.notes || []).length
+        };
+        el.innerHTML = `
+            <i class="fas fa-database"></i>
+            <span><strong>${counts.klientë}</strong> klientë</span>
+            <span class="ai-ci-sep">·</span>
+            <span><strong>${counts.produkte}</strong> produkte</span>
+            <span class="ai-ci-sep">·</span>
+            <span><strong>${counts.shitje}</strong> shitje</span>
+            <span class="ai-ci-sep">·</span>
+            <span><strong>${counts.fatura}</strong> fatura të hapura</span>
+            <span class="ai-ci-live">🟢 LIVE</span>
+        `;
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -503,6 +781,14 @@ Përdor **vetëm** të dhënat lart për pyetje konkrete. Nëse përdoruesi pyet
         loadConversation();
         renderMessages();
         updateModelTag();
+        updateContextInfo();
+        // Refresh kontekst info çdo 2s kur tab-i AI është aktiv
+        setInterval(() => {
+            const aiPage = document.getElementById('page-ai');
+            if (aiPage && aiPage.classList.contains('active')) {
+                updateContextInfo();
+            }
+        }, 2000);
 
         if (!getApiKey()) showSetup();
         else hideSetup();

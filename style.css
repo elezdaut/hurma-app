@@ -2886,6 +2886,43 @@ input:checked + .slider:before {
     margin-top: 12px !important;
 }
 
+/* Context info bar — tregon sa të dhëna ka akses AI live */
+.ai-context-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 22px;
+    font-size: 0.74rem;
+    color: var(--text-secondary, #888);
+    background: linear-gradient(90deg,
+        color-mix(in srgb, #27ae60 6%, transparent),
+        color-mix(in srgb, #27ae60 2%, transparent));
+    border-bottom: 1px solid var(--border, #e5e1d8);
+    flex-wrap: wrap;
+}
+.ai-context-info i { color: #27ae60; font-size: 0.85rem; }
+.ai-context-info strong { color: var(--text); font-weight: 700; }
+.ai-ci-sep { opacity: 0.4; }
+.ai-ci-live {
+    margin-left: auto;
+    background: #27ae60;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.62rem;
+    letter-spacing: 0.05em;
+    animation: aiCiLivePulse 2s ease-in-out infinite;
+}
+@keyframes aiCiLivePulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(39, 174, 96, 0.6); }
+    50% { box-shadow: 0 0 0 6px rgba(39, 174, 96, 0); }
+}
+@media (max-width: 768px) {
+    .ai-context-info { padding: 6px 14px; font-size: 0.68rem; gap: 6px; }
+    .ai-ci-live { font-size: 0.58rem; padding: 1px 6px; }
+}
+
 /* Quick prompts */
 .ai-quick-prompts {
     display: flex;
