@@ -970,6 +970,20 @@ Kur ka kuptim, mund të shtosh **butona veprimi** në përgjigjen tënde që Ele
         return typeof (window.SpeechRecognition || window.webkitSpeechRecognition) === 'function';
     }
 
+    function _detectOS() {
+        const ua = navigator.userAgent || '';
+        const platform = (navigator.platform || '').toLowerCase();
+        if (/iphone|ipad|ipod/i.test(ua)) return 'ios';
+        if (/android/i.test(ua)) return 'android';
+        if (platform.startsWith('mac') || /macintosh/i.test(ua)) return 'mac';
+        if (platform.startsWith('win') || /windows/i.test(ua)) return 'windows';
+        if (platform.startsWith('linux') || /linux/i.test(ua)) return 'linux';
+        return 'other';
+    }
+    function _isSafari() {
+        return /^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent);
+    }
+
     // Provo gjuhë në mënyrë sekuenciale derisa të gjenden lokale të punueshme
     const VOICE_LANGS = ['sq-AL', 'sq', 'mk-MK', 'en-US'];
     let _voiceLangIdx = 0;
@@ -1155,7 +1169,185 @@ Kur ka kuptim, mund të shtosh **butona veprimi** në përgjigjen tënde që Ele
         showStatus('');
     }
 
-    // Modal me udhëzime për Safari kur dictation s'është i ndezur
+    // ═══════════════════════════════════════════════════════════════════
+    // 🎤 MIC BUTTON HANDLER — strategji hibride që GARANTON të punojë
+    // ═══════════════════════════════════════════════════════════════════
+    // 1. Fokuson input-in (kursori brenda)
+    // 2. Tregon overlay me udhëzime sipas OS-it për dictation native
+    // 3. Vëzhgon input-in: kur shfaqet tekst (nga dictation), auto-dërgon
+    // 4. Bonus: nëse Chrome/Edge/Firefox në desktop, provon edhe Web Speech
+    // ═══════════════════════════════════════════════════════════════════
+    function handleMicClick() {
+        const input = document.getElementById('ai-input');
+        if (!input) return;
+
+        // FOKUSO input-in menjëherë (kjo bën që fn fn dhe iOS keyboard mic të funksionojnë)
+        input.focus();
+
+        // Mbylle nëse është e hapur tashmë
+        const existing = document.getElementById('mic-helper-overlay');
+        if (existing) { existing.remove(); return; }
+
+        const os = _detectOS();
+        const safari = _isSafari();
+
+        // Vendos sa kohë të vëzhgohet input-i për tekst (dictation duhet kohë)
+        let dictationTimer = null;
+        let lastValue = input.value;
+
+        const startWatching = () => {
+            if (dictationTimer) clearInterval(dictationTimer);
+            let stableCount = 0;
+            dictationTimer = setInterval(() => {
+                const cur = input.value || '';
+                if (cur !== lastValue) {
+                    lastValue = cur;
+                    stableCount = 0;
+                    // Update visual hint
+                    const liveText = document.getElementById('mic-live-text');
+                    if (liveText) {
+                        liveText.textContent = cur ? '"' + cur + '"' : 'Po dëgjoj...';
+                        liveText.classList.add('mic-live-active');
+                    }
+                } else if (cur.trim().length > 0) {
+                    stableCount++;
+                    // Pas 1.5s pa ndryshim, auto-dërgo
+                    if (stableCount >= 3) {
+                        clearInterval(dictationTimer);
+                        const text = cur.trim();
+                        input.value = '';
+                        const overlay = document.getElementById('mic-helper-overlay');
+                        if (overlay) overlay.remove();
+                        sendMessage(text);
+                    }
+                }
+            }, 500);
+        };
+
+        const stopWatching = () => {
+            if (dictationTimer) { clearInterval(dictationTimer); dictationTimer = null; }
+        };
+
+        // Krijo overlay sipas OS-it
+        const overlay = document.createElement('div');
+        overlay.id = 'mic-helper-overlay';
+        overlay.className = 'mic-helper-overlay';
+
+        let osBlock = '';
+        if (os === 'mac') {
+            osBlock = `
+                <div class="mh-key-cue">
+                    <kbd class="mh-kbd-big">fn</kbd>
+                    <span class="mh-plus">+</span>
+                    <kbd class="mh-kbd-big">fn</kbd>
+                </div>
+                <p class="mh-hint">Shtyp <strong>fn dy herë radhazi</strong> tani</p>
+                <p class="mh-sub">macOS Dictation aktivizohet menjëherë — fol në Shqip ose Anglisht</p>`;
+        } else if (os === 'ios') {
+            osBlock = `
+                <div class="mh-key-cue">
+                    <i class="fas fa-microphone mh-ios-mic"></i>
+                </div>
+                <p class="mh-hint">Klikoji ikonën <strong>🎤</strong> në tastierën tënde</p>
+                <p class="mh-sub">Është mes hapësirës dhe emoji-ve te tastiera iOS</p>`;
+        } else if (os === 'windows') {
+            osBlock = `
+                <div class="mh-key-cue">
+                    <kbd class="mh-kbd-big">⊞ Win</kbd>
+                    <span class="mh-plus">+</span>
+                    <kbd class="mh-kbd-big">H</kbd>
+                </div>
+                <p class="mh-hint">Shtyp <strong>Win + H</strong> tani</p>
+                <p class="mh-sub">Windows Speech Recognition do hapet — fol qartë</p>`;
+        } else if (os === 'android') {
+            osBlock = `
+                <div class="mh-key-cue">
+                    <i class="fas fa-microphone mh-ios-mic"></i>
+                </div>
+                <p class="mh-hint">Klikoji <strong>🎤</strong> në tastierën Gboard/Android</p>
+                <p class="mh-sub">Zakonisht në krye të tastierës ose pranë space</p>`;
+        } else {
+            osBlock = `
+                <p class="mh-hint">Përdor dictation të sistemit tënd</p>
+                <p class="mh-sub">Linux: instalo një app dictation, ose përdor Chrome (Web Speech API)</p>`;
+        }
+
+        overlay.innerHTML = `
+            <div class="mh-backdrop"></div>
+            <div class="mh-card">
+                <button class="mh-close" aria-label="Mbyll">×</button>
+                <div class="mh-icon">🎤</div>
+                <h3>Pyet me zë</h3>
+                ${osBlock}
+                <div class="mh-live-text" id="mic-live-text">Po pres ta dëgjoj zërin tënd...</div>
+                <p class="mh-tip">💡 <strong>Sapo mbaron së foluri</strong>, AI dërgon automatikisht pyetjen pas 1.5 sekondash heshtjeje.</p>
+                <div class="mh-actions">
+                    <button class="mh-btn mh-btn-cancel" id="mh-cancel">Anulo</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        // Filloj vëzhgimin
+        startWatching();
+
+        const close = () => {
+            stopWatching();
+            overlay.remove();
+            input.focus();
+        };
+        overlay.querySelector('.mh-close').onclick = close;
+        overlay.querySelector('.mh-backdrop').onclick = close;
+        overlay.querySelector('#mh-cancel').onclick = close;
+
+        // Esc për ta mbyllur
+        const escHandler = (e) => {
+            if (e.key === 'Escape') {
+                close();
+                document.removeEventListener('keydown', escHandler);
+            }
+        };
+        document.addEventListener('keydown', escHandler);
+
+        // Bonus: nëse jemi në Chrome/Edge desktop dhe Web Speech mbështetet, provo paralelisht
+        // (vetëm jashtë Safari/iOS sepse aty është i pabesueshëm)
+        if (_supportsVoice() && !safari && os !== 'ios' && os !== 'android') {
+            // Lëre user-in të zgjedhë: i japim 600ms të lexojë overlay-in, pastaj provojmë auto
+            setTimeout(() => {
+                if (document.getElementById('mic-helper-overlay')) {
+                    try { startVoiceInputSilent(); } catch(e) {}
+                }
+            }, 600);
+        }
+    }
+
+    // Versioni "silent" i Web Speech që fluturon mbi dictation native (best-effort)
+    function startVoiceInputSilent() {
+        if (!_supportsVoice() || _isRecording) return;
+        const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        try {
+            _recognition = new Recognition();
+        } catch(e) { return; }
+        _recognition.lang = 'en-US'; // Më e mbështetura — fjalë pak duhen
+        _recognition.continuous = false;
+        _recognition.interimResults = true;
+        _isRecording = true;
+        const input = document.getElementById('ai-input');
+        let finalT = '';
+        _recognition.onresult = (event) => {
+            let interim = '';
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                if (event.results[i].isFinal) finalT += event.results[i][0].transcript;
+                else interim += event.results[i][0].transcript;
+            }
+            if (input) input.value = finalT + interim;
+        };
+        _recognition.onerror = () => { _isRecording = false; };
+        _recognition.onend = () => { _isRecording = false; };
+        try { _recognition.start(); } catch(e) { _isRecording = false; }
+    }
+
+    // Modal me udhëzime për Safari kur dictation s'është i ndezur (mbahet për fallback)
     function _showSafariVoiceHelp() {
         const existing = document.getElementById('safari-voice-help');
         if (existing) { existing.remove(); return; }
@@ -1456,14 +1648,11 @@ Kur ka kuptim, mund të shtosh **butona veprimi** në përgjigjen tënde që Ele
             };
         }
 
-        // Voice input (mic)
+        // Voice input (mic) — tani përdor OS-native dictation si zgjidhje primare
+        // (Web Speech API është i pabesueshëm në Safari/iOS)
         const micBtn = document.getElementById('ai-mic-btn');
         if (micBtn) {
-            if (!_supportsVoice()) {
-                micBtn.style.display = 'none';
-            } else {
-                micBtn.onclick = startVoiceInput;
-            }
+            micBtn.onclick = handleMicClick;
         }
 
         // Lidhe action buttons për mesazhet ekzistuese (pas re-render)

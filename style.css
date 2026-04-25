@@ -3507,6 +3507,176 @@ body:has(#page-ai.active) #last-client-header-badge {
 
 .ai-input-wrap { position: relative; }
 
+/* ============================================================
+   MIC HELPER OVERLAY — instruksione OS-native dictation
+   ============================================================ */
+.mic-helper-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+.mh-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    animation: mhFade 0.2s ease;
+}
+@keyframes mhFade { from { opacity: 0; } to { opacity: 1; } }
+.mh-card {
+    position: relative;
+    max-width: 460px;
+    width: 100%;
+    background: var(--bg, #fff);
+    border-radius: 22px;
+    box-shadow: 0 25px 70px rgba(0,0,0,0.35);
+    padding: 32px 28px 24px;
+    text-align: center;
+    animation: mhSlide 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes mhSlide {
+    from { opacity: 0; transform: translateY(-12px) scale(0.94); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.mh-close {
+    position: absolute;
+    top: 12px; right: 16px;
+    background: transparent;
+    border: none;
+    font-size: 1.6rem;
+    color: var(--text-secondary, #888);
+    cursor: pointer;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    transition: background 0.12s;
+}
+.mh-close:hover { background: var(--bg-secondary, #f5f1eb); }
+.mh-icon {
+    font-size: 3rem;
+    margin-bottom: 8px;
+    animation: mhPulse 1.6s ease-in-out infinite;
+}
+@keyframes mhPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+}
+.mh-card h3 {
+    margin: 0 0 18px;
+    font-size: 1.35rem;
+    color: var(--text);
+    font-weight: 700;
+}
+.mh-key-cue {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 14px 0 16px;
+}
+.mh-kbd-big {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 60px;
+    height: 56px;
+    padding: 0 16px;
+    background: linear-gradient(180deg, #f8f5f0, #e5e1d8);
+    border: 1px solid #d0c9bc;
+    border-radius: 12px;
+    box-shadow:
+        0 2px 0 #b8a994,
+        0 4px 8px rgba(0,0,0,0.1);
+    font-family: 'SF Mono', Monaco, monospace;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #5a4a35;
+    animation: mhKey 1.4s ease-in-out infinite;
+}
+.mh-kbd-big:nth-child(3) { animation-delay: 0.7s; }
+@keyframes mhKey {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+}
+.mh-plus { font-size: 1.5rem; color: var(--text-secondary); font-weight: 700; }
+.mh-ios-mic {
+    font-size: 3.5rem;
+    color: #e17055;
+    animation: mhPulse 1.4s ease-in-out infinite;
+}
+.mh-hint {
+    font-size: 1.05rem;
+    color: var(--text);
+    margin: 14px 0 6px;
+    line-height: 1.4;
+}
+.mh-hint strong { color: #e17055; }
+.mh-sub {
+    font-size: 0.85rem;
+    color: var(--text-secondary, #888);
+    margin: 0 0 16px;
+    line-height: 1.5;
+}
+.mh-live-text {
+    background: var(--bg-secondary, #f8f5f0);
+    border: 1px dashed var(--border, #e5e1d8);
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin: 14px 0;
+    font-size: 0.95rem;
+    color: var(--text-secondary, #888);
+    font-style: italic;
+    min-height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+.mh-live-text.mic-live-active {
+    background: color-mix(in srgb, #27ae60 8%, transparent);
+    border: 2px solid #27ae60;
+    border-style: solid;
+    color: var(--text);
+    font-style: normal;
+    font-weight: 600;
+}
+.mh-tip {
+    font-size: 0.8rem;
+    color: var(--text-secondary, #888);
+    margin: 12px 0 18px;
+    line-height: 1.5;
+    background: color-mix(in srgb, #f39c12 8%, transparent);
+    padding: 10px 14px;
+    border-radius: 8px;
+    border-left: 3px solid #f39c12;
+}
+.mh-actions { display: flex; justify-content: center; gap: 10px; }
+.mh-btn {
+    padding: 10px 22px;
+    border-radius: 10px;
+    border: 1px solid var(--border, #e5e1d8);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.12s, transform 0.08s;
+}
+.mh-btn-cancel:hover { background: var(--bg-secondary, #f5f1eb); }
+.mh-btn:active { transform: scale(0.96); }
+
+[data-theme="dark"] .mh-kbd-big {
+    background: linear-gradient(180deg, #3a3024, #2a2218);
+    border-color: #1a1410;
+    box-shadow: 0 2px 0 #1a1410, 0 4px 8px rgba(0,0,0,0.4);
+    color: #d0c9bc;
+}
+
 /* Safari Voice Help Modal */
 .svh-overlay {
     position: fixed;
