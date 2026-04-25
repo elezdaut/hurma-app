@@ -26,7 +26,7 @@
     <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.svg">
     <link rel="mask-icon" href="icons/icon-192.svg" color="#E29A2B">
 
-    <link rel="stylesheet" href="style.css?v=29">
+    <link rel="stylesheet" href="style.css?v=30">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -323,17 +323,40 @@
 
         <!-- Sales Page -->
         <section id="page-sales" class="page">
-            <div class="export-buttons">
-                <button class="btn btn-export btn-excel" onclick="exportSales('excel')"><i class="fas fa-file-excel"></i> Excel</button>
-                <button class="btn btn-export btn-pdf" onclick="exportSales('pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
-                <button class="btn btn-export btn-word" onclick="exportSales('word')"><i class="fas fa-file-word"></i> Word</button>
+            <!-- Buton i vetëm Eksport me dropdown -->
+            <div class="export-dropdown-wrap">
+                <button class="btn-export-trigger" onclick="_exportMenu(event, 'sales')">
+                    <i class="fas fa-download"></i> <span>Eksport</span> <i class="fas fa-chevron-down"></i>
+                </button>
             </div>
             <div id="sales-month-tabs" style="margin-bottom:15px;display:flex;flex-wrap:wrap;gap:8px;"></div>
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:12px 16px;background:linear-gradient(135deg,#ff6b35,#e55a2b);border-radius:12px;box-shadow:0 2px 8px rgba(229,90,43,0.3);">
-                <i class="fas fa-shopping-cart" style="color:white;font-size:1.4em;"></i>
-                <span style="color:white;font-size:1.15em;font-weight:700;">Shitjet</span>
-                <span id="sales-count-badge" style="background:white;color:#e55a2b;border-radius:20px;padding:4px 14px;font-size:1.1em;font-weight:800;min-width:30px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,0.15);">0</span>
-                <span style="color:rgba(255,255,255,0.85);font-size:0.85em;margin-left:auto;">Totali i shitjeve</span>
+            <!-- Mini-stat strip në vend të banner-it të madh portokalli -->
+            <div class="page-stat-strip">
+                <div class="pss-item">
+                    <i class="fas fa-shopping-cart pss-icon"></i>
+                    <span class="pss-label">Shitje</span>
+                    <span class="pss-value" id="sales-count-badge">0</span>
+                </div>
+                <div class="pss-item">
+                    <span class="pss-label">Totali</span>
+                    <span class="pss-value pss-positive" id="sales-strip-total">0</span>
+                    <span class="pss-unit">ден</span>
+                </div>
+                <div class="pss-item">
+                    <span class="pss-label">Fitim</span>
+                    <span class="pss-value pss-success" id="sales-strip-profit">0</span>
+                    <span class="pss-unit">ден</span>
+                </div>
+                <div class="pss-item pss-item-mobile-hide">
+                    <span class="pss-label">Cash</span>
+                    <span class="pss-value" id="sales-strip-cash">0</span>
+                    <span class="pss-unit">ден</span>
+                </div>
+                <div class="pss-item pss-item-mobile-hide">
+                    <span class="pss-label">Fatura</span>
+                    <span class="pss-value pss-warn" id="sales-strip-invoice">0</span>
+                    <span class="pss-unit">ден</span>
+                </div>
             </div>
             <div class="page-actions">
                 <button class="btn btn-primary" onclick="openSaleModal()"><i class="fas fa-plus"></i> <span data-i18n="new_sale">Shitje e re</span></button>
@@ -367,12 +390,12 @@
                             <th data-i18n="date">Data</th>
                             <th data-i18n="product">Produkti</th>
                             <th data-i18n="quantity">Sasia</th>
-                            <th data-i18n="buy_price">Çmimi blerjes</th>
-                            <th data-i18n="sell_price">Çmimi shitjes</th>
-                            <th data-i18n="total">Totali</th>
-                            <th data-i18n="profit">Fitimi</th>
+                            <th>Blerje <small class="th-unit">(ден)</small></th>
+                            <th>Shitje <small class="th-unit">(ден)</small></th>
+                            <th>Totali <small class="th-unit">(ден)</small></th>
+                            <th>Fitimi <small class="th-unit">(ден)</small></th>
                             <th data-i18n="client">Klienti</th>
-                            <th data-i18n="payment_type">Lloji pagesës</th>
+                            <th>Pagesa</th>
                             <th data-i18n="location">Lokacioni</th>
                             <th data-i18n="actions">Veprime</th>
                         </tr>
@@ -1317,7 +1340,7 @@
     </nav>
 
     <script src="i18n.js"></script>
-    <script src="app.js?v=91"></script>
+    <script src="app.js?v=92"></script>
     <script src="hurma-polish.js?v=6" defer></script>
     <script src="hurma-ai.js?v=4" defer></script>
 

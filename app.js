@@ -112,6 +112,106 @@
     if (typeof window.changeLanguage !== 'function') {
         window.changeLanguage = function() {};
     }
+
+    // Format datash në Shqip: "2026-02-25" → "25 Shk 2026"
+    var MUAJT_SHKURT = ['Jan','Shk','Mar','Pri','Maj','Qer','Kor','Gus','Sht','Tet','Nën','Dhj'];
+    window._fmtDateAlb = function(dateStr) {
+        if (!dateStr) return '-';
+        try {
+            var parts = String(dateStr).split('-');
+            if (parts.length === 3) {
+                var d = parseInt(parts[2], 10);
+                var m = parseInt(parts[1], 10) - 1;
+                var y = parts[0];
+                if (!isNaN(d) && m >= 0 && m < 12) {
+                    return d + ' ' + MUAJT_SHKURT[m] + ' ' + y;
+                }
+            }
+            return dateStr;
+        } catch(e) { return dateStr; }
+    };
+
+    // Row context menu (3-dot dropdown) për tabelat
+    window._openRowMenu = function(triggerBtn, encodedActions) {
+        var existing = document.getElementById('row-context-menu');
+        if (existing) { existing.remove(); return; }
+        var actions;
+        try { actions = JSON.parse(decodeURIComponent(encodedActions)); }
+        catch(e) { return; }
+        if (!actions || !actions.length) return;
+        var menu = document.createElement('div');
+        menu.id = 'row-context-menu';
+        menu.className = 'row-ctx-menu';
+        menu.innerHTML = actions.map(function(a, i) {
+            var cls = 'row-ctx-item' + (a.accent ? ' row-ctx-' + a.accent : '');
+            return '<button class="' + cls + '" data-i="' + i + '"><i class="fas ' + a.ic + '"></i><span>' + a.lbl + '</span></button>';
+        }).join('');
+        document.body.appendChild(menu);
+        var rect = triggerBtn.getBoundingClientRect();
+        menu.style.position = 'fixed';
+        menu.style.top = (rect.bottom + 4) + 'px';
+        menu.style.right = Math.max(8, window.innerWidth - rect.right) + 'px';
+        menu.style.zIndex = '10000';
+        menu.querySelectorAll('.row-ctx-item').forEach(function(el, idx) {
+            el.onclick = function(e) {
+                e.stopPropagation();
+                menu.remove();
+                try { eval(actions[idx].fn); } catch(err) { console.warn('Row action failed:', err); }
+            };
+        });
+        setTimeout(function() {
+            var close = function(ev) {
+                if (!menu.contains(ev.target)) {
+                    menu.remove();
+                    document.removeEventListener('click', close);
+                }
+            };
+            document.addEventListener('click', close);
+        }, 50);
+    };
+
+    // Export dropdown (i unifikuar për të gjitha faqet)
+    window._exportMenu = function(event, page) {
+        if (event) event.stopPropagation();
+        var existing = document.getElementById('export-menu');
+        if (existing) { existing.remove(); return; }
+        var fnName = 'export' + page.charAt(0).toUpperCase() + page.slice(1);
+        var menu = document.createElement('div');
+        menu.id = 'export-menu';
+        menu.className = 'export-menu';
+        menu.innerHTML = '' +
+            '<button data-fmt="excel"><i class="fas fa-file-excel" style="color:#107c41"></i> Excel</button>' +
+            '<button data-fmt="pdf"><i class="fas fa-file-pdf" style="color:#d32f2f"></i> PDF</button>' +
+            '<button data-fmt="word"><i class="fas fa-file-word" style="color:#185abd"></i> Word</button>';
+        document.body.appendChild(menu);
+        var trigger = event && event.currentTarget;
+        if (trigger) {
+            var rect = trigger.getBoundingClientRect();
+            menu.style.position = 'fixed';
+            menu.style.top = (rect.bottom + 6) + 'px';
+            menu.style.left = rect.left + 'px';
+            menu.style.zIndex = '10000';
+        }
+        menu.querySelectorAll('button').forEach(function(b) {
+            b.onclick = function(e) {
+                e.stopPropagation();
+                menu.remove();
+                var fmt = b.dataset.fmt;
+                if (typeof window[fnName] === 'function') {
+                    try { window[fnName](fmt); } catch(err) { console.warn('Export failed:', err); }
+                }
+            };
+        });
+        setTimeout(function() {
+            var close = function(ev) {
+                if (!menu.contains(ev.target)) {
+                    menu.remove();
+                    document.removeEventListener('click', close);
+                }
+            };
+            document.addEventListener('click', close);
+        }, 50);
+    };
 })();
 
 // ===================== DATA =====================
@@ -1283,28 +1383,54 @@ function refreshSales() {
             quickPayBtns += `<button class="btn btn-sm" onclick="unmarkPaid(${realIndex})" title="Kthe si papaguar" style="background:#9E9E9E;color:#fff;"><i class="fas fa-undo"></i></button>`;
         }
 
+        // Klienti me borxh — chip i kuq elegant me shumën
+        let clientCellHtml = '-';
+        if (client) {
+            const cDebt = (typeof calcClientDebt === 'function') ? (calcClientDebt(client.id) || 0) : 0;
+            clientCellHtml = `<a class="client-link" onclick="openClient360('${client.id}')">${client.name}</a>`;
+            if (cDebt > 0 || s.isDebt) {
+                clientCellHtml += `<span class="client-debt-chip" title="Borxh aktual"><i class="fas fa-circle-exclamation"></i>${cDebt > 0 ? cDebt.toLocaleString('sq-AL') + ' ден' : 'borxh'}</span>`;
+            }
+        }
+
+        // Data në format shqip (25 Shk 2026)
+        const dateFmt = _fmtDateAlb(s.date);
+
+        // Lloji i pagesës — VETËM një chip i unifikuar (jo Cash/✓Cash dyfishuar)
+        const payCellHtml = payStatusHtml || `<span class="pay-chip pay-chip-cash">✓ Cash</span>`;
+
+        // Veprimet — vetëm 2 butona kryesorë + meny "More" për tjerat
+        const moreActions = [];
+        moreActions.push({ ic: 'fa-file-invoice', lbl: 'Faturë', fn: 'generateInvoice('+realIndex+')' });
+        moreActions.push({ ic: 'fa-copy', lbl: 'Kopjo', fn: 'duplicateSale('+realIndex+')' });
+        if (pType === 'invoice_60' && !s.invoicePaid) {
+            moreActions.push({ ic: 'fa-check', lbl: 'Shëno paguar', fn: 'quickMarkPaid('+realIndex+')', accent: 'success' });
+            moreActions.push({ ic: 'fa-adjust', lbl: 'Pagesë e pjesshme', fn: 'openPartialPaymentModal('+realIndex+')', accent: 'warn' });
+            if (client) moreActions.push({ ic: 'fa-comment', lbl: 'WhatsApp kujtesë', fn: 'sendPaymentReminder('+realIndex+')' });
+        } else if (s.invoicePaid && pType === 'invoice_60') {
+            moreActions.push({ ic: 'fa-undo', lbl: 'Kthe si papaguar', fn: 'unmarkPaid('+realIndex+')' });
+        }
+        if (s.paymentHistory && s.paymentHistory.length > 0) {
+            moreActions.push({ ic: 'fa-history', lbl: 'Histori pagesash', fn: 'showSalePaymentHistory('+realIndex+')' });
+        }
+        const moreActionsJson = encodeURIComponent(JSON.stringify(moreActions));
+
         tbody.innerHTML += `
             <tr style="${rowBorderColor}">
-                <td>${s.date}</td>
-                <td><span style="cursor:pointer;color:var(--primary);text-decoration:underline;" onclick="openProduct360('${s.productId}')">${product.name}</span></td>
-                <td>${s.quantity}</td>
-                <td>${product.buyPrice} ден</td>
-                <td>${product.sellPrice} ден${s.discount ? ` (-${s.discount}%)` : ''}</td>
-                <td>${s.sellTotal} ден</td>
-                <td>${s.profit} ден</td>
-                <td>${client ? `<span style="cursor:pointer;color:var(--primary);text-decoration:underline;" onclick="openClient360('${client.id}')">${client.name}</span>` : '-'}${s.isDebt ? ' <span style="color:var(--danger)">(borxh)</span>' : ''}</td>
-                <td style="min-width:120px;">
-                    <span class="payment-badge ${pType}">${t(pType)}</span><br>
-                    ${payStatusHtml}
-                </td>
-                <td>${s.location || '-'}</td>
-                <td style="white-space:nowrap;">
-                    <button class="btn btn-sm btn-secondary" onclick="openSaleModal(${realIndex})"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteSale(${realIndex})"><i class="fas fa-trash"></i></button>
-                    <button class="btn btn-sm btn-secondary" onclick="generateInvoice(${realIndex})"><i class="fas fa-file-invoice"></i></button>
-                    <button class="btn btn-sm btn-secondary" onclick="duplicateSale(${realIndex})" title="Kopjo"><i class="fas fa-copy"></i></button>
-                    ${quickPayBtns}
-                    ${(s.paymentHistory && s.paymentHistory.length > 0) ? `<button class="btn btn-sm btn-secondary" onclick="showSalePaymentHistory(${realIndex})" title="Histori pagesash"><i class="fas fa-history"></i></button>` : ''}
+                <td class="cell-date" title="${s.date}">${dateFmt}</td>
+                <td><a class="product-link" onclick="openProduct360('${s.productId}')">${product.name}</a></td>
+                <td class="cell-num">${s.quantity}</td>
+                <td class="cell-num">${product.buyPrice}</td>
+                <td class="cell-num">${product.sellPrice}${s.discount ? `<span class="cell-discount"> (-${s.discount}%)</span>` : ''}</td>
+                <td class="cell-num cell-strong">${(s.sellTotal || 0).toLocaleString('sq-AL')}</td>
+                <td class="cell-num cell-profit">${(s.profit || 0).toLocaleString('sq-AL')}</td>
+                <td class="cell-client">${clientCellHtml}</td>
+                <td class="cell-pay">${payCellHtml}</td>
+                <td class="cell-loc">${s.location || '-'}</td>
+                <td class="cell-actions">
+                    <button class="btn btn-sm btn-secondary" onclick="openSaleModal(${realIndex})" title="Modifiko"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteSale(${realIndex})" title="Fshi"><i class="fas fa-trash"></i></button>
+                    <button class="btn btn-sm btn-more" onclick="_openRowMenu(this, '${moreActionsJson}')" title="Më shumë"><i class="fas fa-ellipsis-vertical"></i></button>
                 </td>
             </tr>
         `;
@@ -1315,6 +1441,12 @@ function refreshSales() {
     _setSale('sales-total', totalSales + ' ден');
     _setSale('sales-profit-total', totalProfit + ' ден');
     _setSale('sales-your-share', calcOwnerShare(totalProfit) + ' ден');
+    // Mini-stat strip (i ri, zëvendëson banner-in e madh portokalli)
+    _setSale('sales-count-badge', String(sales.length));
+    _setSale('sales-strip-total', (totalSales || 0).toLocaleString('sq-AL'));
+    _setSale('sales-strip-profit', (totalProfit || 0).toLocaleString('sq-AL'));
+    _setSale('sales-strip-cash', (totalCash || 0).toLocaleString('sq-AL'));
+    _setSale('sales-strip-invoice', (totalInvoice || 0).toLocaleString('sq-AL'));
     _setSale('sales-orhan-share', calcPartnerShare(totalProfit) + ' ден');
     _setSale('sales-cash-total', totalCash + ' ден');
     _setSale('sales-invoice-total', totalInvoice + ' ден');
@@ -13578,25 +13710,18 @@ function updateSidebarStats() {
     }
     if (profitBadge) profitBadge.textContent = todayProfit > 0 ? todayProfit + ' ден' : '';
 
-    // Total debt badge on clients nav
-    let debtBadge = document.getElementById('sidebar-debt-badge');
-    if (!debtBadge) {
-        const navClients = document.querySelector('.nav-item[data-page="clients"]');
-        if (navClients) {
-            navClients.style.position = 'relative';
-            debtBadge = document.createElement('span');
-            debtBadge.id = 'sidebar-debt-badge';
-            debtBadge.className = 'nav-badge';
-            debtBadge.style.cssText = 'position:absolute;top:4px;right:4px;background:var(--danger);color:white;border-radius:10px;padding:1px 5px;font-size:0.6rem;font-weight:700;white-space:nowrap;';
-            navClients.appendChild(debtBadge);
-        }
-    }
-    if (debtBadge) {
+    // Pikë e vogël e kuqe te badge-i kryesor i Klientëve nëse ka borxh —
+    // pa numra të dyfishuar (më e pastër se 2 badge mbi njëra-tjetrën)
+    const oldDebtBadge = document.getElementById('sidebar-debt-badge');
+    if (oldDebtBadge) oldDebtBadge.remove();
+    const clientsBadge = document.getElementById('badge-clients');
+    if (clientsBadge) {
         if (totalClientDebt > 0) {
-            debtBadge.textContent = totalClientDebt > 99999 ? Math.round(totalClientDebt / 1000) + 'k' : totalClientDebt;
-            debtBadge.style.display = 'flex';
+            clientsBadge.classList.add('has-debt-indicator');
+            clientsBadge.title = `${(state.clients || []).length} klientë · ${totalClientDebt.toLocaleString('sq-AL')} ден borxh total`;
         } else {
-            debtBadge.style.display = 'none';
+            clientsBadge.classList.remove('has-debt-indicator');
+            clientsBadge.title = `${(state.clients || []).length} klientë`;
         }
     }
 }

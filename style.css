@@ -2698,6 +2698,254 @@ input:checked + .slider:before {
     text-overflow: ellipsis;
 }
 /* ════════════════════════════════════════════════════════════
+   PAGE STAT STRIP — zëvendëson banner-at e mëdhenj orange/blu
+   ════════════════════════════════════════════════════════════ */
+.page-stat-strip {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 10px 16px;
+    margin-bottom: 14px;
+    background: var(--bg, #fff);
+    border: 1px solid var(--border, #e5e1d8);
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    overflow-x: auto;
+    flex-wrap: nowrap;
+}
+.pss-item {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 4px 16px;
+    border-right: 1px solid var(--border, #e5e1d8);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.pss-item:last-child { border-right: none; }
+.pss-item:first-child { padding-left: 4px; }
+.pss-icon {
+    color: var(--primary, #e17055);
+    font-size: 1rem;
+    align-self: center;
+    margin-right: 4px;
+}
+.pss-label {
+    font-size: 0.72rem;
+    color: var(--text-secondary, #888);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+}
+.pss-value {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text);
+}
+.pss-value.pss-success { color: var(--success, #27ae60); }
+.pss-value.pss-warn { color: var(--warning, #f39c12); }
+.pss-value.pss-positive { color: var(--primary, #e17055); }
+.pss-unit {
+    font-size: 0.7rem;
+    color: var(--text-secondary, #888);
+    font-weight: 500;
+}
+@media (max-width: 768px) {
+    .pss-item-mobile-hide { display: none; }
+    .pss-item { padding: 4px 10px; }
+    .pss-value { font-size: 0.95rem; }
+    .pss-label { font-size: 0.66rem; }
+}
+
+/* Export dropdown — zëvendëson 3 butonat e mëdhenj Excel/PDF/Word */
+.export-dropdown-wrap {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 12px;
+}
+.btn-export-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border: 1px solid var(--border, #e5e1d8);
+    background: var(--bg);
+    color: var(--text);
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.86rem;
+    font-weight: 600;
+    font-family: inherit;
+    transition: background 0.12s, border-color 0.12s, transform 0.08s;
+}
+.btn-export-trigger:hover {
+    background: color-mix(in srgb, var(--primary, #e17055) 8%, transparent);
+    border-color: var(--primary, #e17055);
+    color: var(--primary, #e17055);
+}
+.btn-export-trigger:active { transform: scale(0.97); }
+.btn-export-trigger i.fa-chevron-down { font-size: 0.7em; opacity: 0.7; }
+
+.export-menu {
+    background: var(--bg);
+    border: 1px solid var(--border, #e5e1d8);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.14);
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 160px;
+    animation: mpMenuIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes mpMenuIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.export-menu button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: none;
+    background: transparent;
+    padding: 9px 12px;
+    cursor: pointer;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    color: var(--text);
+    text-align: left;
+    font-family: inherit;
+    transition: background 0.1s;
+    width: 100%;
+}
+.export-menu button:hover { background: color-mix(in srgb, var(--primary, #e17055) 10%, transparent); }
+
+/* Row context menu (3-dot) — për çdo rresht tabele */
+.row-ctx-menu {
+    background: var(--bg);
+    border: 1px solid var(--border, #e5e1d8);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.14);
+    padding: 6px;
+    min-width: 200px;
+    animation: mpMenuIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.row-ctx-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    border: none;
+    background: transparent;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    color: var(--text);
+    text-align: left;
+    font-family: inherit;
+    transition: background 0.1s;
+}
+.row-ctx-item:hover { background: color-mix(in srgb, var(--primary, #e17055) 10%, transparent); }
+.row-ctx-item i { width: 16px; text-align: center; color: var(--primary, #e17055); }
+.row-ctx-success i { color: var(--success, #27ae60); }
+.row-ctx-warn i { color: var(--warning, #f39c12); }
+
+/* Cell styles për sales table (numra djathtas, font tabular) */
+.cell-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cell-strong { font-weight: 700; }
+.cell-profit { font-weight: 600; color: var(--success, #27ae60); }
+.cell-discount { color: var(--warning, #f39c12); font-size: 0.85em; font-weight: 600; }
+.cell-date { font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 0.86rem; }
+.cell-loc { font-size: 0.86rem; color: var(--text-secondary, #888); }
+.cell-actions { white-space: nowrap; text-align: center; }
+.cell-actions .btn-more {
+    background: transparent;
+    border: 1px solid var(--border, #e5e1d8);
+    color: var(--text-secondary, #666);
+}
+.cell-actions .btn-more:hover {
+    background: var(--bg-secondary, #f8f5f0);
+    color: var(--primary, #e17055);
+}
+
+/* Header units sub-text */
+th .th-unit {
+    font-size: 0.72em;
+    font-weight: 400;
+    color: var(--text-secondary, #999);
+    margin-left: 2px;
+}
+
+/* Klienti link + chip borxh */
+.client-link, .product-link {
+    cursor: pointer;
+    color: var(--primary, #e17055);
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 1px dotted color-mix(in srgb, var(--primary, #e17055) 40%, transparent);
+    transition: border-color 0.12s;
+}
+.client-link:hover, .product-link:hover {
+    border-bottom-color: var(--primary, #e17055);
+}
+.cell-client { line-height: 1.4; }
+.client-debt-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+    background: color-mix(in srgb, var(--danger, #e74c3c) 12%, transparent);
+    color: var(--danger, #e74c3c);
+    border-radius: 8px;
+    padding: 2px 7px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.client-debt-chip i { font-size: 0.65rem; }
+
+/* Pay chips të unifikuara */
+.pay-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    border-radius: 10px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: white;
+}
+.pay-chip-cash { background: var(--success, #27ae60); }
+.pay-chip-warn { background: var(--warning, #f39c12); }
+.pay-chip-danger { background: var(--danger, #e74c3c); }
+.pay-chip-info { background: #2980b9; }
+.cell-pay { line-height: 1.5; }
+.cell-pay > * + * { margin-top: 3px; }
+
+/* Sidebar Klientët badge me indikator borxhi */
+.nav-badge.has-debt-indicator {
+    position: relative;
+}
+.nav-badge.has-debt-indicator::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--danger, #e74c3c);
+    border: 1.5px solid var(--bg, #fff);
+    box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4);
+    animation: navDebtPulse 2.5s ease-in-out infinite;
+}
+@keyframes navDebtPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4); }
+    50% { box-shadow: 0 0 0 4px rgba(231, 76, 60, 0); }
+}
+
+/* ════════════════════════════════════════════════════════════
    HURMA AI — Chat interface me Claude
    ════════════════════════════════════════════════════════════ */
 /* Sidebar nav badge "NEW" */
