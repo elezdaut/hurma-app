@@ -26,7 +26,7 @@
     <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.svg">
     <link rel="mask-icon" href="icons/icon-192.svg" color="#E29A2B">
 
-    <link rel="stylesheet" href="style.css?v=26">
+    <link rel="stylesheet" href="style.css?v=27">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -91,6 +91,7 @@
             <li class="nav-item" data-page="analytics"><i class="fas fa-chart-area"></i> <span>Analitika</span><span class="nav-badge hidden" id="badge-analytics">0</span></li>
             <li class="nav-item" data-page="invoices"><i class="fas fa-file-invoice-dollar"></i> <span>Faturat</span><span class="nav-badge hidden" id="badge-invoices">0</span></li>
             <li class="nav-item" data-page="activity"><i class="fas fa-history"></i> <span data-i18n="activity_log">Log Aktivitetesh</span></li>
+            <li class="nav-item ai-nav-item" data-page="ai"><i class="fas fa-wand-magic-sparkles"></i> <span>Hurma AI</span><span class="ai-badge-new">NEW</span></li>
             <li class="nav-item" data-page="settings"><i class="fas fa-cog"></i> <span data-i18n="settings">Cilësimet</span></li>
         </ul>
     </nav>
@@ -1003,6 +1004,99 @@
             </div>
             <!-- Content will be filled by refreshActivityLog() -->
         </section>
+
+        <!-- ============================================================
+             AI Page — Hurma AI: Claude i integruar me njohje të dhënash
+             ============================================================ -->
+        <section id="page-ai" class="page">
+            <div class="ai-shell">
+                <!-- Header -->
+                <div class="ai-header">
+                    <div class="ai-header-left">
+                        <div class="ai-avatar"><i class="fas fa-wand-magic-sparkles"></i></div>
+                        <div>
+                            <div class="ai-title">Hurma AI <span class="ai-model-tag" id="ai-model-tag">Claude Opus</span></div>
+                            <div class="ai-subtitle">Asistenti yt që njeh dyqanin tënd</div>
+                        </div>
+                    </div>
+                    <div class="ai-header-right">
+                        <button class="ai-icon-btn" id="ai-clear-btn" title="Pastro bisedën"><i class="fas fa-broom"></i></button>
+                        <button class="ai-icon-btn" id="ai-settings-btn" title="Cilësimet AI"><i class="fas fa-cog"></i></button>
+                    </div>
+                </div>
+
+                <!-- API Key Setup (shfaqet vetëm nëse s'ka çelës) -->
+                <div class="ai-setup hidden" id="ai-setup">
+                    <div class="ai-setup-card">
+                        <div class="ai-setup-icon">🔐</div>
+                        <h2>Konfiguro Hurma AI</h2>
+                        <p>Për të biseduar me AI-in, na duhet çelësi yt API nga Anthropic. Ai ruhet vetëm në browser-in tënd dhe nuk dërgohet askund tjetër veç tek Anthropic.</p>
+                        <ol class="ai-setup-steps">
+                            <li>Shko te <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a></li>
+                            <li>Klikoji <strong>Create Key</strong></li>
+                            <li>Kopjoje çelësin (fillon me <code>sk-ant-...</code>)</li>
+                            <li>Ngjite poshtë</li>
+                        </ol>
+                        <div class="ai-setup-input-wrap">
+                            <input type="password" id="ai-api-key-input" placeholder="sk-ant-api03-..." autocomplete="off" spellcheck="false">
+                            <button class="btn btn-primary" id="ai-save-key-btn">Ruaj & Fillo</button>
+                        </div>
+                        <p class="ai-setup-note">💡 <strong>Privatësi:</strong> Çelësi mbetet vetëm në pajisjen tënde (localStorage). Të dhënat e dyqanit dërgohen direkt tek Anthropic API për përgjigje, jo tek ndonjë server tjetër.</p>
+                        <p class="ai-setup-note">💰 <strong>Kosto:</strong> ~$0.003 për pyetje (1 ден). 100 pyetje = ~30 ден.</p>
+                    </div>
+                </div>
+
+                <!-- Quick prompts -->
+                <div class="ai-quick-prompts" id="ai-quick-prompts">
+                    <button class="ai-qp-btn" data-prompt="Çfarë ndodhi sot? Më jep një përmbledhje të shitjeve, fitimit dhe veprimeve më të rëndësishme.">
+                        <i class="fas fa-calendar-day"></i> Përmbledhja e ditës
+                    </button>
+                    <button class="ai-qp-btn" data-prompt="Cilët klientë duhet të kontaktoj sot? Më jep listën me prioritetet (borxh i madh, s'kanë blerë shumë kohë, etj.) dhe propozim mesazhi WhatsApp për secilin.">
+                        <i class="fas fa-phone"></i> Kë të kontaktoj?
+                    </button>
+                    <button class="ai-qp-btn" data-prompt="Bëj parashikim të shitjeve për javën e ardhshme bazuar në historikun. Cilët produkte do shitem më shumë? A duhet të porosis nga Fatoni dhe çfarë sasie?">
+                        <i class="fas fa-chart-line"></i> Parashikim javor
+                    </button>
+                    <button class="ai-qp-btn" data-prompt="Cili produkt ka margjinën më të mirë dhe cili më të keqen? A ka ndonjë produkt që duhet ta hedh ose t'i rrit çmimin?">
+                        <i class="fas fa-percent"></i> Analizë çmimesh
+                    </button>
+                    <button class="ai-qp-btn" data-prompt="Cilët klientë janë më të vlefshmit (top 5) dhe cilët e kanë rrezikun më të madh që të mos paguajnë?">
+                        <i class="fas fa-trophy"></i> Top klientët
+                    </button>
+                    <button class="ai-qp-btn" data-prompt="Më jep 3 sugjerime praktike për të rritur fitimin javës së ardhshme bazuar në të dhënat e mia.">
+                        <i class="fas fa-lightbulb"></i> Si të rrit fitimin?
+                    </button>
+                </div>
+
+                <!-- Messages -->
+                <div class="ai-messages" id="ai-messages">
+                    <!-- Welcome message -->
+                    <div class="ai-msg ai-msg-bot">
+                        <div class="ai-msg-avatar"><i class="fas fa-wand-magic-sparkles"></i></div>
+                        <div class="ai-msg-bubble">
+                            <p>Mirë se erdhe! Unë jam <strong>Hurma AI</strong> 🌴 — asistenti yt personal për dyqanin.</p>
+                            <p>Unë e <strong>njoh dyqanin tënd</strong>: shitjet, klientët, stokun, borxhet, fitimin. Mund të më pyesësh çdo gjë në shqip, p.sh.:</p>
+                            <ul>
+                                <li>"Sa borxh ka Sulejmani?"</li>
+                                <li>"Cili produkt po mbaron stokun?"</li>
+                                <li>"Sa kam shitur këtë muaj?"</li>
+                                <li>"Më rekomando një strategji çmimi"</li>
+                            </ul>
+                            <p>Provo një nga pyetjet e shpejta lart, ose shkruaj direkt poshtë.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input -->
+                <div class="ai-input-wrap" id="ai-input-wrap">
+                    <textarea id="ai-input" rows="1" placeholder="Pyet diçka për dyqanin tënd... (Enter për dërgim, Shift+Enter për rresht të ri)"></textarea>
+                    <button class="ai-send-btn" id="ai-send-btn" title="Dërgo (Enter)">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+                <div class="ai-status" id="ai-status"></div>
+            </div>
+        </section>
         <!-- Cash Drawer Page -->
         <section id="page-cashDrawer" class="page">
             <div class="export-buttons">
@@ -1217,8 +1311,9 @@
     </nav>
 
     <script src="i18n.js"></script>
-    <script src="app.js?v=86"></script>
+    <script src="app.js?v=87"></script>
     <script src="hurma-polish.js?v=6" defer></script>
+    <script src="hurma-ai.js?v=1" defer></script>
 
     <!-- ==========================================================================
          Hurma — App Store enhancement layer (v11)
