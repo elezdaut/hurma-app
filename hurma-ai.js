@@ -970,17 +970,79 @@ Kur ka kuptim, mund të shtosh **butona veprimi** në përgjigjen tënde që Ele
         return typeof (window.SpeechRecognition || window.webkitSpeechRecognition) === 'function';
     }
 
-    function startVoiceInput() {
+    // Provo gjuhë në mënyrë sekuenciale derisa të gjenden lokale të punueshme
+    const VOICE_LANGS = ['sq-AL', 'sq', 'mk-MK', 'en-US'];
+    let _voiceLangIdx = 0;
+
+    async function _ensureMicPermission() {
+        // Kërko permission shprehimisht (prep për start të suksesshëm)
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            return { ok: true, reason: 'no-api-check' }; // Sk e kontrollojmë dot, hajde provojmë
+        }
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            // Mbyll stream-in menjëherë — nuk na duhet, vetëm donim permission
+            stream.getTracks().forEach(t => t.stop());
+            return { ok: true };
+        } catch(e) {
+            return { ok: false, error: e.name || 'unknown', message: e.message };
+        }
+    }
+
+    async function startVoiceInput() {
+        // Diagnostika fillestare
+        console.log('[voice] start clicked, support:', _supportsVoice(), 'protocol:', location.protocol);
+
         if (!_supportsVoice()) {
-            if (typeof showToast === 'function') showToast('Browser-i juaj nuk mbështet input me zë', 'error');
-            else alert('Browser-i juaj nuk mbështet input me zë. Provo Chrome ose Safari.');
+            const ua = navigator.userAgent || '';
+            const isFirefox = ua.includes('Firefox');
+            const msg = isFirefox
+                ? '❌ Firefox nuk e mbështet input me zë. Provo Chrome, Safari, ose Edge.'
+                : '❌ Browser-i juaj nuk mbështet input me zë.';
+            if (typeof showToast === 'function') showToast(msg, 'error');
+            else alert(msg);
             return;
         }
+
+        // HTTPS check
+        if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+            const msg = '🔒 Input me zë kërkon HTTPS. Hap app-in nga https:// (jo http://).';
+            if (typeof showToast === 'function') showToast(msg, 'error');
+            else alert(msg);
+            return;
+        }
+
         if (_isRecording) { stopVoiceInput(); return; }
 
+        // Kërko permission për mikrofonin para se ta startosh
+        showStatus('🎤 Duke kërkuar leje për mikrofonin...');
+        const perm = await _ensureMicPermission();
+        if (!perm.ok) {
+            const errMap = {
+                'NotAllowedError': '🚫 Lejoje aksesin në mikrofon te ikona e shiritit të adresës.',
+                'NotFoundError': '🎤 Nuk u gjet mikrofon në pajisjen tënde.',
+                'NotReadableError': '⚠️ Mikrofoni është në përdorim nga një app tjetër.',
+                'OverconstrainedError': '⚠️ Mikrofoni nuk mbështet konfigurimin e kërkuar.',
+                'SecurityError': '🔒 Aksesi u bllokua nga policy e sigurisë.'
+            };
+            const msg = errMap[perm.error] || ('🎤 Gabim mikrofoni: ' + (perm.message || perm.error));
+            console.warn('[voice] permission denied:', perm);
+            if (typeof showToast === 'function') showToast(msg, 'error');
+            showStatus(msg, true);
+            return;
+        }
+
         const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        _recognition = new Recognition();
-        _recognition.lang = 'sq-AL'; // Shqip
+        try {
+            _recognition = new Recognition();
+        } catch(e) {
+            console.warn('[voice] new Recognition() failed:', e);
+            showStatus('Nuk u krijua dot recognition: ' + e.message, true);
+            return;
+        }
+
+        // Filloj me gjuhën aktuale (ose Shqip në fillim)
+        _recognition.lang = VOICE_LANGS[_voiceLangIdx] || 'sq-AL';
         _recognition.continuous = false;
         _recognition.interimResults = true;
         _recognition.maxAlternatives = 1;
@@ -989,9 +1051,12 @@ Kur ka kuptim, mund të shtosh **butona veprimi** në përgjigjen tënde që Ele
         const micBtn = document.getElementById('ai-mic-btn');
         if (micBtn) micBtn.classList.add('ai-mic-recording');
         _isRecording = true;
-        showStatus('🎤 Po të dëgjoj... fol në Shqip');
+        showStatus('🎤 Po dëgjoj... fol qartë (' + _recognition.lang + ')');
 
         let finalTranscript = '';
+        _recognition.onstart = () => {
+            console.log('[voice] started, lang:', _recognition.lang);
+        };
         _recognition.onresult = (event) => {
             let interim = '';
             for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -1000,25 +1065,50 @@ Kur ka kuptim, mund të shtosh **butona veprimi** në përgjigjen tënde që Ele
                 else interim += transcript;
             }
             if (input) input.value = finalTranscript + interim;
+            console.log('[voice] transcript:', finalTranscript || interim);
         };
         _recognition.onerror = (event) => {
-            console.warn('Voice error:', event.error);
-            if (event.error === 'no-speech') {
-                showStatus('Nuk dëgjova asgjë. Klikoji 🎤 dhe provo përsëri.', true);
-            } else if (event.error === 'not-allowed') {
-                showStatus('Aksesi në mikrofon u bllokua. Lejoje në cilësimet e browser-it.', true);
-            } else if (event.error === 'language-not-supported') {
-                // Fallback te Anglishtja nëse Shqipja nuk mbështetet
-                _recognition.lang = 'en-US';
-                if (typeof showToast === 'function') showToast('Shqipja s\'mbështetet në këtë browser. Po përdor Anglishten.', 'warning');
+            console.warn('[voice] error:', event.error, event);
+            const errMap = {
+                'no-speech': 'Nuk dëgjova asgjë. Klikoji 🎤 dhe fol më afër mikrofonit.',
+                'not-allowed': '🚫 Aksesi në mikrofon u bllokua. Lejoje te ikona e shiritit të adresës.',
+                'service-not-allowed': '🚫 Shërbimi i njohjes së zërit u bllokua nga browser-i.',
+                'aborted': '', // silent — user-initiated
+                'audio-capture': '🎤 Nuk lexohet dot mikrofoni. Kontrollo që është i lidhur.',
+                'network': '🌐 Gabim rrjeti. Web Speech API kërkon internet.',
+                'language-not-supported': null // trajtohet poshtë
+            };
+            if (event.error === 'language-not-supported') {
+                // Provo gjuhën tjetër në listë
+                _voiceLangIdx++;
+                if (_voiceLangIdx < VOICE_LANGS.length) {
+                    console.log('[voice] retry with:', VOICE_LANGS[_voiceLangIdx]);
+                    stopVoiceInput();
+                    setTimeout(() => startVoiceInput(), 200);
+                    return;
+                } else {
+                    if (typeof showToast === 'function') showToast('🌍 Asnjë nga gjuhët nuk mbështetet në këtë browser.', 'error');
+                    _voiceLangIdx = 0;
+                }
+            } else if (errMap[event.error] !== undefined) {
+                const msg = errMap[event.error];
+                if (msg) {
+                    if (typeof showToast === 'function') showToast(msg, 'error');
+                    showStatus(msg, true);
+                }
+            } else if (event.error) {
+                const msg = '🎤 Gabim: ' + event.error;
+                if (typeof showToast === 'function') showToast(msg, 'error');
+                showStatus(msg, true);
             }
             stopVoiceInput();
         };
         _recognition.onend = () => {
+            console.log('[voice] ended, transcript:', finalTranscript);
+            const wasRecording = _isRecording;
             stopVoiceInput();
-            if (finalTranscript.trim() && input) {
+            if (wasRecording && finalTranscript.trim() && input) {
                 input.value = finalTranscript.trim();
-                // Auto-send pas 500ms
                 setTimeout(() => {
                     const text = input.value.trim();
                     if (text) {
@@ -1029,8 +1119,19 @@ Kur ka kuptim, mund të shtosh **butona veprimi** në përgjigjen tënde që Ele
             }
         };
 
-        try { _recognition.start(); }
-        catch(e) { console.warn('Voice start failed:', e); stopVoiceInput(); }
+        try {
+            _recognition.start();
+            console.log('[voice] start() called successfully');
+        } catch(e) {
+            console.warn('[voice] start() threw:', e);
+            // InvalidStateError zakonisht do thotë që një tjetër recognition është aktive
+            if (e.name === 'InvalidStateError') {
+                showStatus('⚠️ Recognition aktiv tashmë — provo prapë pas 1 sekonde.', true);
+            } else {
+                showStatus('Gabim start: ' + (e.message || e.name), true);
+            }
+            stopVoiceInput();
+        }
     }
 
     function stopVoiceInput() {
