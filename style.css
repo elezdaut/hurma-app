@@ -2737,7 +2737,7 @@ input:checked + .slider:before {
     box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
 
-/* Header */
+/* Header — sticky te krye sa skrollon */
 .ai-header {
     display: flex;
     justify-content: space-between;
@@ -2747,6 +2747,16 @@ input:checked + .slider:before {
     background: linear-gradient(135deg,
         color-mix(in srgb, #e17055 8%, var(--bg)),
         var(--bg));
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+/* Fsheh recent-activity-bar dhe live-sales chip te faqja AI që mos mbivendoset */
+body:has(#page-ai.active) .recent-activity-bar,
+body:has(#page-ai.active) #last-client-header-badge {
+    display: none !important;
 }
 .ai-header-left { display: flex; align-items: center; gap: 14px; }
 .ai-avatar {

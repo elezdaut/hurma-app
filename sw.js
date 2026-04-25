@@ -1,6 +1,6 @@
 // ===================== HURMA APP — SERVICE WORKER =====================
 // Versioni i cache-it. Ndrysho këtë vlerë kur publikon update të ri.
-const CACHE_VERSION = 'hurma-v79';
+const CACHE_VERSION = 'hurma-v80';
 
 // Skedarët lokalë që kachojmë për punë offline
 const CORE_ASSETS = [
@@ -44,17 +44,43 @@ self.addEventListener('activate', event => {
 // Strategjia: Cache-first për skedarët lokalë, Network-first për CDN
 self.addEventListener('fetch', event => {
     const url = new URL(event.request.url);
+    const req = event.request;
+
+    // ⚠️ EXCLUDE: API streaming endpoints — SW NUK duhet të prek këto.
+    // Streaming responses (SSE) thyhen kur clone-ohen ose cache-ohen.
+    // Lista bardhë: domain-et e njohura të API streaming që po përdorim.
+    const STREAMING_HOSTS = [
+        'api.anthropic.com',
+        'api.openai.com',
+        'generativelanguage.googleapis.com'
+    ];
+    if (STREAMING_HOSTS.some(host => url.hostname === host || url.hostname.endsWith('.' + host))) {
+        return; // lëre browser-in ta menaxhojë normalisht
+    }
+    // Mos prek POST/PUT/PATCH/DELETE — ato shpesh janë mutuese ose streaming.
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+        return;
+    }
+    // Mos prek kërkesat me Range header (video/audio streaming).
+    if (req.headers.get('range')) {
+        return;
+    }
 
     // Kërkesat CDN: provo rrjetin, nëse dështon kthe nga cache
     if (url.origin !== self.location.origin) {
         event.respondWith(
-            fetch(event.request)
+            fetch(req)
                 .then(response => {
-                    const clone = response.clone();
-                    caches.open(CACHE_VERSION).then(cache => cache.put(event.request, clone));
+                    // Vetëm përgjigjet bazike + të suksesshme cache-ohen
+                    if (response && response.ok && response.type !== 'opaque') {
+                        try {
+                            const clone = response.clone();
+                            caches.open(CACHE_VERSION).then(cache => cache.put(req, clone)).catch(() => {});
+                        } catch(e) { /* ignore */ }
+                    }
                     return response;
                 })
-                .catch(() => caches.match(event.request))
+                .catch(() => caches.match(req))
         );
         return;
     }

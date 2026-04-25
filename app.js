@@ -24,10 +24,32 @@
             if (typeof logActivity === 'function') logActivity('error', msg);
         } catch(e) {}
     }
+    // Filter për error-e "noise" që nuk duhet të alarmojnë përdoruesin —
+    // p.sh. service worker fetch failures, kërkesa të anuluara, etj.
+    function _isNoiseError(msg, src) {
+        if (!msg) return false;
+        var lc = String(msg).toLowerCase();
+        var fn = String(src || '').toLowerCase();
+        return (
+            fn.indexOf('sw.js') >= 0 ||
+            lc.indexOf('fetchevent.respondwith') >= 0 ||
+            lc.indexOf('load failed') >= 0 ||
+            lc.indexOf('the operation was aborted') >= 0 ||
+            lc.indexOf('the fetching process for the media resource was aborted') >= 0 ||
+            lc.indexOf('networkerror') >= 0 ||
+            lc === 'script error.' || // CORS-blocked script errors
+            lc === 'script error'
+        );
+    }
     window.addEventListener('error', function(e) {
         try {
             var msg = (e && e.message) ? e.message : 'Gabim i panjohur';
             var src = (e && e.filename) ? (' [' + e.filename.split('/').pop() + ':' + (e.lineno||'?') + ']') : '';
+            // Filtro noise — log silent te console, jo toast në UI
+            if (_isNoiseError(msg, e && e.filename)) {
+                try { console.warn('[noise]', msg, src); } catch(_){}
+                return;
+            }
             _showErrToast(msg + src);
         } catch(err) {}
     });
@@ -35,6 +57,10 @@
         try {
             var r = e && e.reason;
             var msg = (r && r.message) ? r.message : (typeof r === 'string' ? r : 'Promise i dështuar');
+            if (_isNoiseError(msg)) {
+                try { console.warn('[noise rejection]', msg); } catch(_){}
+                return;
+            }
             _showErrToast(msg);
         } catch(err) {}
     });
@@ -11696,7 +11722,14 @@ function refreshRecentActivityBar() {
     const rab = document.getElementById('rab-items');
     if (!rab) return;
 
-    const activities = (state.activityLog || []).slice(-5).reverse();
+    // Fsheh error-et teknike nga shiriti i përdoruesit normal — ato kanë vend
+    // vetëm te Activity Log i plotë (faqja Cilësimet) për debug.
+    const activities = (state.activityLog || [])
+        .filter(a => {
+            const t = (a && (a.type || a.action) || '').toLowerCase();
+            return t !== 'error' && t !== 'script' && t !== 'fetcherror';
+        })
+        .slice(-5).reverse();
     if (activities.length === 0) {
         rab.innerHTML = '<div class="rab-item"><i class="fas fa-info-circle"></i> Asnjë veprim ende</div>';
         return;
