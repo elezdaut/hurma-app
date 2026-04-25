@@ -27,7 +27,7 @@
     let abortController = null;
 
     // ═══════════════════════════════════════════════════════════════════
-    // System prompt — kontekst i plotë: çdo të dhënë e app-it
+    // System prompt — kontekst i PLOTË HISTORIK: çdo shitje, klient, pagesë
     // Përditësohet automatikisht në çdo mesazh (snapshot freskët).
     // ═══════════════════════════════════════════════════════════════════
     function buildSystemPrompt() {
@@ -37,6 +37,8 @@
         const now = new Date();
         const today = now.toISOString().split('T')[0];
         const monthStart = today.substring(0, 7);
+        const currentYear = today.substring(0, 4);
+        const lastYear = String(parseInt(currentYear, 10) - 1);
 
         // ── Klientët (TË GJITHË) ──────────────────────────────────────────
         const clients = (state.clients || []).map(c => {
@@ -126,14 +128,30 @@
             shitje_total_gjithë_kohërave: { count: (state.sales || []).length, fitim: sumProfit(state.sales || []), qarkullim: sumRevenue(state.sales || []) }
         };
 
-        // ── Llogaria Fatoni (furnizuesi) ─────────────────────────────────
+        // ── Llogaria Fatoni (furnizuesi) — TË GJITHA pagesat + blerjet ───
         const fatonDebt = (typeof calcFatonDebt === 'function') ? calcFatonDebt() : 0;
-        const fatonPayments = (state.fatonPayments || []).slice(-30).reverse(); // 30 të fundit
-        const fatonPurchases = (state.fatonPurchases || []).slice(-30).reverse();
-        const lastFatonPay = fatonPayments[0];
+        const allFatonPayments = (state.fatonPayments || []).slice().reverse(); // ALL, më të reja para
+        const allFatonPurchases = (state.fatonPurchases || []).slice().reverse();
+        const lastFatonPay = allFatonPayments[0];
         const daysSinceFatonPay = lastFatonPay && lastFatonPay.date
             ? Math.floor((now - new Date(lastFatonPay.date)) / (1000*60*60*24))
             : null;
+        // Agregime Faton sipas vitit
+        const fatonByYear = {};
+        allFatonPayments.forEach(p => {
+            if (!p || !p.date) return;
+            const yr = p.date.substring(0, 4);
+            if (!fatonByYear[yr]) fatonByYear[yr] = { paguar: 0, count_pagesa: 0, blerje: 0, count_blerje: 0 };
+            fatonByYear[yr].paguar += (p.amount || 0);
+            fatonByYear[yr].count_pagesa += 1;
+        });
+        allFatonPurchases.forEach(p => {
+            if (!p || !p.date) return;
+            const yr = p.date.substring(0, 4);
+            if (!fatonByYear[yr]) fatonByYear[yr] = { paguar: 0, count_pagesa: 0, blerje: 0, count_blerje: 0 };
+            fatonByYear[yr].blerje += (p.totalCost || p.cost || p.amount || 0);
+            fatonByYear[yr].count_blerje += 1;
+        });
 
         // ── Pjesa e fitimit (Elezi vs Partneri) ──────────────────────────
         const profitSplit = state.profitSplit || { owner: 50, partner: 50 };
@@ -167,36 +185,90 @@
             })
             .sort((a, b) => (b.mbetur || 0) - (a.mbetur || 0));
 
-        // ── Pagesa nga klientët ──────────────────────────────────────────
-        const clientPayments = (state.clientPayments || []).slice(-50).reverse();
+        // ── Pagesa nga klientët — TË GJITHA ─────────────────────────────
+        const allClientPayments = (state.clientPayments || []).slice().reverse();
 
-        // ── Shitjet e fundit (50, që AI ka kontekst të mjaftueshëm) ─────
-        const recentSales = (state.sales || []).slice(-50).reverse().map(s => {
+        // ── Shitjet — adaptive: TË GJITHA nëse <= 800; përndryshe samplim i zgjuar ─
+        const allSales = (state.sales || []);
+        const totalSalesCount = allSales.length;
+        const sortedSales = allSales.slice().sort((a, b) => {
+            const da = (b && (b.createdAt || b.date)) || '';
+            const db = (a && (a.createdAt || a.date)) || '';
+            return da.localeCompare(db);
+        });
+
+        function formatSale(s) {
+            if (!s) return null;
             const c = (state.clients || []).find(cl => cl && cl.id === s.clientId);
             const p = PRODUCTS.find(pr => pr.id === s.productId);
             return {
                 id: s.id || null,
                 data: s.date,
-                koha: s.createdAt || null,
                 klient: c ? c.name : '-',
-                klient_id: s.clientId,
                 produkt: p ? p.name : (s.productId || '-'),
-                produkt_id: s.productId,
                 sasi: s.quantity,
                 cmim_shitje: s.sellPrice,
-                cmim_blerje: s.buyPrice,
                 qarkullim: s.sellTotal,
                 fitim: s.profit,
                 pagesa: s.paymentType || 'cash',
                 fatura_paguar: s.invoicePaid || false,
-                lokacioni: s.location || null,
                 shenim: s.note || null,
                 zbritje: s.discount || 0
             };
+        }
+
+        let salesData;
+        if (totalSalesCount <= 800) {
+            // I vogël: TË GJITHA shitjet (më të rejat para)
+            salesData = {
+                qasje: 'TË_GJITHA',
+                count_total: totalSalesCount,
+                lista: sortedSales.map(formatSale).filter(Boolean)
+            };
+        } else {
+            // I madh: 100 të parat (origjina) + 500 të fundit + mungoj në mes
+            salesData = {
+                qasje: 'PJESORE_ME_AGREGIM',
+                count_total: totalSalesCount,
+                shenim: 'Për shitjet e plota mes këtyre, përdor agregimet vjetore/mujore poshtë',
+                shitjet_e_para_100: sortedSales.slice(-100).reverse().map(formatSale).filter(Boolean),
+                shitjet_e_fundit_500: sortedSales.slice(0, 500).map(formatSale).filter(Boolean)
+            };
+        }
+
+        // ── Agregime shitje sipas vitit / muajit ──────────────────────────
+        const salesByYear = {};
+        const salesByMonth = {}; // YYYY-MM
+        const salesByClient = {}; // clientId
+        const salesByProduct = {}; // productId
+        allSales.forEach(s => {
+            if (!s || !s.date) return;
+            const yr = s.date.substring(0, 4);
+            const ym = s.date.substring(0, 7);
+            const profit = (s.profit || 0);
+            const revenue = (s.sellTotal || 0);
+            const qty = (s.quantity || 0);
+
+            if (!salesByYear[yr]) salesByYear[yr] = { count: 0, qarkullim: 0, fitim: 0, sasi: 0 };
+            salesByYear[yr].count++;
+            salesByYear[yr].qarkullim += revenue;
+            salesByYear[yr].fitim += profit;
+            salesByYear[yr].sasi += qty;
+
+            if (!salesByMonth[ym]) salesByMonth[ym] = { count: 0, qarkullim: 0, fitim: 0, sasi: 0 };
+            salesByMonth[ym].count++;
+            salesByMonth[ym].qarkullim += revenue;
+            salesByMonth[ym].fitim += profit;
+            salesByMonth[ym].sasi += qty;
         });
 
-        // ── Porositë (te Fatoni) ─────────────────────────────────────────
-        const orders = (state.orders || []).slice(-30).reverse().map(o => {
+        // Mbaj vetëm 24 muajt e fundit për agregim mujor (që mos të rritet shumë)
+        const sortedMonths = Object.keys(salesByMonth).sort().reverse();
+        const recent24Months = {};
+        sortedMonths.slice(0, 36).forEach(m => { recent24Months[m] = salesByMonth[m]; });
+
+        // ── Porositë — TË GJITHA ─────────────────────────────────────────
+        const allOrders = (state.orders || []).slice().reverse().map(o => {
             const p = PRODUCTS.find(pr => pr.id === o.productId);
             return {
                 id: o.id,
@@ -209,8 +281,8 @@
             };
         });
 
-        // ── Kthimet ───────────────────────────────────────────────────────
-        const returns = (state.returns || []).slice(-30).reverse().map(r => {
+        // ── Kthimet — TË GJITHA ───────────────────────────────────────────
+        const allReturns = (state.returns || []).slice().reverse().map(r => {
             const p = PRODUCTS.find(pr => pr.id === r.productId);
             const c = (state.clients || []).find(cl => cl && cl.id === r.clientId);
             return {
@@ -222,15 +294,27 @@
             };
         });
 
-        // ── Shpenzimet ────────────────────────────────────────────────────
-        const expenses = (state.expenses || []).slice(-50).reverse().map(e => ({
+        // ── Shpenzimet — TË GJITHA + agregim mujor ──────────────────────
+        const allExpenses = (state.expenses || []).slice().reverse().map(e => ({
             data: e.date,
             kategoria: e.category || 'tjetër',
             shuma: e.amount,
             përshkrimi: e.description || ''
         }));
-        const monthExpenses = expenses.filter(e => e.data && e.data.startsWith(monthStart));
+        const monthExpenses = allExpenses.filter(e => e.data && e.data.startsWith(monthStart));
         const totalMonthExpenses = monthExpenses.reduce((sum, e) => sum + (e.shuma || 0), 0);
+        const expensesByMonth = {};
+        const expensesByCategory = {};
+        allExpenses.forEach(e => {
+            if (!e || !e.data) return;
+            const ym = e.data.substring(0, 7);
+            if (!expensesByMonth[ym]) expensesByMonth[ym] = 0;
+            expensesByMonth[ym] += (e.shuma || 0);
+            const cat = e.kategoria || 'tjetër';
+            if (!expensesByCategory[cat]) expensesByCategory[cat] = { total: 0, count: 0 };
+            expensesByCategory[cat].total += (e.shuma || 0);
+            expensesByCategory[cat].count++;
+        });
 
         // ── Shënimet ──────────────────────────────────────────────────────
         const notes = (state.notes || []).slice(-30).reverse().map(n => ({
@@ -305,22 +389,30 @@
             data_aktuale: today,
             koha_aktuale: now.toISOString(),
             statistika: stats,
-            klientë: clients,
-            produkte: products,
+            klientë: clients, // TË GJITHË klientët
+            produkte: products, // TË GJITHA produktet
             faton: {
                 borxhi_aktual: fatonDebt,
                 pagesa_e_fundit: lastFatonPay,
                 ditë_pa_paguar: daysSinceFatonPay,
-                pagesa_30_të_fundit: fatonPayments.slice(0, 10), // 10 të fundit
-                blerje_30_të_fundit: fatonPurchases.slice(0, 10)
+                pagesa_TË_GJITHA: allFatonPayments, // ALL — historiku i plotë i pagesave
+                blerje_TË_GJITHA: allFatonPurchases, // ALL — historiku i plotë i blerjeve
+                agregim_sipas_vitit: fatonByYear // total paguar/blerë për çdo vit
             },
-            shitje_50_të_fundit: recentSales,
-            fatura_hapura: openInvoices,
-            pagesa_klientësh_50_të_fundit: clientPayments,
-            porositë_30_të_fundit: orders,
-            kthimet_30_të_fundit: returns,
-            shpenzime: { total_muaji: totalMonthExpenses, lista_50_të_fundit: expenses },
-            shënime: notes,
+            shitjet: salesData, // adaptive: ALL nëse <800, ndryshe split + agregim
+            agregimi_shitjeve_vjetor: salesByYear, // çdo vit: count/qarkullim/fitim/sasi
+            agregimi_shitjeve_mujor_36muaj: recent24Months, // 36 muajt e fundit
+            fatura_TË_GJITHA_hapura: openInvoices, // ALL
+            pagesa_klientësh_TË_GJITHA: allClientPayments, // ALL
+            porositë_TË_GJITHA: allOrders,
+            kthimet_TË_GJITHA: allReturns,
+            shpenzime: {
+                total_muaji_aktual: totalMonthExpenses,
+                lista_TË_GJITHA: allExpenses,
+                agregim_mujor: expensesByMonth,
+                agregim_sipas_kategorisë: expensesByCategory
+            },
+            shënime: notes, // 30 të fundit (zakonisht s'janë critical historic)
             qëllime: targets,
             kontakte: contacts,
             log_aktivitetesh_50_të_fundit: activityLog,
@@ -351,31 +443,50 @@
 - Sugjerime **konkrete me veprim**: "Kontakto Sulejmanin sot — borxh 2.400 ден, s'ka blerë 12 ditë"
 - Mos shpik të dhëna që s'i ke. Nëse mungon info, thuaj qartë: "Nuk ka të dhëna për këtë"
 
-## 🧠 Çfarë mund të bësh me të dhënat
-Ti ke akses **TË PLOTË** te:
-- ✅ TË GJITHË klientët (jo vetëm 50) me historik blerjesh, borxh, pagesa, kontakte
-- ✅ TË GJITHA produktet me stok, çmime, margjinë, velocity, ditë stoku të mbetura
-- ✅ Statistika: sot / javë / muaj / total (qarkullim, fitim, count)
-- ✅ Llogaria Fatoni: borxhi, pagesa, blerjet
-- ✅ 50 shitjet e fundit me detaje të plota
-- ✅ Të gjitha faturat e hapura (me ditë vonese të llogaritura)
-- ✅ Pagesa nga klientët, porosi, kthime, shpenzime, shënime
-- ✅ Qëllimet, log aktivitetesh, kontaktet
-- ✅ **Insights të para-llogaritura**: top klientë, produkte me stok kritik, fatura vonesa, etj.
+## 🧠 KE QASJE TË PLOTË NË HISTORIKUN E DYQANIT (jo vetëm të dhënat e fundit!)
 
-## 📊 Të dhënat aktuale të dyqanit (~${tokenEstimate} tokens)
+**E rëndësishme**: Ti **ke** të dhëna historike të plota. Mos thuaj kurrë "Nuk ka të dhëna historike" — kontrollo gjithmonë në JSON-in poshtë.
+
+Ke akses **HISTORIK** te:
+- ✅ **TË GJITHË klientët** (\`klientë\`) me TOTAL lifetime: qarkullim, fitim, paguar, shitje count, blerja e parë & e fundit
+- ✅ **TË GJITHA produktet** (\`produkte\`) me totale historike + velocity
+- ✅ **Llogaria Fatoni — historiku i PLOTË**: \`pagesa_TË_GJITHA\` + \`blerje_TË_GJITHA\` + \`agregim_sipas_vitit\` për çdo vit
+- ✅ **Shitjet** (\`shitjet\`):
+  • Nëse total ≤ 800 → TË GJITHA shitjet me detaje
+  • Nëse > 800 → 100 të parat + 500 të fundit + agregim i plotë
+- ✅ **Agregimi vjetor i shitjeve** (\`agregimi_shitjeve_vjetor\`): për çdo vit që ka shitje, sheh count/qarkullim/fitim/sasi
+- ✅ **Agregimi mujor 36 muajt e fundit** (\`agregimi_shitjeve_mujor_36muaj\`): YYYY-MM → metrika
+- ✅ **TË GJITHA faturat e hapura** (\`fatura_TË_GJITHA_hapura\`) me ditë vonese
+- ✅ **TË GJITHA pagesat e klientëve** (\`pagesa_klientësh_TË_GJITHA\`)
+- ✅ **TË GJITHA porositë** (\`porositë_TË_GJITHA\`)
+- ✅ **TË GJITHA kthimet** (\`kthimet_TË_GJITHA\`)
+- ✅ **Shpenzimet komplet**: \`lista_TË_GJITHA\` + \`agregim_mujor\` + \`agregim_sipas_kategorisë\`
+- ✅ **Insights të para-llogaritura** (\`insights_të_gatshme\`)
+
+## 📊 Të dhënat aktuale + historike të dyqanit (~${tokenEstimate} tokens)
 *Snapshot freskët në çdo mesazh që dërgon — informacioni i ri që fut në app shfaqet menjëherë këtu.*
 
 \`\`\`json
 ${contextJson}
 \`\`\`
 
-## 💡 Shembuj se si ta përdorësh kontekstin
-- Pyetje "Sa borxh ka X?" → Kërko në \`klientë\` për emrin → përdor \`borxh_aktual\`
-- "Çfarë duhet të porosis?" → Përdor \`insights_të_gatshme.produkte_që_duhen_porositur\`
-- "Sa fitova këtë muaj?" → Përdor \`statistika.muaji_aktual.fitim\`
-- "Kush janë top klientët?" → \`insights_të_gatshme.top_5_klientë_për_qarkullim\`
-- "Cilët klientë s'kanë blerë shumë kohë?" → \`insights_të_gatshme.klientë_pasivë_30d\`
+## 💡 Shembuj se si ta përdorësh kontekstin (PYETJE HISTORIKE!)
+- "Sa shita vitin e kaluar?" → \`agregimi_shitjeve_vjetor['2025']\`
+- "Krahaso muajin këtë me të kaluarin" → \`agregimi_shitjeve_mujor_36muaj['2026-04']\` vs \`['2026-03']\`
+- "Sa kam paguar Fatonin gjithsej?" → Mblidh \`faton.pagesa_TË_GJITHA\` ose përdor \`faton.agregim_sipas_vitit\`
+- "Kur kam blerë për herë të parë te Fatoni?" → \`faton.blerje_TË_GJITHA\` (data më e vjetër)
+- "Sa shpenzime kam pasur muajin X?" → \`shpenzime.agregim_mujor['2026-03']\`
+- "Cilat janë kategoritë kryesore të shpenzimeve?" → \`shpenzime.agregim_sipas_kategorisë\`
+- "Sa borxh ka X?" → Kërko \`klientë\` për emrin → \`borxh_aktual\`
+- "Top klientët e mi?" → \`insights_të_gatshme.top_5_klientë_për_qarkullim\` ose \`klientë\` rendit sipas \`qarkullim_total\`
+- "Cili produkt ka shitur më shumë gjithçka?" → \`produkte\` rendit sipas \`shitur_total\`
+- "Cilat fatura janë vonë?" → \`fatura_TË_GJITHA_hapura\` filtro me \`vonesë: true\`
+- "Trend i shitjeve 12 muajt e fundit?" → \`agregimi_shitjeve_mujor_36muaj\` (ki 36 muaj!)
+
+⚠️ **MOS thuaj "nuk ka të dhëna historike"** — gjithmonë ke akses te:
+- Agregime vjetore (që nga viti i parë i shitjeve)
+- Agregime mujore (36 muajt e fundit)
+- Lista e plotë e të dhënave kritike (klientë, produkte, fatura, pagesa Fatoni)
 
 Përdor **VETËM** të dhënat lart për përgjigje konkrete. Për pyetje të përgjithshme (strategji biznesi, marketing) mund të kombinosh njohuritë e tua me të dhënat.`;
     }
