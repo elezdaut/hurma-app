@@ -98,6 +98,8 @@ const DEFAULT_PRODUCTS = [
 
 // Feature 1: Dynamic products (can be managed from Settings)
 let PRODUCTS = [...DEFAULT_PRODUCTS];
+// Ekspozo te window që modulet e tjera (hurma-ai.js, etj.) të kenë akses
+try { window.PRODUCTS = PRODUCTS; } catch(e) {}
 
 // ===================== STATE =====================
 let state = {
@@ -174,6 +176,9 @@ let state = {
     distInvoiceCounter: 0,
     distFatonReminder: { enabled: false, type: 'days', days: 7, weekday: 1, threshold: 5000, lastDismissed: null }
 };
+// Ekspozo state te window që modulet e tjera (hurma-ai.js, etj.) ta kenë akses
+// Object.assign-i ruan referencën, kështu që ky pointer mbetet i vlefshëm.
+try { window.state = state; } catch(e) {}
 
 // ===================== INIT =====================
 function init() {
@@ -289,6 +294,7 @@ function loadState() {
         // Feature 1: Load custom products
         if (state.customProducts && (state.customProducts || []).length > 0) {
             PRODUCTS = state.customProducts;
+            try { window.PRODUCTS = PRODUCTS; } catch(e) {}
         }
     }
 }

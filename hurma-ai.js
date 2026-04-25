@@ -30,9 +30,28 @@
     // System prompt — kontekst i PLOTË HISTORIK: çdo shitje, klient, pagesë
     // Përditësohet automatikisht në çdo mesazh (snapshot freskët).
     // ═══════════════════════════════════════════════════════════════════
+    // Helper që merr state nga çdo vend i mundshëm (window.state, global state, hurma-state localStorage)
+    function getLiveState() {
+        if (typeof window.state === 'object' && window.state) return window.state;
+        try { if (typeof state === 'object' && state) return state; } catch(e) {}
+        // Fallback: lexo direkt nga localStorage
+        try {
+            const raw = localStorage.getItem('hurma-state');
+            if (raw) return JSON.parse(raw);
+        } catch(e) {}
+        return {};
+    }
+    function getLiveProducts() {
+        if (Array.isArray(window.PRODUCTS)) return window.PRODUCTS;
+        try { if (Array.isArray(PRODUCTS)) return PRODUCTS; } catch(e) {}
+        const s = getLiveState();
+        if (Array.isArray(s.customProducts) && s.customProducts.length) return s.customProducts;
+        return [];
+    }
+
     function buildSystemPrompt() {
-        const state = window.state || {};
-        const PRODUCTS = (typeof window.PRODUCTS !== 'undefined' && window.PRODUCTS) ? window.PRODUCTS : [];
+        const state = getLiveState();
+        const PRODUCTS = getLiveProducts();
 
         const now = new Date();
         const today = now.toISOString().split('T')[0];
@@ -495,7 +514,7 @@ Përdor **VETËM** të dhënat lart për përgjigje konkrete. Për pyetje të p�
         if (typeof window.calcClientDebt === 'function') {
             try { return window.calcClientDebt(clientId) || 0; } catch (e) {}
         }
-        const state = window.state || {};
+        const state = getLiveState();
         const sales = (state.sales || []).filter(s => s && s.clientId === clientId && s.paymentType === 'invoice_60' && !s.invoicePaid);
         return Math.max(0, sales.reduce((sum, s) => sum + ((s.sellTotal || 0) - (s.amountPaid || 0)), 0));
     }
@@ -633,8 +652,8 @@ Përdor **VETËM** të dhënat lart për përgjigje konkrete. Për pyetje të p�
     function updateContextInfo() {
         const el = document.getElementById('ai-context-info');
         if (!el) return;
-        const state = window.state || {};
-        const PRODUCTS = (typeof window.PRODUCTS !== 'undefined' && window.PRODUCTS) ? window.PRODUCTS : [];
+        const state = getLiveState();
+        const PRODUCTS = getLiveProducts();
         const counts = {
             klientë: (state.clients || []).length,
             produkte: PRODUCTS.length,
