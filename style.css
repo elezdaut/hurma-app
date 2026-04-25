@@ -2810,23 +2810,79 @@ input:checked + .slider:before {
 .lsc-dot-ok { background: var(--success, #27ae60); box-shadow: 0 0 0 2px color-mix(in srgb, var(--success, #27ae60) 20%, transparent); }
 .lsc-dot-warn { background: var(--warning, #f39c12); box-shadow: 0 0 0 2px color-mix(in srgb, var(--warning, #f39c12) 20%, transparent); }
 
-.lsc-menu-btn {
-    width: 32px;
+.lsc-menu-btn,
+.lsc-nav {
+    width: 28px;
     border: none;
-    border-left: 1px solid var(--border, #e5e1d8);
     background: transparent;
     cursor: pointer;
     color: var(--text-secondary, #666);
-    font-size: 0.85rem;
+    font-size: 0.78rem;
     padding: 0;
     flex-shrink: 0;
-    transition: background 0.12s, color 0.12s;
+    transition: background 0.12s, color 0.12s, transform 0.08s;
 }
-.lsc-menu-btn:hover {
-    background: color-mix(in srgb, var(--primary, #e17055) 8%, transparent);
+.lsc-menu-btn { width: 32px; border-left: 1px solid var(--border, #e5e1d8); font-size: 0.85rem; }
+.lsc-nav-prev { border-right: 1px solid var(--border, #e5e1d8); }
+.lsc-nav-next { border-left: 1px solid var(--border, #e5e1d8); }
+.lsc-menu-btn:hover,
+.lsc-nav:hover {
+    background: color-mix(in srgb, var(--primary, #e17055) 10%, transparent);
     color: var(--primary, #e17055);
 }
-.lsc-menu-btn:focus-visible { outline: 2px solid var(--primary, #e17055); outline-offset: -2px; }
+.lsc-nav:active { transform: scale(0.92); }
+.lsc-menu-btn:focus-visible,
+.lsc-nav:focus-visible { outline: 2px solid var(--primary, #e17055); outline-offset: -2px; }
+
+/* Pager: "1/5" — pozicioni në fund të main-it */
+.lsc-pager {
+    font-size: 0.62rem;
+    color: var(--text-secondary, #999);
+    font-weight: 600;
+    background: var(--bg, #fff);
+    border: 1px solid var(--border, #e5e1d8);
+    border-radius: 8px;
+    padding: 1px 6px;
+    margin-left: 4px;
+    flex-shrink: 0;
+    align-self: center;
+    letter-spacing: 0.02em;
+    min-width: 26px;
+    text-align: center;
+}
+
+/* Slide-in animation kur ndryshon item-i */
+.lsc-anim {
+    animation: lscSlideIn 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes lscSlideIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Indikator i progres-it (rreth zilës që mbyllet) — visualizon timer-in 5s */
+.last-sale-chip { position: relative; }
+.last-sale-chip::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    width: 100%;
+    background: linear-gradient(to right, var(--primary, #e17055), color-mix(in srgb, var(--primary, #e17055) 30%, transparent));
+    transform-origin: left;
+    transform: scaleX(0);
+    animation: lscProgress 5s linear infinite;
+    border-radius: 0 0 14px 14px;
+    pointer-events: none;
+    opacity: 0.7;
+}
+.last-sale-chip:hover::after,
+.last-sale-chip:focus-within::after { animation-play-state: paused; opacity: 0.3; }
+@keyframes lscProgress {
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(1); }
+}
 
 /* Context menu */
 .lsc-menu {
@@ -2875,11 +2931,13 @@ input:checked + .slider:before {
     background: var(--bg-secondary);
 }
 
-/* Mobile: kompakt */
+/* Mobile: kompakt — fshih pager-in dhe rreshtin e dytë */
 @media (max-width: 768px) {
-    .last-sale-chip { max-width: 220px; }
+    .last-sale-chip { max-width: 240px; }
     .lsc-line2 { display: none; }
     .lsc-line1 { font-size: 0.78rem; }
+    .lsc-pager { display: none !important; }
+    .lsc-nav { width: 24px; }
 }
 
 /* Quick actions inside product search result chip */

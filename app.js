@@ -13885,11 +13885,19 @@ function sendThankYouWhatsApp(clientId, amount) {
 }
 
 // ============================================================
-// FEATURE 16: Shitja e fundit në header — "Quick Recap" chip
+// FEATURE 16: Live Sales Ticker — karuzel i shitjeve të fundit
 // ============================================================
-// Tregon shitjen më të fundit me info të vërtetë (klient, produkt, sasi,
-// shumë, kohë) dhe ofron menu të shpejtë me veprime: shih detajet e klientit,
-// shih produktin, përsërit shitjen, ose mbyll chip-in.
+// Rrotullohet automatikisht nëpër 5 shitjet e fundit (klientë të ndryshëm),
+// me animacion të butë. Përdoruesi mund: të kalojë me shigjeta, të pauzojë
+// duke kaluar mausin, të hapë menu kontekstuale, ose ta mbyllë për sot.
+let _lscState = {
+    timer: null,
+    items: [],
+    idx: 0,
+    paused: false,
+    intervalMs: 5000
+};
+
 function updateLastClientHeader() {
     const sales = (state.sales || []);
     let badge = document.getElementById('last-client-header-badge');
@@ -13897,50 +13905,35 @@ function updateLastClientHeader() {
     // Nëse përdoruesi e ka mbyllur, mos e rishfaq deri në sesionin tjetër
     if (sessionStorage.getItem('hurma-last-client-dismissed') === '1') {
         if (badge) badge.remove();
+        if (_lscState.timer) { clearInterval(_lscState.timer); _lscState.timer = null; }
         return;
     }
 
     if (sales.length === 0) {
         if (badge) badge.remove();
+        if (_lscState.timer) { clearInterval(_lscState.timer); _lscState.timer = null; }
         return;
     }
 
-    // Gjej shitjen më të fundit
+    // Renditi shitjet (më të rejat para)
     const sorted = sales.slice().sort((a, b) => {
         const da = new Date(b.createdAt || b.date || 0);
         const db = new Date(a.createdAt || a.date || 0);
         return da - db;
     });
-    const lastSale = sorted[0];
-    if (!lastSale) { if (badge) badge.remove(); return; }
 
-    // Lookup-e të sigurta
-    const client = lastSale.clientId
-        ? (state.clients || []).find(c => c && c.id === lastSale.clientId)
-        : null;
-    const product = (typeof getProduct === 'function' && lastSale.productId)
-        ? getProduct(lastSale.productId)
-        : null;
-
-    // Klient & produkt me fallback të bukura (jo "Produkt" placeholder!)
-    const clientName = client && client.name ? client.name : 'Pa klient';
-    const productName = product && product.name
-        ? product.name
-        : (lastSale.productId || 'Produkt i fshirë');
-    const qty = lastSale.quantity || lastSale.qty || 1;
-    const total = lastSale.sellTotal || lastSale.total || 0;
-    const payType = lastSale.paymentType || 'cash';
-    const isCredit = payType === 'invoice_60' && !lastSale.invoicePaid;
-
-    // Kohë relative ("para 5 min", "1 orë më parë", etj.)
-    const ts = new Date(lastSale.createdAt || lastSale.date || Date.now()).getTime();
-    const ago = Math.max(0, Math.floor((Date.now() - ts) / 1000));
-    let timeAgo;
-    if (ago < 60) timeAgo = 'tani';
-    else if (ago < 3600) timeAgo = Math.floor(ago / 60) + ' min më parë';
-    else if (ago < 86400) timeAgo = Math.floor(ago / 3600) + ' orë më parë';
-    else if (ago < 86400 * 7) timeAgo = Math.floor(ago / 86400) + ' ditë më parë';
-    else timeAgo = new Date(ts).toLocaleDateString('sq-AL', { day: 'numeric', month: 'short' });
+    // Mblidh deri në 5 shitje me KLIENTË UNIKË (që ticker-i të mos përsërisë të njëjtin)
+    const seenClients = new Set();
+    const items = [];
+    for (let i = 0; i < sorted.length && items.length < 5; i++) {
+        const s = sorted[i];
+        if (!s) continue;
+        const cKey = s.clientId || '__noclient__' + i;
+        if (seenClients.has(cKey)) continue;
+        seenClients.add(cKey);
+        items.push(_buildTickerItem(s));
+    }
+    if (items.length === 0) { if (badge) badge.remove(); return; }
 
     // Krijo chip-in nëse nuk ekziston
     if (!badge) {
@@ -13949,54 +13942,174 @@ function updateLastClientHeader() {
         badge = document.createElement('div');
         badge.id = 'last-client-header-badge';
         badge.className = 'last-sale-chip';
+        badge.innerHTML = `
+            <button class="lsc-nav lsc-nav-prev" type="button" aria-label="Mbrapa" title="Mbrapa">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <button class="lsc-main" type="button" aria-label="Shiko shitjen">
+                <span class="lsc-icon" aria-hidden="true">🛒</span>
+                <span class="lsc-body" id="lsc-body">
+                    <!-- ngarkohet dinamikisht -->
+                </span>
+                <span class="lsc-pager" id="lsc-pager" aria-live="polite"></span>
+            </button>
+            <button class="lsc-nav lsc-nav-next" type="button" aria-label="Para" title="Para">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+            <button class="lsc-menu-btn" type="button" aria-label="Më shumë veprime" title="Veprime">
+                <i class="fas fa-ellipsis-vertical"></i>
+            </button>`;
         topbar.appendChild(badge);
+
+        // Pauzo në hover/focus
+        badge.addEventListener('mouseenter', () => { _lscState.paused = true; });
+        badge.addEventListener('mouseleave', () => { _lscState.paused = false; });
+        badge.addEventListener('focusin', () => { _lscState.paused = true; });
+        badge.addEventListener('focusout', () => {
+            // Pas 200ms, kontrollo nëse fokusi ka dalë jashtë chip-it
+            setTimeout(() => {
+                if (!badge.contains(document.activeElement)) _lscState.paused = false;
+            }, 200);
+        });
+
+        // Lidh shigjetat
+        badge.querySelector('.lsc-nav-prev').onclick = (e) => {
+            e.stopPropagation();
+            _lscNavigate(-1);
+        };
+        badge.querySelector('.lsc-nav-next').onclick = (e) => {
+            e.stopPropagation();
+            _lscNavigate(1);
+        };
+
+        // Click main → hap 360° të item-it aktual
+        badge.querySelector('.lsc-main').onclick = () => {
+            const cur = _lscState.items[_lscState.idx];
+            if (!cur) return;
+            if (cur.client && typeof openClient360 === 'function') openClient360(cur.client.id);
+            else if (cur.product && typeof openProduct360 === 'function') openProduct360(cur.product.id);
+            else if (typeof navigateTo === 'function') navigateTo('sales');
+        };
+
+        // Menu kontekstuale
+        badge.querySelector('.lsc-menu-btn').onclick = (e) => {
+            e.stopPropagation();
+            const cur = _lscState.items[_lscState.idx];
+            if (cur) _openLastSaleMenu(badge, cur.client, cur.product, cur.sale);
+        };
+
+        // Swipe support për mobile (majtas/djathtas)
+        let touchStartX = 0;
+        badge.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+        }, { passive: true });
+        badge.addEventListener('touchend', (e) => {
+            const dx = e.changedTouches[0].clientX - touchStartX;
+            if (Math.abs(dx) > 40) _lscNavigate(dx < 0 ? 1 : -1);
+        }, { passive: true });
     }
+
+    // Përditëso state-in
+    _lscState.items = items;
+    if (_lscState.idx >= items.length) _lscState.idx = 0;
+
+    // Render aktualin
+    _lscRender();
+
+    // Vendos timer-in (rrotullim auto) — vetëm nëse ka >1 item
+    if (_lscState.timer) { clearInterval(_lscState.timer); _lscState.timer = null; }
+    if (items.length > 1) {
+        _lscState.timer = setInterval(() => {
+            if (_lscState.paused) return;
+            _lscNavigate(1);
+        }, _lscState.intervalMs);
+    }
+}
+
+function _buildTickerItem(sale) {
+    const client = sale.clientId
+        ? (state.clients || []).find(c => c && c.id === sale.clientId)
+        : null;
+    const product = (typeof getProduct === 'function' && sale.productId)
+        ? getProduct(sale.productId)
+        : null;
+    return { sale, client, product };
+}
+
+function _lscFormatItem(it) {
+    const { sale, client, product } = it;
+    const clientName = client && client.name ? client.name : 'Pa klient';
+    const productName = product && product.name
+        ? product.name
+        : (sale.productId || 'Produkt i fshirë');
+    const qty = sale.quantity || sale.qty || 1;
+    const total = sale.sellTotal || sale.total || 0;
+    const payType = sale.paymentType || 'cash';
+    const isCredit = payType === 'invoice_60' && !sale.invoicePaid;
+
+    const ts = new Date(sale.createdAt || sale.date || Date.now()).getTime();
+    const ago = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+    let timeAgo;
+    if (ago < 60) timeAgo = 'tani';
+    else if (ago < 3600) timeAgo = Math.floor(ago / 60) + ' min';
+    else if (ago < 86400) timeAgo = Math.floor(ago / 3600) + 'h';
+    else if (ago < 86400 * 7) timeAgo = Math.floor(ago / 86400) + ' ditë';
+    else timeAgo = new Date(ts).toLocaleDateString('sq-AL', { day: 'numeric', month: 'short' });
 
     const statusDot = isCredit
         ? '<span class="lsc-dot lsc-dot-warn" title="Fatura e papaguar"></span>'
         : '<span class="lsc-dot lsc-dot-ok" title="Cash"></span>';
 
-    badge.innerHTML = `
-        <button class="lsc-main" type="button" aria-label="Shiko shitjen e fundit">
-            <span class="lsc-icon">🛒</span>
-            <span class="lsc-body">
-                <span class="lsc-line1">
-                    <strong class="lsc-client">${_escapeHtml(clientName)}</strong>
-                    <span class="lsc-sep">·</span>
-                    <span class="lsc-product">${_escapeHtml(productName)}</span>
-                    ${qty > 1 ? '<span class="lsc-qty">×' + qty + '</span>' : ''}
-                </span>
-                <span class="lsc-line2">
-                    ${statusDot}
-                    <span class="lsc-amount">${total.toLocaleString('sq-AL')} ден</span>
-                    <span class="lsc-sep">·</span>
-                    <span class="lsc-time">${timeAgo}</span>
-                </span>
-            </span>
-        </button>
-        <button class="lsc-menu-btn" type="button" aria-label="Më shumë veprime" title="Veprime">
-            <i class="fas fa-ellipsis-vertical"></i>
-        </button>
+    return {
+        line1: `<strong class="lsc-client">${_escapeHtml(clientName)}</strong>
+                <span class="lsc-sep">·</span>
+                <span class="lsc-product">${_escapeHtml(productName)}</span>
+                ${qty > 1 ? '<span class="lsc-qty">×' + qty + '</span>' : ''}`,
+        line2: `${statusDot}
+                <span class="lsc-amount">${total.toLocaleString('sq-AL')} ден</span>
+                <span class="lsc-sep">·</span>
+                <span class="lsc-time">${timeAgo}</span>`
+    };
+}
+
+function _lscRender() {
+    const body = document.getElementById('lsc-body');
+    const pager = document.getElementById('lsc-pager');
+    if (!body) return;
+    const cur = _lscState.items[_lscState.idx];
+    if (!cur) return;
+    const f = _lscFormatItem(cur);
+    body.innerHTML = `
+        <span class="lsc-line1">${f.line1}</span>
+        <span class="lsc-line2">${f.line2}</span>
     `;
+    body.classList.remove('lsc-anim');
+    // forcë reflow që animacioni të rifillojë
+    void body.offsetWidth;
+    body.classList.add('lsc-anim');
 
-    // Click on main → open client 360 (or product 360 if no client)
-    const mainBtn = badge.querySelector('.lsc-main');
-    if (mainBtn) {
-        mainBtn.onclick = () => {
-            if (client && typeof openClient360 === 'function') openClient360(client.id);
-            else if (product && typeof openProduct360 === 'function') openProduct360(product.id);
-            else if (typeof navigateTo === 'function') navigateTo('sales');
-        };
+    if (pager) {
+        if (_lscState.items.length > 1) {
+            pager.textContent = (_lscState.idx + 1) + '/' + _lscState.items.length;
+            pager.style.display = '';
+        } else {
+            pager.style.display = 'none';
+        }
     }
 
-    // Menu button → context menu with quick actions
-    const menuBtn = badge.querySelector('.lsc-menu-btn');
-    if (menuBtn) {
-        menuBtn.onclick = (e) => {
-            e.stopPropagation();
-            _openLastSaleMenu(badge, client, product, lastSale);
-        };
+    // Fsheh shigjetat nëse ka vetëm 1 item
+    const badge = document.getElementById('last-client-header-badge');
+    if (badge) {
+        const navs = badge.querySelectorAll('.lsc-nav');
+        navs.forEach(n => { n.style.display = _lscState.items.length > 1 ? '' : 'none'; });
     }
+}
+
+function _lscNavigate(dir) {
+    const n = _lscState.items.length;
+    if (n <= 1) return;
+    _lscState.idx = (_lscState.idx + dir + n) % n;
+    _lscRender();
 }
 
 function _escapeHtml(s) {
