@@ -233,7 +233,12 @@ function loadState() {
     if (saved) {
         let parsed;
         try { parsed = JSON.parse(saved); } catch(e) { console.error('Corrupt state data:', e); return; }
-        state = { ...state, ...parsed };
+        // PËRDOR Object.assign që të mbajë referencën e njëjtë —
+        // window.state pointer mbetet i vlefshëm dhe modulet e jashtme
+        // (hurma-ai.js) shohin të dhënat e ngarkuara në kohë reale.
+        Object.assign(state, parsed);
+        // Rifresko window pointers për siguri
+        try { window.state = state; } catch(e) {}
         // Ensure new arrays exist for backward compatibility
         if (!state.fatonProfitCollections) state.fatonProfitCollections = [];
         if (!state.fatonProfitOwed) state.fatonProfitOwed = [];
@@ -300,6 +305,9 @@ function loadState() {
 }
 
 function saveState() {
+    // Safety net: rifresko window.state që modulet e jashtme (hurma-ai.js etj.)
+    // gjithmonë të kenë referencën e fundit
+    try { window.state = state; window.PRODUCTS = PRODUCTS; } catch(_){}
     // Fix kritik: trajto QuotaExceededError. localStorage ka ~5MB limit — kur mbushet,
     // pastrojmë automatikisht të dhëna historike (jo bazat) dhe provojmë prapë.
     try {
@@ -8688,6 +8696,8 @@ function resetAll() {
         paymentReceipts: [], paymentAuditTrail: [],
         paymentTemplates: [], currencyRates: { EUR: 61.5, USD: 56.0, MKD: 1 }
     };
+    // Rifresko window pointers pas reset-it (hurma-ai.js etj.)
+    try { window.state = state; window.PRODUCTS = PRODUCTS; } catch(e) {}
 
     initStock();
     saveState();
