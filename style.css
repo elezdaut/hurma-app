@@ -3379,6 +3379,134 @@ body:has(#page-ai.active) #last-client-header-badge {
     box-shadow: 0 0 0 3px color-mix(in srgb, #e17055 18%, transparent);
     background: var(--bg);
 }
+.ai-mic-btn {
+    width: 46px; height: 46px;
+    flex-shrink: 0;
+    border-radius: 12px;
+    border: 1px solid var(--border, #e5e1d8);
+    background: var(--bg);
+    color: var(--text-secondary, #666);
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background 0.15s, color 0.15s, transform 0.08s, border-color 0.15s;
+}
+.ai-mic-btn:hover {
+    background: color-mix(in srgb, #e17055 8%, transparent);
+    color: #e17055;
+    border-color: #e17055;
+}
+.ai-mic-btn.ai-mic-recording {
+    background: #d32f2f;
+    color: white;
+    border-color: #d32f2f;
+    animation: aiMicPulse 1.4s ease-in-out infinite;
+}
+@keyframes aiMicPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(211, 47, 47, 0.5); }
+    50% { box-shadow: 0 0 0 8px rgba(211, 47, 47, 0); }
+}
+
+/* Action buttons brenda mesazheve të AI */
+.ai-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: color-mix(in srgb, #e17055 12%, transparent);
+    color: #e17055;
+    border: 1px solid color-mix(in srgb, #e17055 30%, transparent);
+    padding: 6px 12px;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin: 4px 6px 4px 0;
+    transition: background 0.15s, transform 0.08s, color 0.15s;
+    font-family: inherit;
+}
+.ai-action-btn:hover {
+    background: #e17055;
+    color: white;
+    transform: translateY(-1px);
+}
+.ai-action-btn:active { transform: translateY(0); }
+.ai-action-btn i { font-size: 0.78em; }
+.ai-msg-user .ai-action-btn { display: none; } /* mos i shfaq tek user msg */
+
+/* Slash command popup */
+.ai-slash-popup {
+    position: absolute;
+    bottom: 100%;
+    left: 22px;
+    right: 22px;
+    margin-bottom: 8px;
+    background: var(--bg);
+    border: 1px solid var(--border, #e5e1d8);
+    border-radius: 12px;
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
+    padding: 6px;
+    max-height: 280px;
+    overflow-y: auto;
+    z-index: 50;
+    animation: aiSlashIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.ai-slash-popup.hidden { display: none; }
+@keyframes aiSlashIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.ai-slash-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    border: none;
+    background: transparent;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    color: var(--text);
+    text-align: left;
+    font-family: inherit;
+    transition: background 0.1s;
+}
+.ai-slash-item:hover, .ai-slash-item.ai-slash-active {
+    background: color-mix(in srgb, #e17055 10%, transparent);
+}
+.ai-slash-item i {
+    width: 18px; text-align: center; color: #e17055;
+}
+.ai-slash-cmd {
+    font-weight: 700;
+    color: #e17055;
+    font-family: 'SF Mono', Monaco, monospace;
+    font-size: 0.85em;
+    min-width: 80px;
+}
+.ai-slash-label { color: var(--text-secondary, #666); flex: 1; }
+@media (max-width: 768px) {
+    .ai-slash-popup { left: 14px; right: 14px; }
+    .ai-slash-cmd { min-width: 60px; }
+}
+
+/* TTS toggle në settings */
+.ai-sm-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    color: var(--text);
+    transition: background 0.12s;
+}
+.ai-sm-toggle:hover { background: color-mix(in srgb, #e17055 8%, transparent); }
+.ai-sm-toggle input[type="checkbox"] { cursor: pointer; }
+.ai-sm-toggle i { color: #e17055; width: 18px; text-align: center; }
+
+.ai-input-wrap { position: relative; }
+
 .ai-send-btn {
     width: 46px; height: 46px;
     flex-shrink: 0;

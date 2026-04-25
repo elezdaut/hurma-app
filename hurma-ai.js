@@ -12,6 +12,24 @@
     const STORAGE_KEY_API = 'hurma-ai-api-key';
     const STORAGE_KEY_CONV = 'hurma-ai-conversation';
     const STORAGE_KEY_MODEL = 'hurma-ai-model';
+    const STORAGE_KEY_TTS = 'hurma-ai-tts-enabled';
+    const STORAGE_KEY_BRIEFING = 'hurma-ai-last-briefing';
+
+    // ═══════════════════════════════════════════════════════════════════
+    // SLASH COMMANDS — komanda të shpejta që zgjerohen në pyetje të plota
+    // ═══════════════════════════════════════════════════════════════════
+    const SLASH_COMMANDS = [
+        { cmd: '/borxh', label: 'Klientë me borxh', icon: 'fa-triangle-exclamation', expand: 'Cilët klientë kanë borxh? Më jep listën me prioritet (sa borxh, ditë vonese), telefonat, dhe propozim mesazhi WhatsApp për secilin.' },
+        { cmd: '/sot', label: 'Çfarë ndodhi sot', icon: 'fa-calendar-day', expand: 'Më jep një përmbledhje të plotë të ditës së sotme: shitjet, fitimi, klientët që blenë, produktet që shitëm, çdo gjë që duhet ta di.' },
+        { cmd: '/stok', label: 'Stok i ulët', icon: 'fa-boxes-stacked', expand: 'Cilët produkte janë me stok të ulët ose që do mbarojnë së shpejti? Më rendit me prioritet dhe sa duhet të porosis nga Fatoni.' },
+        { cmd: '/javore', label: 'Raport javor', icon: 'fa-chart-line', expand: 'Bëj një raport të plotë të javës: shitjet totale, fitimin, top klientët, top produktet, krahasim me javën e kaluar, dhe sugjerime për javën e ardhshme.' },
+        { cmd: '/muajore', label: 'Raport mujor', icon: 'fa-chart-bar', expand: 'Bëj raport mujor: qarkullim total, fitim, krahasim me muajin e kaluar, top 5 klientë, top 5 produkte, dhe trende të rëndësishme.' },
+        { cmd: '/faton', label: 'Llogaria Fatoni', icon: 'fa-handshake', expand: 'Si është gjendja me Fatonin? Sa borxh kam, sa kam paguar muajin këtë, kur ishte pagesa e fundit, dhe çfarë duhet bërë.' },
+        { cmd: '/parashiko', label: 'Parashikim', icon: 'fa-crystal-ball', expand: 'Bëj parashikim për javën dhe muajin e ardhshëm bazuar në historik. Çfarë do shitet më shumë, sa fitim pritet, çfarë duhet të bëj.' },
+        { cmd: '/kontakto', label: 'Kë të kontaktoj', icon: 'fa-phone', expand: 'Cilët klientë duhet të kontaktoj sot? Listo me prioritet (borxh i madh, s\'kanë blerë gjatë, e të tjera) dhe propozim mesazhi.' },
+        { cmd: '/cmime', label: 'Analizë çmimesh', icon: 'fa-percent', expand: 'Analizo çmimet e produkteve të mia: cili ka margjinë më të mirë, cili më të keqen, çfarë duhet të ndryshoj?' },
+        { cmd: '/fitim', label: 'Si të rrit fitimin', icon: 'fa-rocket', expand: 'Më jep 5 sugjerime praktike dhe konkrete për të rritur fitimin javës së ardhshme bazuar në të dhënat e mia.' }
+    ];
 
     // Modelet e disponueshme — më i ri / më i fuqishëm i pari
     const MODELS = [
@@ -507,7 +525,24 @@ ${contextJson}
 - Agregime mujore (36 muajt e fundit)
 - Lista e plotë e të dhënave kritike (klientë, produkte, fatura, pagesa Fatoni)
 
-Përdor **VETËM** të dhënat lart për përgjigje konkrete. Për pyetje të përgjithshme (strategji biznesi, marketing) mund të kombinosh njohuritë e tua me të dhënat.`;
+Përdor **VETËM** të dhënat lart për përgjigje konkrete. Për pyetje të përgjithshme (strategji biznesi, marketing) mund të kombinosh njohuritë e tua me të dhënat.
+
+## ⚡ Veprime të kushtueshme (action buttons)
+Kur ka kuptim, mund të shtosh **butona veprimi** në përgjigjen tënde që Elezi t'i klikojë drejtpërdrejt. Sintaksa:
+
+\`[btn:Etiketa|action|arg]\`
+
+**Veprimet e disponueshme:**
+- \`[btn:Hap Sulejmanin|openClient360|<clientId>]\` — hap pamjen 360° të klientit
+- \`[btn:Shih Medjool 1kg|openProduct360|<productId>]\` — pamje produkti
+- \`[btn:Shko te Klientët|navigateTo|clients]\` — navigon te faqja
+- \`[btn:Shitje e re|openSaleModal]\` — hap modalin e shitjes
+- \`[btn:Paguaj Fatonin|openFatonPaymentModal]\` — modal pagese Fatoni
+- \`[btn:WhatsApp Sulejmani|sendWhatsApp|<phone>|<msg>]\` — dërgon mesazh WhatsApp
+
+**Shembull**: "Sulejmani ka **2.400 ден borxh**. [btn:Hap Sulejmanin|openClient360|cli_xyz123] [btn:Dërgo kujtesë WhatsApp|sendWhatsApp|389XX|Përshëndetje Sulejmani, ke borxh 2400 ден]"
+
+⚠️ Përdor butona vetëm kur janë **konkretë dhe të dobishëm** — jo për çdo gjë. ID-të merri nga JSON-i i klientëve/produkteve.`;
     }
 
     function calcClientDebt(clientId) {
@@ -587,6 +622,8 @@ Përdor **VETËM** të dhënat lart për përgjigje konkrete. Për pyetje të p�
         html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
         // Links
         html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+        // Action buttons [btn:Label|action|arg]
+        html = renderActionButtons(html);
         // Paragraphs (split by double newline)
         const paragraphs = html.split(/\n\n+/).map(p => {
             const trimmed = p.trim();
@@ -772,6 +809,12 @@ Përdor **VETËM** të dhënat lart për përgjigje konkrete. Për pyetje të p�
             if (assistantText) {
                 conversation.push({ role: 'assistant', content: assistantText });
                 saveConversation();
+                // Lidh action buttons (nëse AI ka inkluduar [btn:...])
+                if (bubble) _attachActionHandlers(bubble);
+                // Lexo me zë (nëse TTS i ndezur)
+                if (getTtsEnabled()) {
+                    speakText(stripMarkdown(assistantText));
+                }
             }
             showStatus('');
         } catch (err) {
@@ -841,6 +884,12 @@ Përdor **VETËM** të dhënat lart për përgjigje konkrete. Për pyetje të p�
                 `).join('')}
             </div>
             <div class="ai-sm-section">
+                <label class="ai-sm-toggle">
+                    <input type="checkbox" id="ai-sm-tts" ${getTtsEnabled() ? 'checked' : ''}>
+                    <span><i class="fas fa-volume-high"></i> Lexo me zë (Text-to-Speech)</span>
+                </label>
+            </div>
+            <div class="ai-sm-section">
                 <button class="ai-sm-btn ai-sm-btn-danger" id="ai-sm-clear-key">
                     <i class="fas fa-key"></i> Hiq çelësin API
                 </button>
@@ -864,6 +913,13 @@ Përdor **VETËM** të dhënat lart për përgjigje konkrete. Për pyetje të p�
                 if (typeof showToast === 'function') showToast('Modeli u ndryshua', 'success');
             };
         });
+        const ttsCheck = menu.querySelector('#ai-sm-tts');
+        if (ttsCheck) ttsCheck.onchange = () => {
+            setTtsEnabled(ttsCheck.checked);
+            if (typeof showToast === 'function') {
+                showToast(ttsCheck.checked ? '🔊 TTS u ndez' : '🔇 TTS u shua', 'success');
+            }
+        };
         const clearBtn = menu.querySelector('#ai-sm-clear-key');
         if (clearBtn) clearBtn.onclick = () => {
             if (confirm('A je i sigurt që do ta hiqesh çelësin API?')) {
@@ -902,6 +958,239 @@ Përdor **VETËM** të dhënat lart për përgjigje konkrete. Për pyetje të p�
         const modelId = getModel();
         const found = MODELS.find(m => m.id === modelId);
         tag.textContent = found ? found.label.split('(')[0].trim() : 'Claude';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // 🎤 VOICE INPUT — Web Speech API (Chrome/Safari/Edge)
+    // ═══════════════════════════════════════════════════════════════════
+    let _recognition = null;
+    let _isRecording = false;
+
+    function _supportsVoice() {
+        return typeof (window.SpeechRecognition || window.webkitSpeechRecognition) === 'function';
+    }
+
+    function startVoiceInput() {
+        if (!_supportsVoice()) {
+            if (typeof showToast === 'function') showToast('Browser-i juaj nuk mbështet input me zë', 'error');
+            else alert('Browser-i juaj nuk mbështet input me zë. Provo Chrome ose Safari.');
+            return;
+        }
+        if (_isRecording) { stopVoiceInput(); return; }
+
+        const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        _recognition = new Recognition();
+        _recognition.lang = 'sq-AL'; // Shqip
+        _recognition.continuous = false;
+        _recognition.interimResults = true;
+        _recognition.maxAlternatives = 1;
+
+        const input = document.getElementById('ai-input');
+        const micBtn = document.getElementById('ai-mic-btn');
+        if (micBtn) micBtn.classList.add('ai-mic-recording');
+        _isRecording = true;
+        showStatus('🎤 Po të dëgjoj... fol në Shqip');
+
+        let finalTranscript = '';
+        _recognition.onresult = (event) => {
+            let interim = '';
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const transcript = event.results[i][0].transcript;
+                if (event.results[i].isFinal) finalTranscript += transcript;
+                else interim += transcript;
+            }
+            if (input) input.value = finalTranscript + interim;
+        };
+        _recognition.onerror = (event) => {
+            console.warn('Voice error:', event.error);
+            if (event.error === 'no-speech') {
+                showStatus('Nuk dëgjova asgjë. Klikoji 🎤 dhe provo përsëri.', true);
+            } else if (event.error === 'not-allowed') {
+                showStatus('Aksesi në mikrofon u bllokua. Lejoje në cilësimet e browser-it.', true);
+            } else if (event.error === 'language-not-supported') {
+                // Fallback te Anglishtja nëse Shqipja nuk mbështetet
+                _recognition.lang = 'en-US';
+                if (typeof showToast === 'function') showToast('Shqipja s\'mbështetet në këtë browser. Po përdor Anglishten.', 'warning');
+            }
+            stopVoiceInput();
+        };
+        _recognition.onend = () => {
+            stopVoiceInput();
+            if (finalTranscript.trim() && input) {
+                input.value = finalTranscript.trim();
+                // Auto-send pas 500ms
+                setTimeout(() => {
+                    const text = input.value.trim();
+                    if (text) {
+                        input.value = '';
+                        sendMessage(text);
+                    }
+                }, 500);
+            }
+        };
+
+        try { _recognition.start(); }
+        catch(e) { console.warn('Voice start failed:', e); stopVoiceInput(); }
+    }
+
+    function stopVoiceInput() {
+        _isRecording = false;
+        const micBtn = document.getElementById('ai-mic-btn');
+        if (micBtn) micBtn.classList.remove('ai-mic-recording');
+        if (_recognition) {
+            try { _recognition.stop(); } catch(e) {}
+            _recognition = null;
+        }
+        showStatus('');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // 🔊 TEXT-TO-SPEECH — lexon përgjigjet e AI me zë
+    // ═══════════════════════════════════════════════════════════════════
+    function getTtsEnabled() {
+        try { return localStorage.getItem(STORAGE_KEY_TTS) === '1'; } catch(e) { return false; }
+    }
+    function setTtsEnabled(v) {
+        try { localStorage.setItem(STORAGE_KEY_TTS, v ? '1' : '0'); } catch(e) {}
+    }
+
+    function speakText(text) {
+        if (!getTtsEnabled() || !window.speechSynthesis) return;
+        try {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'sq-AL';
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+            // Provo të gjej një zë në Shqip ose Maqedonisht (më afër)
+            const voices = window.speechSynthesis.getVoices();
+            const sqVoice = voices.find(v => v.lang.startsWith('sq')) || voices.find(v => v.lang.startsWith('mk')) || voices.find(v => v.lang.startsWith('en'));
+            if (sqVoice) utterance.voice = sqVoice;
+            window.speechSynthesis.speak(utterance);
+        } catch(e) { console.warn('TTS failed:', e); }
+    }
+
+    function stripMarkdown(text) {
+        return String(text || '')
+            .replace(/```[\s\S]*?```/g, '')
+            .replace(/`([^`]+)`/g, '$1')
+            .replace(/\*\*([^*]+)\*\*/g, '$1')
+            .replace(/\*([^*]+)\*/g, '$1')
+            .replace(/^#+\s+/gm, '')
+            .replace(/^[-*]\s+/gm, '')
+            .replace(/^\d+\.\s+/gm, '')
+            .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+            .replace(/[🎯📊💰🛒👤📦🤝🟢🟠🔴⚠️✅❌💡⭐🚀]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // 📅 DAILY MORNING BRIEFING — auto në vizitën e parë të ditës
+    // ═══════════════════════════════════════════════════════════════════
+    function shouldShowBriefing() {
+        try {
+            const last = localStorage.getItem(STORAGE_KEY_BRIEFING) || '';
+            const today = new Date().toISOString().split('T')[0];
+            return last !== today;
+        } catch(e) { return false; }
+    }
+    function markBriefingShown() {
+        try { localStorage.setItem(STORAGE_KEY_BRIEFING, new Date().toISOString().split('T')[0]); } catch(e) {}
+    }
+
+    function triggerMorningBriefing() {
+        if (!getApiKey()) return; // Mos thirr nëse s'ka çelës
+        if (conversation.length > 0) return; // Mos prish një bisedë ekzistuese
+        markBriefingShown();
+        const prompt = 'Më jep brief-in tim të mëngjesit — i shkurtër dhe praktik (max 5-6 pika kyçe):\n\n1. Si është gjendja sot? Borxhi i Fatonit, fitimi i djeshëm, stoku\n2. Cilët 2-3 klientë DUHET t\'i kontaktoj sot dhe pse\n3. Cilët produkte po mbarojnë\n4. Çfarë duhet të bëj URGJENT sot\n5. Një këshillë e shpejtë për të rritur fitimin\n\nJi konkret, me emra dhe numra. S\'ka nevojë për intro të gjatë.';
+        sendMessage(prompt);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // / SLASH COMMANDS — popup me sugjerime kur fillon me /
+    // ═══════════════════════════════════════════════════════════════════
+    function showSlashPopup(query) {
+        const popup = document.getElementById('ai-slash-popup');
+        if (!popup) return;
+        const q = (query || '').toLowerCase().substring(1); // heq /
+        const matches = SLASH_COMMANDS.filter(c =>
+            c.cmd.substring(1).startsWith(q) || c.label.toLowerCase().includes(q)
+        ).slice(0, 6);
+        if (matches.length === 0) {
+            popup.classList.add('hidden');
+            return;
+        }
+        popup.innerHTML = matches.map((c, i) => `
+            <button class="ai-slash-item ${i === 0 ? 'ai-slash-active' : ''}" data-cmd="${c.cmd}">
+                <i class="fas ${c.icon}"></i>
+                <span class="ai-slash-cmd">${c.cmd}</span>
+                <span class="ai-slash-label">${c.label}</span>
+            </button>
+        `).join('');
+        popup.classList.remove('hidden');
+        popup.querySelectorAll('.ai-slash-item').forEach(btn => {
+            btn.onclick = () => {
+                const cmd = btn.dataset.cmd;
+                const found = SLASH_COMMANDS.find(c => c.cmd === cmd);
+                if (found) {
+                    const input = document.getElementById('ai-input');
+                    if (input) input.value = '';
+                    hideSlashPopup();
+                    sendMessage(found.expand);
+                }
+            };
+        });
+    }
+    function hideSlashPopup() {
+        const popup = document.getElementById('ai-slash-popup');
+        if (popup) popup.classList.add('hidden');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // 🎯 ACTION BUTTONS NË PËRGJIGJE — AI mund të sugjerojë veprime
+    // Format: [btn:Etiketa|funksioni|arg]
+    // p.sh.: [btn:Hap Sulejmanin|openClient360|cli_123]
+    // ═══════════════════════════════════════════════════════════════════
+    const SAFE_ACTIONS = {
+        'openClient360': (id) => typeof openClient360 === 'function' && openClient360(id),
+        'openProduct360': (id) => typeof openProduct360 === 'function' && openProduct360(id),
+        'navigateTo': (page) => typeof navigateTo === 'function' && navigateTo(page),
+        'openSaleModal': () => typeof openSaleModal === 'function' && openSaleModal(),
+        'openFatonPaymentModal': () => typeof openFatonPaymentModal === 'function' && openFatonPaymentModal(),
+        'sendWhatsApp': (phone, msg) => {
+            if (phone) window.open('https://wa.me/' + String(phone).replace(/[^0-9+]/g, '') + '?text=' + encodeURIComponent(msg || ''), '_blank');
+        }
+    };
+
+    function renderActionButtons(html) {
+        // Match [btn:Label|action|arg1|arg2]
+        return html.replace(/\[btn:([^\|\]]+)\|([^\|\]]+)(?:\|([^\]]+))?\]/g, (match, label, action, args) => {
+            if (!SAFE_ACTIONS[action]) return match;
+            const argList = (args || '').split('|').map(a => a.trim());
+            const argsJson = encodeURIComponent(JSON.stringify(argList));
+            return `<button class="ai-action-btn" data-action="${escapeHtml(action)}" data-args="${argsJson}">
+                <i class="fas fa-bolt"></i> ${escapeHtml(label)}
+            </button>`;
+        });
+    }
+
+    // Hook për lidhjen e action buttons pas çdo render
+    function _attachActionHandlers(container) {
+        if (!container) return;
+        container.querySelectorAll('.ai-action-btn:not([data-bound])').forEach(btn => {
+            btn.dataset.bound = '1';
+            btn.onclick = () => {
+                const action = btn.dataset.action;
+                let args = [];
+                try { args = JSON.parse(decodeURIComponent(btn.dataset.args || '%5B%5D')); }
+                catch(e) {}
+                if (SAFE_ACTIONS[action]) {
+                    try { SAFE_ACTIONS[action].apply(null, args); }
+                    catch(e) { console.warn('Action failed:', e); }
+                }
+            };
+        });
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -948,22 +1237,72 @@ Përdor **VETËM** të dhënat lart për përgjigje konkrete. Për pyetje të p�
             if (!text) return;
             input.value = '';
             input.style.height = 'auto';
+            hideSlashPopup();
             sendMessage(text);
         };
         if (sendBtn) sendBtn.onclick = doSend;
         if (input) {
             input.onkeydown = (e) => {
+                // Slash command navigation
+                const popup = document.getElementById('ai-slash-popup');
+                const popupVisible = popup && !popup.classList.contains('hidden');
+                if (popupVisible) {
+                    const items = popup.querySelectorAll('.ai-slash-item');
+                    const activeIdx = Array.from(items).findIndex(el => el.classList.contains('ai-slash-active'));
+                    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        const newIdx = e.key === 'ArrowDown'
+                            ? Math.min(items.length - 1, activeIdx + 1)
+                            : Math.max(0, activeIdx - 1);
+                        items.forEach((el, i) => el.classList.toggle('ai-slash-active', i === newIdx));
+                        return;
+                    }
+                    if (e.key === 'Tab' || (e.key === 'Enter' && items.length > 0)) {
+                        e.preventDefault();
+                        const active = popup.querySelector('.ai-slash-active') || items[0];
+                        if (active) active.click();
+                        return;
+                    }
+                    if (e.key === 'Escape') { hideSlashPopup(); return; }
+                }
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     doSend();
                 }
             };
-            // Auto-grow
+            // Auto-grow + slash popup
             input.oninput = () => {
                 input.style.height = 'auto';
                 input.style.height = Math.min(input.scrollHeight, 200) + 'px';
+                const val = input.value;
+                if (val.startsWith('/') && !val.includes(' ')) {
+                    showSlashPopup(val);
+                } else {
+                    hideSlashPopup();
+                }
             };
         }
+
+        // Voice input (mic)
+        const micBtn = document.getElementById('ai-mic-btn');
+        if (micBtn) {
+            if (!_supportsVoice()) {
+                micBtn.style.display = 'none';
+            } else {
+                micBtn.onclick = startVoiceInput;
+            }
+        }
+
+        // Lidhe action buttons për mesazhet ekzistuese (pas re-render)
+        _attachActionHandlers(document.getElementById('ai-messages'));
+
+        // Auto-trigger morning briefing kur faqja AI hapet (nëse s'është bërë sot)
+        document.addEventListener('click', (e) => {
+            const navItem = e.target.closest('[data-page="ai"]');
+            if (navItem && getApiKey() && shouldShowBriefing()) {
+                setTimeout(() => triggerMorningBriefing(), 800);
+            }
+        });
 
         // Clear conversation
         const clearBtn = document.getElementById('ai-clear-btn');
