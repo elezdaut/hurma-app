@@ -14192,6 +14192,597 @@ function _openLastSaleMenu(badge, client, product, sale) {
     }, 50);
 }
 
+// ════════════════════════════════════════════════════════════════════════
+// FEATURE 16.5: MASTER PALETTE — Lidhja Master (⌘K super-inteligjente)
+// ════════════════════════════════════════════════════════════════════════
+// Paletë komandimi që kupton gjuhën natyrore:
+//   "ajdan 1kg 3"   → Shit 3× Medjool 1kg te Ajdan (1 klikim)
+//   "ajdan"         → Hap 360°, Shitje e re, WhatsApp, Pagesë...
+//   "medjool"       → Hap 360°, Shit, Shto stok, Porosit te Fatoni...
+//   "shit"          → Hap modalin e shitjes
+//   "stok"          → Filtro produktet me stok të ulët
+// Ndez me ⌘K (Mac) / Ctrl+K (Windows/Linux).
+// ────────────────────────────────────────────────────────────────────────
+
+(function() {
+    let mpEl = null;
+    let mpInput = null;
+    let mpResults = null;
+    let mpState = { items: [], idx: 0, lastQuery: '' };
+
+    // ═══ Action verbs (gjuha natyrore) ═══
+    const VERB_MAP = {
+        'shit': 'sell', 'shitje': 'sell', 'shet': 'sell', 'sell': 'sell',
+        'blej': 'buy', 'blerje': 'buy', 'fato': 'buy-faton', 'fatoni': 'buy-faton',
+        'paguaj': 'pay', 'pago': 'pay', 'paguar': 'pay', 'pay': 'pay',
+        'porosi': 'order', 'porosit': 'order', 'order': 'order',
+        'stok': 'stock', 'shto': 'add-stock', 'stock': 'stock',
+        'borxh': 'debt', 'debt': 'debt',
+        'fitim': 'profit', 'profit': 'profit',
+        '360': '360', 'pamje': '360',
+        'whatsapp': 'whatsapp', 'wa': 'whatsapp', 'msg': 'whatsapp', 'sms': 'whatsapp',
+        'kthim': 'return', 'return': 'return',
+        'raport': 'report', 'report': 'report',
+        'today': 'today', 'sot': 'today',
+        'mbarim': 'low-stock', 'pakem': 'low-stock', 'pakët': 'low-stock'
+    };
+
+    // ═══ Page navigation map ═══
+    const PAGE_LABELS = {
+        'dashboard': '🏠 Dashboard', 'sales': '🛒 Shitjet', 'stock': '📦 Stoku',
+        'clients': '👥 Klientët', 'orders': '📋 Porositë', 'faton': '🤝 Llogaria Fatoni',
+        'distribution': '🚚 Shpërndarja', 'returns': '↩️ Kthimet', 'contacts': '📞 Kontaktet',
+        'notes': '📝 Shënime', 'targets': '🎯 Qëllime', 'expenses': '💸 Shpenzimet',
+        'reports': '📊 Raporte', 'balance': '⚖️ Bilanci', 'analytics': '📈 Analitika',
+        'cash': '💵 Arka Ditore', 'trends': '📉 Trende', 'invoices': '🧾 Faturat',
+        'settings': '⚙️ Cilësimet', 'activity': '📜 Log Aktivitetesh'
+    };
+
+    // ═══ Parser: tokenizon dhe identifikon klientë/produkte/numra/foljet ═══
+    function parseQuery(q) {
+        const tokens = (q || '').toLowerCase().trim().split(/\s+/).filter(Boolean);
+        const result = {
+            raw: q,
+            tokens,
+            clients: [],
+            products: [],
+            qty: null,
+            verbs: [],
+            pageHint: null
+        };
+
+        const allClients = state.clients || [];
+        const allProducts = (typeof PRODUCTS !== 'undefined' && PRODUCTS) ? PRODUCTS : [];
+        const usedClientIds = new Set();
+        const usedProductIds = new Set();
+
+        for (const tok of tokens) {
+            // Numër?
+            if (/^\d+$/.test(tok)) {
+                if (result.qty === null) result.qty = parseInt(tok, 10);
+                continue;
+            }
+            // Folje?
+            if (VERB_MAP[tok]) { result.verbs.push(VERB_MAP[tok]); continue; }
+            // Faqe?
+            for (const pageKey of Object.keys(PAGE_LABELS)) {
+                if (pageKey.startsWith(tok) && tok.length >= 3) {
+                    result.pageHint = pageKey;
+                    break;
+                }
+            }
+            // Klient (fuzzy: token gjendet brenda emrit)
+            const clientHits = allClients.filter(c =>
+                c && c.name && !usedClientIds.has(c.id) &&
+                c.name.toLowerCase().includes(tok)
+            );
+            clientHits.slice(0, 3).forEach(c => {
+                result.clients.push(c);
+                usedClientIds.add(c.id);
+            });
+            // Produkt (fuzzy: emër ose peshë)
+            const productHits = allProducts.filter(p =>
+                p && p.name && !usedProductIds.has(p.id) &&
+                ((p.name || '').toLowerCase().includes(tok) ||
+                 (p.weight && p.weight.toLowerCase().includes(tok)) ||
+                 (p.id && String(p.id).toLowerCase().includes(tok)))
+            );
+            productHits.slice(0, 3).forEach(p => {
+                result.products.push(p);
+                usedProductIds.add(p.id);
+            });
+        }
+        return result;
+    }
+
+    // ═══ Generator i veprimeve të zgjuara ═══
+    function generateActions(parsed) {
+        const actions = [];
+        const { clients, products, qty, verbs, pageHint, raw } = parsed;
+        const hasQuery = (raw || '').trim().length > 0;
+
+        // ── 1) SUPER ACTION: Klient + Produkt (+ qty) → Shitje me 1 klikim ──
+        if (clients.length && products.length) {
+            const c = clients[0], p = products[0];
+            const q = qty || 1;
+            const sellPrice = p.sellPrice || 0;
+            const total = sellPrice * q;
+            const stk = ((state.stock || {})[p.id] || 0);
+            const stkAfter = stk - q;
+            const stkWarn = stkAfter < 0 ? '⚠️ stok pamjaftueshëm!' :
+                           stkAfter === 0 ? '⚠️ do mbarojë stoku' :
+                           stkAfter < 5 ? '⚠️ pak stok' : '';
+            actions.push({
+                primary: true,
+                emoji: '⚡',
+                color: '#27ae60',
+                label: `Shit ${q}× ${p.name} → ${c.name}`,
+                sub: `${total.toLocaleString('sq-AL')} ден · Stok: ${stk} → ${stkAfter} ${stkWarn}`,
+                kbd: '↵',
+                disabled: stkAfter < 0 && stk > 0,
+                action: () => quickCreateSale(p.id, c.id, q)
+            });
+            // Variant me faturë 60-ditëshe
+            actions.push({
+                emoji: '🧾',
+                label: `Shit me FATURË: ${q}× ${p.name} → ${c.name}`,
+                sub: `${total} ден · Pagim 60 ditë`,
+                action: () => quickCreateSale(p.id, c.id, q, { paymentType: 'invoice_60' })
+            });
+        }
+
+        // ── 2) Vetëm klient ──
+        if (clients.length && !products.length) {
+            const c = clients[0];
+            const debt = c.debt || calcClientDebt(c.id) || 0;
+            const salesCnt = (state.sales || []).filter(s => s && s.clientId === c.id).length;
+            const debtTxt = debt > 0 ? `🔴 ${debt} ден borxh · ` : '';
+            actions.push({
+                primary: true,
+                emoji: '👤',
+                label: `Pamja 360° — ${c.name}`,
+                sub: `${debtTxt}${salesCnt} shitje gjithsej`,
+                kbd: '↵',
+                action: () => openClient360(c.id)
+            });
+            actions.push({
+                emoji: '🛒',
+                label: `Shitje e re për ${c.name}`,
+                action: () => {
+                    if (typeof navigateTo === 'function') navigateTo('sales');
+                    setTimeout(() => {
+                        if (typeof openSaleModal === 'function') {
+                            openSaleModal();
+                            setTimeout(() => {
+                                const sel = document.getElementById('sale-client');
+                                if (sel) sel.value = c.id;
+                            }, 100);
+                        }
+                    }, 150);
+                }
+            });
+            if (debt > 0) {
+                actions.push({
+                    emoji: '💵',
+                    label: `Regjistro pagesë nga ${c.name} (${debt} ден borxh)`,
+                    action: () => {
+                        if (typeof navigateTo === 'function') navigateTo('clients');
+                        setTimeout(() => {
+                            if (typeof openClientPaymentModal === 'function') openClientPaymentModal(c.id);
+                        }, 150);
+                    }
+                });
+            }
+            if (c.phone) {
+                actions.push({
+                    emoji: '💬',
+                    label: `WhatsApp ${c.name}`,
+                    sub: c.phone,
+                    action: () => sendWhatsApp(c.phone, 'Përshëndetje ' + c.name + '!')
+                });
+            }
+            // Klientë alternativë (nëse query matchon disa)
+            clients.slice(1, 3).forEach(other => {
+                actions.push({
+                    emoji: '👤',
+                    label: `Pamja 360° — ${other.name}`,
+                    sub: `(klient tjetër me të njëjtin emër)`,
+                    action: () => openClient360(other.id)
+                });
+            });
+        }
+
+        // ── 3) Vetëm produkt ──
+        if (products.length && !clients.length) {
+            const p = products[0];
+            const stk = ((state.stock || {})[p.id] || 0);
+            const stkColor = stk === 0 ? '🔴' : stk < 5 ? '🟠' : '🟢';
+            actions.push({
+                primary: true,
+                emoji: '📦',
+                label: `Pamja 360° — ${p.name}`,
+                sub: `${stkColor} Stok: ${stk} · Çmim: ${p.sellPrice || 0} ден`,
+                kbd: '↵',
+                action: () => openProduct360(p.id)
+            });
+            actions.push({
+                emoji: '🛒',
+                label: `Shit ${qty || 1}× ${p.name}`,
+                sub: `${(p.sellPrice || 0) * (qty || 1)} ден`,
+                action: () => {
+                    if (typeof navigateTo === 'function') navigateTo('sales');
+                    setTimeout(() => {
+                        if (typeof openSaleModal === 'function') {
+                            openSaleModal();
+                            setTimeout(() => {
+                                const sel = document.getElementById('sale-product');
+                                if (sel) { sel.value = p.id; sel.dispatchEvent(new Event('change')); }
+                                if (qty) {
+                                    const qInput = document.getElementById('sale-quantity');
+                                    if (qInput) qInput.value = qty;
+                                }
+                            }, 100);
+                        }
+                    }, 150);
+                }
+            });
+            actions.push({
+                emoji: '➕',
+                label: `Shto stok për ${p.name}`,
+                sub: `Stok aktual: ${stk}`,
+                action: () => {
+                    if (typeof navigateTo === 'function') navigateTo('stock');
+                    setTimeout(() => {
+                        const el = document.getElementById('stock-product-' + p.id);
+                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 200);
+                }
+            });
+            if (stk < 5) {
+                actions.push({
+                    emoji: '🚚',
+                    label: `Porosit ${p.name} nga Fatoni`,
+                    sub: `${stk < 3 ? 'URGJENT' : 'Stok i ulët'} — sugjerim auto`,
+                    action: () => {
+                        if (typeof navigateTo === 'function') navigateTo('faton');
+                    }
+                });
+            }
+            // Produkte alternativë
+            products.slice(1, 3).forEach(other => {
+                actions.push({
+                    emoji: '📦',
+                    label: `Pamja 360° — ${other.name}`,
+                    sub: `(produkt tjetër)`,
+                    action: () => openProduct360(other.id)
+                });
+            });
+        }
+
+        // ── 4) Folje pa entitet ──
+        if (verbs.includes('sell') && !clients.length && !products.length) {
+            actions.push({
+                emoji: '🛒',
+                label: 'Shitje e re',
+                sub: 'Hap modalin e plotë të shitjes',
+                action: () => {
+                    if (typeof navigateTo === 'function') navigateTo('sales');
+                    setTimeout(() => { if (typeof openSaleModal === 'function') openSaleModal(); }, 150);
+                }
+            });
+        }
+        if (verbs.includes('pay')) {
+            actions.push({
+                emoji: '💰',
+                label: 'Paguaj Fatonin',
+                sub: `Borxh aktual: ${calcFatonDebt()} ден`,
+                action: () => {
+                    if (typeof navigateTo === 'function') navigateTo('faton');
+                    setTimeout(() => { if (typeof openFatonPaymentModal === 'function') openFatonPaymentModal(); }, 150);
+                }
+            });
+        }
+        if (verbs.includes('low-stock')) {
+            actions.push({
+                emoji: '⚠️',
+                label: 'Produktet me stok të ulët',
+                sub: 'Filtro stokun me <5 copë',
+                action: () => { if (typeof navigateTo === 'function') navigateTo('stock'); }
+            });
+        }
+        if (verbs.includes('today')) {
+            const todaySales = (state.sales || []).filter(s => s && s.date === new Date().toISOString().split('T')[0]);
+            const todayProfit = todaySales.reduce((sum, s) => sum + ((s && s.profit) || 0), 0);
+            actions.push({
+                emoji: '📅',
+                label: `Çfarë ndodhi sot`,
+                sub: `${todaySales.length} shitje · ${todayProfit} ден fitim`,
+                action: () => { if (typeof navigateTo === 'function') navigateTo('sales'); }
+            });
+        }
+
+        // ── 5) Page navigation ──
+        if (pageHint) {
+            actions.push({
+                emoji: '➡️',
+                label: `Shko te ${PAGE_LABELS[pageHint] || pageHint}`,
+                action: () => { if (typeof navigateTo === 'function') navigateTo(pageHint); }
+            });
+        }
+
+        // ── 6) Default state (asnjë query) ──
+        if (!hasQuery) {
+            actions.push({
+                emoji: '🛒', label: 'Shitje e re', sub: '⌘N', kbd: '⌘N',
+                action: () => {
+                    if (typeof navigateTo === 'function') navigateTo('sales');
+                    setTimeout(() => { if (typeof openSaleModal === 'function') openSaleModal(); }, 150);
+                }
+            });
+            actions.push({
+                emoji: '💰', label: 'Paguaj Fatonin', sub: `${calcFatonDebt()} ден borxh`,
+                action: () => {
+                    if (typeof navigateTo === 'function') navigateTo('faton');
+                    setTimeout(() => { if (typeof openFatonPaymentModal === 'function') openFatonPaymentModal(); }, 150);
+                }
+            });
+            // Top 3 klientë me borxh
+            const debtors = (state.clients || [])
+                .map(c => ({ c, debt: calcClientDebt(c.id) || c.debt || 0 }))
+                .filter(x => x.debt > 0)
+                .sort((a, b) => b.debt - a.debt)
+                .slice(0, 3);
+            debtors.forEach(({ c, debt }) => {
+                actions.push({
+                    emoji: '🔴',
+                    label: `${c.name} — ${debt} ден borxh`,
+                    sub: 'Klikim për Pamje 360°',
+                    action: () => openClient360(c.id)
+                });
+            });
+            // Top 3 produkte me stok të ulët
+            const PRODS = (typeof PRODUCTS !== 'undefined' && PRODUCTS) ? PRODUCTS : [];
+            const lowStock = PRODS
+                .map(p => ({ p, stk: (state.stock || {})[p.id] || 0 }))
+                .filter(x => x.stk < 5)
+                .sort((a, b) => a.stk - b.stk)
+                .slice(0, 3);
+            lowStock.forEach(({ p, stk }) => {
+                actions.push({
+                    emoji: stk === 0 ? '🔴' : '🟠',
+                    label: `${p.name} — stok: ${stk}`,
+                    sub: 'Klikim për 360°',
+                    action: () => openProduct360(p.id)
+                });
+            });
+        }
+
+        // ── 7) Empty fallback ──
+        if (actions.length === 0 && hasQuery) {
+            actions.push({
+                emoji: '🔍',
+                label: `S'ka rezultat për "${raw}"`,
+                sub: 'Provo: emër klienti, produkti, ose folje (shit, paguaj, stok)',
+                disabled: true
+            });
+        }
+
+        return actions;
+    }
+
+    // ═══ Quick Create Sale — krijon shitje me 1 klikim ═══
+    window.quickCreateSale = function(productId, clientId, qty, opts) {
+        opts = opts || {};
+        const product = getProduct(productId);
+        if (!product) { showToast('Produkti nuk u gjet', 'error'); return; }
+        const client = clientId ? getClientById(clientId) : null;
+        const q = parseInt(qty, 10) || 1;
+        const sellPrice = product.sellPrice || 0;
+        const buyPrice = product.buyPrice || 0;
+        const sellTotal = sellPrice * q;
+        const buyTotal = buyPrice * q;
+        const profit = (sellPrice - buyPrice) * q;
+        const today = new Date().toISOString().split('T')[0];
+
+        const sale = {
+            productId,
+            clientId: clientId || null,
+            quantity: q,
+            buyPrice, sellPrice,
+            buyTotal, sellTotal,
+            profit,
+            date: today,
+            createdAt: new Date().toISOString(),
+            paymentType: opts.paymentType || 'cash',
+            location: (state.locations && state.locations[0]) || 'Default',
+            note: opts.note || 'Shitje e shpejtë (⌘K)'
+        };
+        if (sale.paymentType === 'invoice_60') {
+            const due = new Date();
+            due.setDate(due.getDate() + 60);
+            sale.dueDate = due.toISOString().split('T')[0];
+            sale.invoicePaid = false;
+        }
+
+        if (!Array.isArray(state.sales)) state.sales = [];
+        state.sales.push(sale);
+        if (!state.stock) state.stock = {};
+        state.stock[productId] = ((state.stock[productId] || 0) - q);
+
+        if (typeof saveState === 'function') saveState();
+        if (typeof refreshAll === 'function') refreshAll();
+
+        const cName = client ? client.name : 'pa klient';
+        showToast(`✅ Shitje: ${q}× ${product.name} → ${cName} (${sellTotal} ден)`, 'success');
+        if (typeof logActivity === 'function') {
+            logActivity('Quick Sale', `${q}× ${product.name} → ${cName} (${sellTotal} ден)`);
+        }
+    };
+
+    // ═══ UI: Modal builder ═══
+    function buildPalette() {
+        if (mpEl) return;
+        mpEl = document.createElement('div');
+        mpEl.id = 'master-palette';
+        mpEl.className = 'mp-overlay hidden';
+        mpEl.innerHTML = `
+            <div class="mp-backdrop" data-mp-close="1"></div>
+            <div class="mp-panel" role="dialog" aria-label="Lidhja Master">
+                <div class="mp-header">
+                    <i class="fas fa-bolt mp-header-icon"></i>
+                    <input type="text" id="mp-input" class="mp-input"
+                        placeholder="Shkruaj: emër klienti, produkti, sasi… p.sh. 'ajdan medjool 3'"
+                        autocomplete="off" spellcheck="false">
+                    <kbd class="mp-esc">esc</kbd>
+                </div>
+                <div class="mp-results" id="mp-results"></div>
+                <div class="mp-footer">
+                    <span><kbd>↑</kbd><kbd>↓</kbd> lëviz</span>
+                    <span><kbd>↵</kbd> ekzekuto</span>
+                    <span><kbd>Tab</kbd> shfaq vetëm primaren</span>
+                    <span class="mp-spacer"></span>
+                    <span class="mp-tip">💡 "ajdan 1kg 3" = shit 3× Medjool 1kg</span>
+                </div>
+            </div>`;
+        document.body.appendChild(mpEl);
+
+        mpInput = mpEl.querySelector('#mp-input');
+        mpResults = mpEl.querySelector('#mp-results');
+
+        mpEl.addEventListener('click', (e) => {
+            if (e.target.dataset && e.target.dataset.mpClose) closePalette();
+        });
+        mpInput.addEventListener('input', renderPalette);
+        mpInput.addEventListener('keydown', onPaletteKey);
+    }
+
+    function renderPalette() {
+        const q = mpInput.value;
+        mpState.lastQuery = q;
+        const parsed = parseQuery(q);
+        const actions = generateActions(parsed);
+        mpState.items = actions;
+        mpState.idx = 0;
+
+        if (actions.length === 0) {
+            mpResults.innerHTML = '<div class="mp-empty">Asgjë për të shfaqur</div>';
+            return;
+        }
+
+        const html = actions.map((a, i) => {
+            const cls = ['mp-item'];
+            if (a.primary) cls.push('mp-item-primary');
+            if (a.disabled) cls.push('mp-item-disabled');
+            const colorStyle = a.color ? ` style="--mp-accent:${a.color}"` : '';
+            return `
+                <div class="${cls.join(' ')}" data-idx="${i}"${colorStyle}>
+                    <span class="mp-emoji">${a.emoji || '•'}</span>
+                    <div class="mp-body">
+                        <div class="mp-label">${_escapeHtml(a.label)}</div>
+                        ${a.sub ? `<div class="mp-sub">${_escapeHtml(a.sub)}</div>` : ''}
+                    </div>
+                    ${a.kbd ? `<kbd class="mp-kbd">${a.kbd}</kbd>` : ''}
+                </div>`;
+        }).join('');
+        mpResults.innerHTML = html;
+        updateSelection();
+
+        // Lidh handlers
+        mpResults.querySelectorAll('.mp-item').forEach(el => {
+            el.addEventListener('click', () => {
+                mpState.idx = parseInt(el.dataset.idx, 10);
+                activate();
+            });
+            el.addEventListener('mouseenter', () => {
+                mpState.idx = parseInt(el.dataset.idx, 10);
+                updateSelection();
+            });
+        });
+    }
+
+    function updateSelection() {
+        const items = mpResults.querySelectorAll('.mp-item');
+        items.forEach((el, i) => {
+            el.classList.toggle('mp-active', i === mpState.idx);
+        });
+        const sel = mpResults.querySelector('.mp-active');
+        if (sel) sel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+
+    function onPaletteKey(e) {
+        if (e.key === 'Escape') { e.preventDefault(); closePalette(); return; }
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            mpState.idx = Math.min(mpState.items.length - 1, mpState.idx + 1);
+            updateSelection();
+            return;
+        }
+        if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            mpState.idx = Math.max(0, mpState.idx - 1);
+            updateSelection();
+            return;
+        }
+        if (e.key === 'Enter') { e.preventDefault(); activate(); return; }
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            // Tab → kërce te primary action nëse ekziston
+            const primIdx = mpState.items.findIndex(it => it.primary);
+            if (primIdx >= 0) { mpState.idx = primIdx; updateSelection(); }
+        }
+    }
+
+    function activate() {
+        const it = mpState.items[mpState.idx];
+        if (!it || it.disabled) return;
+        closePalette();
+        try { if (typeof it.action === 'function') it.action(); }
+        catch(e) { console.warn('Master palette action failed:', e); }
+    }
+
+    function openPalette() {
+        buildPalette();
+        mpEl.classList.remove('hidden');
+        mpEl.classList.add('mp-open');
+        mpInput.value = '';
+        renderPalette();
+        setTimeout(() => mpInput.focus(), 30);
+    }
+
+    function closePalette() {
+        if (!mpEl) return;
+        mpEl.classList.add('mp-closing');
+        setTimeout(() => {
+            mpEl.classList.remove('mp-open', 'mp-closing');
+            mpEl.classList.add('hidden');
+        }, 180);
+    }
+
+    // ═══ Helper: borxhi i klientit ═══
+    function calcClientDebt(clientId) {
+        if (typeof window.calcClientDebt === 'function' && window.calcClientDebt !== calcClientDebt) {
+            return window.calcClientDebt(clientId);
+        }
+        const sales = (state.sales || []).filter(s => s && s.clientId === clientId && s.paymentType === 'invoice_60' && !s.invoicePaid);
+        const owed = sales.reduce((sum, s) => sum + ((s.sellTotal || 0) - (s.amountPaid || 0)), 0);
+        return Math.max(0, owed);
+    }
+
+    // ═══ Expose globally ═══
+    window.openMasterPalette = openPalette;
+    window.closeMasterPalette = closePalette;
+
+    // ═══ Keyboard shortcut: ⌘K / Ctrl+K (capture phase, wins over polish.js) ═══
+    document.addEventListener('keydown', function(e) {
+        if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (mpEl && mpEl.classList.contains('mp-open')) closePalette();
+            else openPalette();
+        }
+    }, true); // capture: true → ekzekuton para handler-ave të tjerë
+})();
+
 // ============================================================
 // FEATURE 17: Kalendar pagesash
 // ============================================================

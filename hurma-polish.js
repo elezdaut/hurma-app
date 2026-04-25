@@ -303,9 +303,15 @@
     on(document, 'keydown', function (e) {
         var mod = e.metaKey || e.ctrlKey;
         var key = e.key;
-        // ⌘K — palette
+        // ⌘K — Master Palette (super-smart) ka prioritet, fallback te paleta e vjetër
         if (mod && (key === 'k' || key === 'K')) {
-            e.preventDefault(); palette.open(); return;
+            e.preventDefault();
+            if (typeof window.openMasterPalette === 'function') {
+                window.openMasterPalette();
+            } else {
+                palette.open();
+            }
+            return;
         }
         // ⌘/ — focus global search
         if (mod && key === '/') {
