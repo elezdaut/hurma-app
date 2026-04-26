@@ -26,7 +26,7 @@
     <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.svg">
     <link rel="mask-icon" href="icons/icon-192.svg" color="#E29A2B">
 
-    <link rel="stylesheet" href="style.css?v=36">
+    <link rel="stylesheet" href="style.css?v=37">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -71,28 +71,40 @@
             </h2>
             <button class="sidebar-toggle" onclick="toggleSidebar()"><i class="fas fa-times"></i></button>
         </div>
+        <button class="sidebar-collapse-toggle" onclick="toggleSidebarCollapse()" aria-label="Kollapso sidebar" title="Kollapso/Hap sidebar"><i class="fas fa-chevron-left"></i></button>
         <ul class="nav-menu">
-            <li class="nav-item active" data-page="dashboard"><i class="fas fa-tachometer-alt"></i> <span data-i18n="dashboard">Dashboard</span></li>
-            <li class="nav-item" data-page="sales"><i class="fas fa-cash-register"></i> <span data-i18n="sales">Shitjet</span><span class="nav-badge hidden" id="badge-sales">0</span></li>
-            <li class="nav-item" data-page="stock"><i class="fas fa-boxes-stacked"></i> <span data-i18n="stock">Stoku</span><span class="nav-badge hidden" id="badge-stock">0</span></li>
-            <li class="nav-item" data-page="clients"><i class="fas fa-users"></i> <span data-i18n="clients">Klientët</span><span class="nav-badge hidden" id="badge-clients">0</span></li>
-            <li class="nav-item" data-page="orders"><i class="fas fa-clipboard-list"></i> <span data-i18n="orders">Porositë</span><span class="nav-badge hidden" id="badge-orders">0</span></li>
-            <li class="nav-item" data-page="faton"><i class="fas fa-handshake"></i> <span data-i18n="faton_account">Llogaria Fatoni</span><span class="nav-badge hidden" id="badge-faton">0</span></li>
-            <li class="nav-item" data-page="distribution"><i class="fas fa-truck"></i> <span>Shpërndarja</span><span class="nav-badge hidden" id="badge-distribution">0</span></li>
-            <li class="nav-item" data-page="reports"><i class="fas fa-chart-bar"></i> <span data-i18n="reports">Raporte</span></li>
-            <li class="nav-item" data-page="balance"><i class="fas fa-balance-scale"></i> <span data-i18n="balance">Bilanci</span></li>
-            <li class="nav-item" data-page="returns"><i class="fas fa-undo"></i> <span data-i18n="returns">Kthimet</span><span class="nav-badge hidden" id="badge-returns">0</span></li>
-            <li class="nav-item" data-page="contacts"><i class="fas fa-address-book"></i> <span data-i18n="contacts">Kontaktet</span></li>
-            <li class="nav-item" data-page="notes"><i class="fas fa-sticky-note"></i> <span data-i18n="notes">Shënime</span></li>
-            <li class="nav-item" data-page="targets"><i class="fas fa-bullseye"></i> <span data-i18n="targets">Qëllime</span></li>
-            <li class="nav-item" data-page="calculator"><i class="fas fa-calculator"></i> <span data-i18n="calculator">Kalkulatori</span></li>
-            <li class="nav-item" data-page="cashDrawer"><i class="fas fa-cash-register"></i> <span data-i18n="cash_drawer">Arka Ditore</span></li>
-            <li class="nav-item" data-page="trends"><i class="fas fa-chart-line"></i> <span data-i18n="trends">Trende</span></li>
-            <li class="nav-item" data-page="analytics"><i class="fas fa-chart-area"></i> <span>Analitika</span><span class="nav-badge hidden" id="badge-analytics">0</span></li>
-            <li class="nav-item" data-page="invoices"><i class="fas fa-file-invoice-dollar"></i> <span>Faturat</span><span class="nav-badge hidden" id="badge-invoices">0</span></li>
-            <li class="nav-item" data-page="activity"><i class="fas fa-history"></i> <span data-i18n="activity_log">Log Aktivitetesh</span></li>
-            <li class="nav-item ai-nav-item" data-page="ai"><i class="fas fa-wand-magic-sparkles"></i> <span>Hurma AI</span><span class="ai-badge-new">NEW</span></li>
-            <li class="nav-item" data-page="settings"><i class="fas fa-cog"></i> <span data-i18n="settings">Cilësimet</span></li>
+            <li class="sidebar-divider"><span>Përmbledhje</span></li>
+            <li class="nav-item active" data-page="dashboard" data-label="Dashboard"><i class="fas fa-tachometer-alt"></i> <span data-i18n="dashboard">Dashboard</span></li>
+
+            <li class="sidebar-divider"><span>Operacione</span></li>
+            <li class="nav-item" data-page="sales" data-label="Shitjet"><i class="fas fa-cash-register"></i> <span data-i18n="sales">Shitjet</span><span class="nav-badge hidden" id="badge-sales">0</span></li>
+            <li class="nav-item" data-page="stock" data-label="Stoku"><i class="fas fa-boxes-stacked"></i> <span data-i18n="stock">Stoku</span><span class="nav-badge hidden" id="badge-stock">0</span></li>
+            <li class="nav-item" data-page="clients" data-label="Klientët"><i class="fas fa-users"></i> <span data-i18n="clients">Klientët</span><span class="nav-badge hidden" id="badge-clients">0</span></li>
+            <li class="nav-item" data-page="orders" data-label="Porositë"><i class="fas fa-clipboard-list"></i> <span data-i18n="orders">Porositë</span><span class="nav-badge hidden" id="badge-orders">0</span></li>
+            <li class="nav-item" data-page="faton" data-label="Llogaria Fatoni"><i class="fas fa-handshake"></i> <span data-i18n="faton_account">Llogaria Fatoni</span><span class="nav-badge hidden" id="badge-faton">0</span></li>
+            <li class="nav-item" data-page="distribution" data-label="Shpërndarja"><i class="fas fa-truck"></i> <span>Shpërndarja</span><span class="nav-badge hidden" id="badge-distribution">0</span></li>
+            <li class="nav-item" data-page="returns" data-label="Kthimet"><i class="fas fa-undo"></i> <span data-i18n="returns">Kthimet</span><span class="nav-badge hidden" id="badge-returns">0</span></li>
+
+            <li class="sidebar-divider"><span>Financa</span></li>
+            <li class="nav-item" data-page="balance" data-label="Bilanci"><i class="fas fa-balance-scale"></i> <span data-i18n="balance">Bilanci</span></li>
+            <li class="nav-item" data-page="cashDrawer" data-label="Arka Ditore"><i class="fas fa-cash-register"></i> <span data-i18n="cash_drawer">Arka Ditore</span></li>
+            <li class="nav-item" data-page="invoices" data-label="Faturat"><i class="fas fa-file-invoice-dollar"></i> <span>Faturat</span><span class="nav-badge hidden" id="badge-invoices">0</span></li>
+
+            <li class="sidebar-divider"><span>Analiza</span></li>
+            <li class="nav-item" data-page="reports" data-label="Raporte"><i class="fas fa-chart-bar"></i> <span data-i18n="reports">Raporte</span></li>
+            <li class="nav-item" data-page="trends" data-label="Trende"><i class="fas fa-chart-line"></i> <span data-i18n="trends">Trende</span></li>
+            <li class="nav-item" data-page="analytics" data-label="Analitika"><i class="fas fa-chart-area"></i> <span>Analitika</span><span class="nav-badge hidden" id="badge-analytics">0</span></li>
+            <li class="nav-item" data-page="targets" data-label="Qëllime"><i class="fas fa-bullseye"></i> <span data-i18n="targets">Qëllime</span></li>
+
+            <li class="sidebar-divider"><span>Vegla</span></li>
+            <li class="nav-item" data-page="contacts" data-label="Kontaktet"><i class="fas fa-address-book"></i> <span data-i18n="contacts">Kontaktet</span></li>
+            <li class="nav-item" data-page="notes" data-label="Shënime"><i class="fas fa-sticky-note"></i> <span data-i18n="notes">Shënime</span></li>
+            <li class="nav-item" data-page="calculator" data-label="Kalkulatori"><i class="fas fa-calculator"></i> <span data-i18n="calculator">Kalkulatori</span></li>
+            <li class="nav-item" data-page="activity" data-label="Log Aktivitetesh"><i class="fas fa-history"></i> <span data-i18n="activity_log">Log Aktivitetesh</span></li>
+
+            <li class="sidebar-divider"><span>Asistent</span></li>
+            <li class="nav-item ai-nav-item" data-page="ai" data-label="Hurma AI"><i class="fas fa-wand-magic-sparkles"></i> <span>Hurma AI</span><span class="ai-badge-new">NEW</span></li>
+            <li class="nav-item" data-page="settings" data-label="Cilësimet"><i class="fas fa-cog"></i> <span data-i18n="settings">Cilësimet</span></li>
         </ul>
     </nav>
 
@@ -1346,7 +1358,7 @@
     </nav>
 
     <script src="i18n.js"></script>
-    <script src="app.js?v=92"></script>
+    <script src="app.js?v=93"></script>
     <script src="hurma-polish.js?v=6" defer></script>
     <script src="hurma-ai.js?v=11" defer></script>
 

@@ -533,6 +533,71 @@ function toggleSidebar() {
     if (_sb) _sb.classList.toggle('open');
 }
 
+// (Sugjerimi #8) Sidebar collapse në desktop — ruan preferencën
+function toggleSidebarCollapse() {
+    const collapsed = document.body.classList.toggle('sidebar-collapsed');
+    try { localStorage.setItem('hurma-sidebar-collapsed', collapsed ? '1' : '0'); } catch(e) {}
+    // Pa sin a animimi i smooth-it: forco reflow që transition të punojë
+    void document.body.offsetWidth;
+}
+
+// (Sugjerimi #10) Density mode switching
+function setDensity(mode) {
+    if (!['compact', 'comfortable', 'spacious'].includes(mode)) mode = 'comfortable';
+    document.body.setAttribute('data-density', mode);
+    try { localStorage.setItem('hurma-density', mode); } catch(e) {}
+    if (typeof showToast === 'function') {
+        const labels = { compact: '🤏 Kompakt', comfortable: '✋ Komod', spacious: '🖐️ I gjerë' };
+        showToast('Densiteti: ' + (labels[mode] || mode), 'info');
+    }
+}
+
+// Restoro preferencat te ngarkimi
+(function _restoreLayoutPrefs() {
+    function apply() {
+        try {
+            // Sidebar collapsed
+            if (localStorage.getItem('hurma-sidebar-collapsed') === '1') {
+                document.body.classList.add('sidebar-collapsed');
+            }
+            // Density
+            const d = localStorage.getItem('hurma-density') || 'comfortable';
+            document.body.setAttribute('data-density', d);
+        } catch(e) {}
+    }
+    if (document.body) apply();
+    else document.addEventListener('DOMContentLoaded', apply);
+})();
+
+// (Sugjerimi #9) Topbar scroll-shadow: shton .is-scrolled kur skrollon
+(function _topbarScrollShadow() {
+    function setup() {
+        const scroller = document.querySelector('#main-content') || window;
+        const topbar = document.querySelector('.topbar');
+        if (!topbar) return;
+        let ticking = false;
+        const onScroll = () => {
+            if (ticking) return;
+            ticking = true;
+            requestAnimationFrame(() => {
+                const y = (scroller === window) ? (window.scrollY || 0) : (scroller.scrollTop || 0);
+                topbar.classList.toggle('is-scrolled', y > 4);
+                ticking = false;
+            });
+        };
+        scroller.addEventListener('scroll', onScroll, { passive: true });
+        // Edhe scroll te window vetë
+        if (scroller !== window) window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setup);
+    else setup();
+})();
+
+// Eksopo globalisht
+window.toggleSidebarCollapse = toggleSidebarCollapse;
+window.setDensity = setDensity;
+
 // ===================== THEME =====================
 function toggleTheme() {
     // Bug #154: dark-mode-toggle null-guard
@@ -8569,7 +8634,24 @@ function refreshSettingsUI() {
     const container = document.getElementById('settings-additional');
     if (!container) return;
 
-    let html = '<h3>Additional Settings</h3>';
+    // (Sugjerimi #10) Density mode picker
+    const curDensity = document.body.getAttribute('data-density') || 'comfortable';
+    let html = '<h3><i class="fas fa-th-large"></i> Pamja</h3>';
+    html += '<div style="padding:14px 16px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;margin:8px 0;">';
+    html += '<div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:10px;font-weight:600;">DENSITETI I LISTAVE</div>';
+    html += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+    const modes = [
+        { v:'compact', l:'🤏 Kompakt', d:'Më shumë rreshta në ekran' },
+        { v:'comfortable', l:'✋ Komod', d:'I balancuar (default)' },
+        { v:'spacious', l:'🖐️ I gjerë', d:'Më i lexueshëm' }
+    ];
+    modes.forEach(m => {
+        const active = m.v === curDensity ? 'background:var(--primary);color:white;border-color:var(--primary);' : '';
+        html += `<button class="btn btn-sm" onclick="setDensity('${m.v}'); refreshSettingsUI();" style="flex:1;min-width:120px;${active}" title="${m.d}">${m.l}</button>`;
+    });
+    html += '</div></div>';
+
+    html += '<h3>Additional Settings</h3>';
     html += '<button class="btn" onclick="openProfitSplitModal()" style="margin:5px;">Profit Split Settings</button>';
     html += '<button class="btn" onclick="openPinSettingsModal()" style="margin:5px;">PIN Lock Settings</button>';
     html += '<button class="btn" onclick="openAutoBackupSettings()" style="margin:5px;">Auto-Backup Settings</button>';

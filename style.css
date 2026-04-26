@@ -72,7 +72,33 @@
     /* ── Geometry ────────────────────────────────────────────────────── */
     --radius: 14px;
     --radius-lg: 22px;
+    --radius-sm: 8px;
     --sidebar-width: 250px;
+    --sidebar-width-collapsed: 64px;
+    --topbar-height: 60px;
+
+    /* ── 8-Point Grid (sugjerimi #7) ─────────────────────────────────── */
+    /* Të gjitha hapësirat duhet të jenë shumëfish të --space-1 */
+    --space-0:  0;
+    --space-1:  4px;   /* 0.5x — micro */
+    --space-2:  8px;   /* 1x   — base */
+    --space-3:  12px;  /* 1.5x */
+    --space-4:  16px;  /* 2x   — common */
+    --space-5:  24px;  /* 3x   — section */
+    --space-6:  32px;  /* 4x   — large */
+    --space-7:  48px;  /* 6x   — xl */
+    --space-8:  64px;  /* 8x   — xxl */
+
+    /* ── Container (sugjerimi #12) ───────────────────────────────────── */
+    --container-max:    1400px;  /* desktop max width */
+    --container-narrow: 800px;   /* për forma & content të ngushtë */
+    --container-pad:    var(--space-4);
+
+    /* ── Density (sugjerimi #10) ─────────────────────────────────────── */
+    --density-pad:    var(--space-4);  /* default = comfortable */
+    --density-pad-sm: var(--space-3);
+    --density-gap:    var(--space-3);
+    --density-row:    44px;            /* row height në tabela */
 
     /* ── Safe-area insets ────────────────────────────────────────────── */
     --safe-top:    env(safe-area-inset-top, 0px);
@@ -238,18 +264,35 @@ body {
     transition: margin-left 0.3s ease;
 }
 
-/* Top Bar */
+/* Top Bar (sugjerimi #9: sticky me backdrop blur) */
 .topbar {
-    background: var(--bg-secondary);
-    padding: 12px 20px;
+    background: color-mix(in srgb, var(--bg-secondary) 85%, transparent);
+    backdrop-filter: saturate(1.4) blur(14px);
+    -webkit-backdrop-filter: saturate(1.4) blur(14px);
+    padding: var(--space-3) var(--space-5);
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: var(--space-3);
     box-shadow: var(--shadow);
     position: sticky;
     top: 0;
     z-index: 100;
     flex-wrap: wrap;
+    min-height: var(--topbar-height);
+    border-bottom: 1px solid var(--hairline);
+    transition: box-shadow 200ms ease, background 200ms ease;
+}
+/* Theksohet me umbra më të fortë kur skrollon (JS shton .is-scrolled) */
+.topbar.is-scrolled {
+    box-shadow: 0 2px 8px rgba(58, 36, 16, 0.08), 0 4px 14px rgba(58, 36, 16, 0.06);
+    background: color-mix(in srgb, var(--bg-secondary) 92%, transparent);
+}
+[data-theme="dark"] .topbar {
+    background: color-mix(in srgb, var(--bg-secondary) 80%, transparent);
+}
+[data-theme="dark"] .topbar.is-scrolled {
+    background: color-mix(in srgb, var(--bg-secondary) 92%, transparent);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.4), 0 6px 18px rgba(0,0,0,0.3);
 }
 
 .topbar h1 {
@@ -8714,3 +8757,182 @@ mark {
     body { padding-left: max(0px, env(safe-area-inset-left)); padding-right: max(0px, env(safe-area-inset-right)); }
     .fab { bottom: max(24px, env(safe-area-inset-bottom)); right: max(24px, env(safe-area-inset-right)); }
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   LAYOUT v2 — Kategoria 2 (sugjerimet 7-12)
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── (#8) Sidebar collapsible në desktop ───────────────────────────── */
+.sidebar-collapse-toggle {
+    display: none;
+    position: absolute;
+    top: 14px;
+    right: -14px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    border: 2px solid var(--bg-primary);
+    cursor: pointer;
+    z-index: 1001;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+    transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1), background 200ms;
+}
+.sidebar-collapse-toggle:hover {
+    background: var(--primary-hover);
+    transform: scale(1.1);
+}
+.sidebar-collapse-toggle:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 3px;
+}
+@media (min-width: 769px) {
+    .sidebar-collapse-toggle { display: inline-flex; }
+}
+
+/* Stati i mbledhur */
+body.sidebar-collapsed .sidebar {
+    width: var(--sidebar-width-collapsed);
+}
+body.sidebar-collapsed .sidebar-header h2 span,
+body.sidebar-collapsed .nav-item span:not(.nav-badge):not(.ai-badge-new) {
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+body.sidebar-collapsed .sidebar-divider span { display: none; }
+body.sidebar-collapsed .sidebar-divider { padding: var(--space-3) 0; }
+body.sidebar-collapsed .nav-item {
+    padding: var(--space-3);
+    justify-content: center;
+}
+body.sidebar-collapsed .nav-badge,
+body.sidebar-collapsed .ai-badge-new {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    transform: scale(0.85);
+}
+body.sidebar-collapsed .main-content {
+    margin-left: var(--sidebar-width-collapsed);
+}
+body.sidebar-collapsed .sidebar-collapse-toggle i {
+    transform: rotate(180deg);
+}
+
+/* Tooltip i butë kur sidebar është i mbledhur dhe hover-on item */
+@media (min-width: 769px) {
+    body.sidebar-collapsed .nav-item {
+        position: relative;
+    }
+    body.sidebar-collapsed .nav-item:hover::after {
+        content: attr(data-label);
+        position: absolute;
+        left: calc(100% + 12px);
+        top: 50%;
+        transform: translateY(-50%);
+        background: var(--bg-sidebar);
+        color: white;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        white-space: nowrap;
+        box-shadow: var(--shadow-lg);
+        pointer-events: none;
+        z-index: 1100;
+        animation: tooltipIn 150ms ease;
+    }
+    @keyframes tooltipIn {
+        from { opacity: 0; transform: translateY(-50%) translateX(-4px); }
+        to { opacity: 1; transform: translateY(-50%) translateX(0); }
+    }
+}
+
+/* ── (#11) Sidebar dividers — ndarje vizuale mes seksioneve ────────── */
+.sidebar-divider {
+    list-style: none;
+    padding: var(--space-4) var(--space-5) var(--space-1);
+    color: rgba(255,255,255,0.4);
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+    user-select: none;
+    pointer-events: none;
+}
+.sidebar-divider span {
+    display: inline-block;
+}
+.sidebar-divider:first-child { padding-top: var(--space-2); }
+
+/* ── (#12) Container max-width — kufi për ekrane të mëdha ──────────── */
+.main-content > .page,
+.main-content > section.page {
+    max-width: var(--container-max);
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: var(--container-pad);
+    padding-right: var(--container-pad);
+    padding-top: var(--space-4);
+    padding-bottom: var(--space-6);
+}
+@media (min-width: 1600px) {
+    .main-content > .page,
+    .main-content > section.page {
+        padding-left: var(--space-6);
+        padding-right: var(--space-6);
+    }
+}
+
+/* ── (#10) Density modes — Compact / Comfortable / Spacious ────────── */
+body[data-density="compact"] {
+    --density-pad:    var(--space-2);
+    --density-pad-sm: var(--space-1);
+    --density-gap:    var(--space-2);
+    --density-row:    36px;
+    --container-pad:  var(--space-3);
+}
+body[data-density="comfortable"] {
+    /* default — ka vlerat te :root */
+}
+body[data-density="spacious"] {
+    --density-pad:    var(--space-5);
+    --density-pad-sm: var(--space-4);
+    --density-gap:    var(--space-4);
+    --density-row:    52px;
+    --container-pad:  var(--space-5);
+}
+/* Aplikim te tabela */
+body[data-density="compact"] .data-table td,
+body[data-density="compact"] .data-table th {
+    padding: var(--space-2) var(--space-3);
+    font-size: 0.86rem;
+}
+body[data-density="spacious"] .data-table td,
+body[data-density="spacious"] .data-table th {
+    padding: var(--space-4) var(--space-5);
+}
+
+/* ── (#7) 8pt grid: utility classes për përdorim direkt ────────────── */
+.gap-1 { gap: var(--space-1); }
+.gap-2 { gap: var(--space-2); }
+.gap-3 { gap: var(--space-3); }
+.gap-4 { gap: var(--space-4); }
+.gap-5 { gap: var(--space-5); }
+.p-2 { padding: var(--space-2); }
+.p-3 { padding: var(--space-3); }
+.p-4 { padding: var(--space-4); }
+.p-5 { padding: var(--space-5); }
+.mt-2 { margin-top: var(--space-2); }
+.mt-3 { margin-top: var(--space-3); }
+.mt-4 { margin-top: var(--space-4); }
+.mt-5 { margin-top: var(--space-5); }
+.mb-2 { margin-bottom: var(--space-2); }
+.mb-3 { margin-bottom: var(--space-3); }
+.mb-4 { margin-bottom: var(--space-4); }
+.mb-5 { margin-bottom: var(--space-5); }
