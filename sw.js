@@ -1,6 +1,6 @@
 // ===================== HURMA APP — SERVICE WORKER =====================
 // Versioni i cache-it. Ndrysho këtë vlerë kur publikon update të ri.
-const CACHE_VERSION = 'hurma-v92';
+const CACHE_VERSION = 'hurma-v93';
 
 // Skedarët lokalë që kachojmë për punë offline
 const CORE_ASSETS = [
@@ -10,6 +10,7 @@ const CORE_ASSETS = [
     '/i18n.js',
     '/hurma-polish.js',
     '/hurma-ai.js',
+    '/hurma-ux.js',
     '/style.css',
     '/icons/icon-192.svg',
     '/icons/icon-512.svg',

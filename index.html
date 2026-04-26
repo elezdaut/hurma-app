@@ -30,7 +30,7 @@
     <link rel="preconnect" href="https://rsms.me/">
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
 
-    <link rel="stylesheet" href="style.css?v=39">
+    <link rel="stylesheet" href="style.css?v=40">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -1275,6 +1275,33 @@
         </section>
     </main>
 
+    <!-- (Sugjerimi #27) Bottom Tab Bar (vetëm në mobile ≤768px) -->
+    <nav class="bottom-tab-bar" role="navigation" aria-label="Navigim i shpejtë mobile">
+        <div class="bottom-tab-bar-inner">
+            <button class="bottom-tab-item active" data-page="dashboard" onclick="navigateTo('dashboard')" aria-label="Dashboard">
+                <i class="fas fa-house" aria-hidden="true"></i>
+                <span>Home</span>
+            </button>
+            <button class="bottom-tab-item" data-page="sales" onclick="navigateTo('sales')" aria-label="Shitjet">
+                <i class="fas fa-cash-register" aria-hidden="true"></i>
+                <span>Shitjet</span>
+                <span class="bt-badge hidden" id="bt-badge-sales">0</span>
+            </button>
+            <button class="bottom-tab-item" data-page="ai" onclick="navigateTo('ai')" aria-label="Hurma AI" style="position:relative;">
+                <i class="fas fa-wand-magic-sparkles" aria-hidden="true" style="background:linear-gradient(135deg,#e17055,#9b59b6);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-size:1.3rem;"></i>
+                <span>AI</span>
+            </button>
+            <button class="bottom-tab-item" data-page="clients" onclick="navigateTo('clients')" aria-label="Klientët">
+                <i class="fas fa-users" aria-hidden="true"></i>
+                <span>Klientë</span>
+            </button>
+            <button class="bottom-tab-item" data-hurma-action="more" onclick="toggleSidebar()" aria-label="Më shumë">
+                <i class="fas fa-ellipsis" aria-hidden="true"></i>
+                <span>Më</span>
+            </button>
+        </div>
+    </nav>
+
     <!-- Modals -->
     <div id="modal-overlay" class="modal-overlay hidden" onclick="closeModal()"></div>
     <div id="modal" class="modal hidden">
@@ -1375,6 +1402,7 @@
     <script src="app.js?v=94"></script>
     <script src="hurma-polish.js?v=6" defer></script>
     <script src="hurma-ai.js?v=11" defer></script>
+    <script src="hurma-ux.js?v=1" defer></script>
 
     <!-- ==========================================================================
          Hurma — App Store enhancement layer (v11)

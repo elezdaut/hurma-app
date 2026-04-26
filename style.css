@@ -9239,3 +9239,400 @@ a:not(.btn):hover {
 [aria-live="polite"], [aria-live="assertive"] {
     /* Asnjë style — rrjedh natyrshëm */
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   ANIMACIONE v2 — Kategoria 5 (sugjerimet 23-26)
+   ════════════════════════════════════════════════════════════════════ */
+
+/* (#23) PAGE TRANSITIONS — fade + slide kur ndërron faqet */
+.page {
+    animation: pageEnter 280ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes pageEnter {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .page { animation: none; }
+}
+
+/* (#24) LOADING SKELETONS — vend i animuar gri kur ngarkohen të dhënat */
+.skeleton {
+    display: block;
+    background: linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--text-tertiary) 8%, transparent) 0%,
+        color-mix(in srgb, var(--text-tertiary) 18%, transparent) 50%,
+        color-mix(in srgb, var(--text-tertiary) 8%, transparent) 100%
+    );
+    background-size: 200% 100%;
+    border-radius: 6px;
+    animation: skeletonShimmer 1.4s ease-in-out infinite;
+}
+.skeleton-text { height: 14px; margin: 4px 0; }
+.skeleton-text.lg { height: 20px; }
+.skeleton-text.sm { height: 10px; width: 60%; }
+.skeleton-circle { border-radius: 50%; width: 40px; height: 40px; }
+.skeleton-card {
+    padding: var(--space-4);
+    border-radius: var(--radius);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+}
+@keyframes skeletonShimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* (#26) NUMBER COUNT-UP — efekt fade+slide kur numrat ndryshojnë */
+.kpi-value, .stat-card p, .pss-value {
+    transition: color 200ms ease;
+}
+.count-up-flash {
+    animation: countFlash 600ms ease;
+}
+@keyframes countFlash {
+    0%   { color: var(--success); transform: scale(1); }
+    40%  { color: var(--success); transform: scale(1.08); }
+    100% { transform: scale(1); }
+}
+
+/* (#25) CONFETTI — particles kur arrin një target */
+.confetti-burst {
+    position: fixed;
+    pointer-events: none;
+    z-index: 99999;
+    inset: 0;
+    overflow: hidden;
+}
+.confetti-piece {
+    position: absolute;
+    width: 10px;
+    height: 14px;
+    border-radius: 2px;
+    will-change: transform, opacity;
+    animation: confettiFall 2.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes confettiFall {
+    0%   { transform: translate3d(0, -100vh, 0) rotate(0deg); opacity: 1; }
+    100% { transform: translate3d(var(--x, 100px), 100vh, 0) rotate(720deg); opacity: 0; }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   MOBILE & RESPONSIVE v2 — Kategoria 6 (sugjerimet 27-30)
+   ════════════════════════════════════════════════════════════════════ */
+
+/* (#27) BOTTOM TAB BAR — vetëm në mobile (≤768px) */
+.bottom-tab-bar {
+    display: none;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: color-mix(in srgb, var(--bg-secondary) 90%, transparent);
+    backdrop-filter: saturate(1.4) blur(18px);
+    -webkit-backdrop-filter: saturate(1.4) blur(18px);
+    border-top: 1px solid var(--border);
+    z-index: 999;
+    padding: 6px var(--space-2) calc(6px + var(--safe-bottom));
+    box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
+}
+.bottom-tab-bar-inner {
+    display: flex;
+    justify-content: space-around;
+    align-items: stretch;
+    max-width: 600px;
+    margin: 0 auto;
+}
+.bottom-tab-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 4px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.66rem;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 12px;
+    transition: color 150ms, transform 100ms;
+    min-height: 56px;
+    gap: 3px;
+    font-family: inherit;
+    position: relative;
+}
+.bottom-tab-item i {
+    font-size: 1.15rem;
+    transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.bottom-tab-item.active {
+    color: var(--primary);
+}
+.bottom-tab-item.active i {
+    transform: translateY(-2px) scale(1.12);
+}
+.bottom-tab-item:active { transform: scale(0.94); }
+.bottom-tab-item .bt-badge {
+    position: absolute;
+    top: 4px; right: 22%;
+    background: var(--danger);
+    color: white;
+    font-size: 0.6rem;
+    padding: 1px 5px;
+    border-radius: 8px;
+    font-weight: 800;
+    min-width: 14px;
+    text-align: center;
+}
+@media (max-width: 768px) {
+    .bottom-tab-bar { display: block; }
+    body:not(.no-bottom-tabs) .main-content { padding-bottom: 80px; }
+}
+
+/* (#28) PULL-TO-REFRESH — visual indicator */
+.pull-to-refresh {
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%) translateY(-60px);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 44px; height: 44px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: var(--shadow);
+    z-index: 50;
+    transition: transform 200ms ease;
+    color: var(--primary);
+}
+.pull-to-refresh.active {
+    transform: translateX(-50%) translateY(20px);
+}
+.pull-to-refresh.refreshing i {
+    animation: ptrSpin 0.8s linear infinite;
+}
+@keyframes ptrSpin {
+    to { transform: rotate(360deg); }
+}
+
+/* (#29) SWIPE ACTIONS — për row te mobile */
+.swipeable-row {
+    position: relative;
+    overflow: hidden;
+    touch-action: pan-y;
+}
+.swipeable-row .swipe-content {
+    transition: transform 250ms cubic-bezier(0.16, 1, 0.3, 1);
+    background: var(--bg-secondary);
+    position: relative;
+    z-index: 1;
+}
+.swipeable-row .swipe-actions {
+    position: absolute;
+    top: 0; bottom: 0;
+    display: flex;
+    align-items: stretch;
+}
+.swipeable-row .swipe-actions-left { left: 0; }
+.swipeable-row .swipe-actions-right { right: 0; }
+.swipe-action-btn {
+    border: none;
+    color: white;
+    padding: 0 22px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 700;
+}
+.swipe-action-paid    { background: var(--success); }
+.swipe-action-delete  { background: var(--danger); }
+.swipe-action-edit    { background: var(--info); }
+
+/* (#30) BOTTOM SHEET MODALS (mobile) — modal slide nga poshtë */
+@media (max-width: 768px) {
+    .modal {
+        align-items: flex-end !important;
+    }
+    .modal-content {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 90vh !important;
+        border-radius: 22px 22px 0 0 !important;
+        animation: bottomSheetIn 320ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+        margin: 0 !important;
+        padding-bottom: max(var(--space-5), var(--safe-bottom)) !important;
+    }
+    @keyframes bottomSheetIn {
+        from { transform: translateY(100%); }
+        to   { transform: translateY(0); }
+    }
+    /* Drag handle indicator */
+    .modal-content::before {
+        content: '';
+        display: block;
+        width: 36px; height: 4px;
+        background: var(--text-tertiary);
+        opacity: 0.4;
+        border-radius: 2px;
+        margin: 8px auto 0;
+    }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   EMPTY STATES & ONBOARDING v2 — Kategoria 7 (sugjerimet 31-33)
+   ════════════════════════════════════════════════════════════════════ */
+
+/* (#31) EMPTY STATE — pamje e bukur kur s'ka të dhëna */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-7) var(--space-4);
+    text-align: center;
+    color: var(--text-secondary);
+    min-height: 280px;
+}
+.empty-state-illustration {
+    font-size: 4rem;
+    margin-bottom: var(--space-4);
+    opacity: 0.7;
+    animation: emptyFloat 3.5s ease-in-out infinite;
+}
+@keyframes emptyFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+.empty-state h3 {
+    color: var(--text-primary);
+    margin-bottom: var(--space-2);
+}
+.empty-state p {
+    color: var(--text-secondary);
+    max-width: 420px;
+    line-height: 1.55;
+    margin-bottom: var(--space-5);
+}
+.empty-state .btn {
+    margin-top: var(--space-3);
+}
+
+/* (#32) ONBOARDING TOUR — overlay me spotlight te elementet */
+.onboarding-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99998;
+    pointer-events: none;
+}
+.onboarding-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    pointer-events: auto;
+    animation: onbFade 200ms ease;
+}
+@keyframes onbFade { from { opacity: 0; } to { opacity: 1; } }
+.onboarding-tooltip {
+    position: absolute;
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    padding: var(--space-4) var(--space-5);
+    box-shadow: var(--shadow-lg);
+    max-width: 320px;
+    pointer-events: auto;
+    animation: onbTipIn 250ms cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 99999;
+}
+@keyframes onbTipIn {
+    from { opacity: 0; transform: scale(0.92); }
+    to   { opacity: 1; transform: scale(1); }
+}
+.onboarding-tooltip h4 {
+    text-transform: none !important;
+    letter-spacing: var(--tracking-snug) !important;
+    color: var(--text-primary) !important;
+    margin-bottom: var(--space-2);
+}
+.onboarding-tooltip p {
+    color: var(--text-secondary);
+    margin-bottom: var(--space-4);
+    line-height: 1.5;
+}
+.onboarding-tooltip .ot-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-3);
+}
+.onboarding-tooltip .ot-progress {
+    font-size: 0.78rem;
+    color: var(--text-tertiary);
+    font-variant-numeric: tabular-nums;
+}
+
+/* (#33) WELCOME SCREEN — me quick-actions për new users */
+.welcome-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: var(--space-7) var(--space-4);
+    text-align: center;
+    max-width: 720px;
+    margin: 0 auto;
+}
+.welcome-screen .welcome-emoji {
+    font-size: 4.5rem;
+    margin-bottom: var(--space-4);
+    animation: emptyFloat 3.5s ease-in-out infinite;
+}
+.welcome-screen h1 {
+    margin-bottom: var(--space-3);
+    font-size: 2rem;
+}
+.welcome-screen .welcome-sub {
+    color: var(--text-secondary);
+    font-size: 1.05rem;
+    margin-bottom: var(--space-6);
+    line-height: 1.55;
+    max-width: 540px;
+}
+.welcome-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--space-3);
+    width: 100%;
+    margin-bottom: var(--space-5);
+}
+.welcome-action-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: var(--space-5) var(--space-4);
+    text-align: left;
+    cursor: pointer;
+    transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
+    text-decoration: none;
+    color: var(--text-primary);
+}
+.welcome-action-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--primary);
+    box-shadow: var(--shadow);
+}
+.welcome-action-card .wac-icon {
+    font-size: 1.8rem;
+    color: var(--primary);
+    margin-bottom: var(--space-2);
+}
+.welcome-action-card .wac-title {
+    font-weight: 700;
+    margin-bottom: var(--space-1);
+}
+.welcome-action-card .wac-desc {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
