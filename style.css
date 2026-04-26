@@ -1,63 +1,133 @@
 /* ========================================================================
-   Hurma — Design Tokens (iOS / App Store ready)
-   "Honey & date pit" palette — amber primary, deep cocoa, ivory cream.
+   Hurma — Design Tokens (iOS / App Store ready) v2
+   "Honey & date pit" palette: amber primary, warm cocoa, ivory cream.
+   v2 (Apr 2026): expanded palette, semantic tokens, smooth theme transition.
    ======================================================================== */
 :root {
-    /* Brand */
+    /* ── Brand: 5-stop orange scale (light → dark) ───────────────────── */
+    --hurma-50:  #fff4ee;  /* almost white — for hover backgrounds */
+    --hurma-100: #ffe0cf;  /* very soft — chip backgrounds */
+    --hurma-200: #fcc59b;
+    --hurma-300: #f6a368;
+    --hurma-400: #e88a45;
+    --hurma-500: #e17055;  /* primary brand */
+    --hurma-600: #c75a3e;  /* hover/pressed */
+    --hurma-700: #a14728;  /* deep — for dark contrast */
+    --hurma-800: #6b2e0f;  /* deepest cocoa */
+
+    /* Legacy aliases */
     --hurma-amber:      #E29A2B;
     --hurma-amber-deep: #B8731A;
     --hurma-amber-soft: #FCE7C2;
-    --hurma-cocoa:      #3A2410;
+    --hurma-cocoa:      #2a1f15;  /* softened from #3A2410 — sugjerimi #1 */
     --hurma-cocoa-soft: #6B4426;
     --hurma-cream:      #FBF6EE;
     --hurma-cream-deep: #F3E9D6;
 
-    /* Surfaces */
-    --bg-primary:   #F6EFE2;   /* warm canvas */
+    /* ── Surfaces ────────────────────────────────────────────────────── */
+    --bg-primary:   #F6EFE2;
     --bg-secondary: #FFFFFF;
-    --bg-sidebar:   #3A2410;   /* cocoa */
+    --bg-tertiary:  #FBF6EE;          /* subtle hover */
+    --bg-sidebar:   #2a1f15;          /* sugjerimi #1: më e ngrohtë (jo e zezë) */
+    --bg-sidebar-hover: #3a2c1e;
+    --bg:           var(--bg-primary);
+    /* aliases to support color-mix expressions like color-mix(in srgb, var(--bg)) */
 
-    /* Ink */
+    /* ── Ink ─────────────────────────────────────────────────────────── */
     --text-primary:   #1A140C;
     --text-secondary: #5A4A38;
-    --text-tertiary:  #9A8770;
+    --text-tertiary:  #8a7960;        /* sugjerimi #21 (akses): më e errët se #9A8770 për 4.5:1 */
+    --text:           var(--text-primary);
 
-    /* Accent (map legacy --accent to Hurma amber so existing rules inherit the new brand) */
-    --accent:       #E29A2B;
-    --accent-hover: #B8731A;
+    /* ── Accent / Primary ────────────────────────────────────────────── */
+    --primary:        var(--hurma-500);
+    --primary-hover:  var(--hurma-600);
+    --accent:         #E29A2B;
+    --accent-hover:   #B8731A;
+    /* sugjerimi #3: gradient subtle për primary buttons (jo flat) */
+    --primary-gradient: linear-gradient(135deg, var(--hurma-400), var(--hurma-600));
+    --primary-gradient-hover: linear-gradient(135deg, var(--hurma-500), var(--hurma-700));
 
-    /* Semantic states */
-    --success: #2F8F4E;
-    --warning: #D17E12;
-    --danger:  #C0392B;
+    /* ── Semantic states (sugjerimi #2: tokens të standardizuara) ────── */
+    --success:       #27ae60;
+    --success-soft:  #d4f0dc;
+    --success-deep:  #1e7e3f;
+    --warning:       #f39c12;
+    --warning-soft:  #fce4be;
+    --warning-deep:  #b87208;
+    --danger:        #e74c3c;
+    --danger-soft:   #fad8d3;
+    --danger-deep:   #a33124;
+    --info:          #2980b9;
+    --info-soft:     #cfe6f3;
+    --info-deep:     #1c6092;
+    --warn:          var(--warning); /* alias */
 
-    /* Lines & shadows */
-    --border:   rgba(58, 36, 16, 0.10);
-    --hairline: rgba(58, 36, 16, 0.10);
-    --shadow:   0 1px 0 rgba(58,36,16,0.04), 0 8px 24px rgba(58,36,16,0.06);
+    /* ── Lines & shadows ─────────────────────────────────────────────── */
+    --border:    rgba(58, 36, 16, 0.10);
+    --hairline:  rgba(58, 36, 16, 0.06);
+    --shadow:    0 1px 0 rgba(58,36,16,0.04), 0 8px 24px rgba(58,36,16,0.06);
+    --shadow-lg: 0 4px 12px rgba(58,36,16,0.08), 0 16px 40px rgba(58,36,16,0.10);
 
-    /* Geometry */
+    /* ── Geometry ────────────────────────────────────────────────────── */
     --radius: 14px;
     --radius-lg: 22px;
     --sidebar-width: 250px;
 
-    /* Safe-area insets for iOS notch / home-indicator */
+    /* ── Safe-area insets ────────────────────────────────────────────── */
     --safe-top:    env(safe-area-inset-top, 0px);
     --safe-bottom: env(safe-area-inset-bottom, 0px);
     --safe-left:   env(safe-area-inset-left, 0px);
     --safe-right:  env(safe-area-inset-right, 0px);
+
+    /* ── Motion (sugjerimi #5) ───────────────────────────────────────── */
+    --theme-transition: background-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+                        color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+                        border-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+                        box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ── Dark mode v2: 3 nivele kontrast (sugjerimi #4) ──────────────────── */
 [data-theme="dark"] {
-    --bg-primary:   #120D06;
-    --bg-secondary: #1F1810;
-    --bg-sidebar:   #0E0805;
-    --text-primary: #F5EBD9;
-    --text-secondary: rgba(245,235,217,0.62);
-    --text-tertiary:  rgba(245,235,217,0.40);
-    --border:   rgba(255,220,170,0.08);
-    --hairline: rgba(255,220,170,0.08);
-    --shadow:   0 1px 0 rgba(0,0,0,0.3), 0 10px 28px rgba(0,0,0,0.45);
+    /* off-black → warm-dark → cream — më shumë depth se më parë */
+    --bg-primary:   #1a130a;          /* warm-dark canvas */
+    --bg-secondary: #251c12;          /* slightly elevated */
+    --bg-tertiary:  #2f2519;          /* hover/active surfaces */
+    --bg-sidebar:   #110b06;          /* deepest */
+    --bg-sidebar-hover: #1d1410;
+    --bg:           var(--bg-primary);
+
+    --text-primary:   #f5ebd9;        /* off-white cream */
+    --text-secondary: rgba(245,235,217,0.78);  /* (#21 akses): rritur nga 0.62 */
+    --text-tertiary:  rgba(245,235,217,0.55);  /* (#21 akses): rritur nga 0.40 */
+    --text:           var(--text-primary);
+
+    --border:   rgba(255,220,170,0.10);
+    --hairline: rgba(255,220,170,0.06);
+    --shadow:    0 1px 0 rgba(0,0,0,0.3), 0 10px 28px rgba(0,0,0,0.45);
+    --shadow-lg: 0 4px 14px rgba(0,0,0,0.4), 0 20px 48px rgba(0,0,0,0.55);
+
+    /* Status dark variants — më të dukshëm në sfond të errët */
+    --success-soft:  rgba(39, 174, 96, 0.15);
+    --warning-soft:  rgba(243, 156, 18, 0.18);
+    --danger-soft:   rgba(231, 76, 60, 0.18);
+    --info-soft:     rgba(41, 128, 185, 0.18);
+}
+
+/* (sugjerimi #5) Smooth theme transition — animacion 300ms i butë */
+body, .topbar, .sidebar, .page, .card, .stat-card, .data-table,
+.btn, .badge, .modal, .ai-shell, .panel-360-card,
+input, select, textarea {
+    transition: var(--theme-transition);
+}
+/* Respekto preferencën e user-it për reduktim animacionesh */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }
 
 * {
@@ -235,6 +305,25 @@ body {
     font-size: 1.2em;
     cursor: pointer;
     color: var(--text-primary);
+    /* Sugjerimi #5: animacion 300ms kur ndërron tema */
+    transition: transform 400ms cubic-bezier(0.4, 0, 0.2, 1),
+                color 300ms ease;
+    padding: 6px;
+    border-radius: 8px;
+}
+.theme-toggle:hover {
+    color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 8%, transparent);
+}
+.theme-toggle:active i { transform: rotate(180deg) scale(0.9); }
+.theme-toggle i {
+    display: inline-block;
+    transition: transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+[data-theme="dark"] .theme-toggle i { transform: rotate(360deg); }
+.theme-toggle:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
 }
 
 #lang-select, #settings-lang {
@@ -411,12 +500,20 @@ tr:hover {
 }
 
 .btn-primary {
-    background: var(--accent);
+    /* Sugjerimi #3: gradient subtle (jo flat) për thellësi */
+    background: var(--primary-gradient);
     color: #fff;
+    box-shadow: 0 1px 2px rgba(225, 112, 85, 0.15), 0 2px 6px rgba(225, 112, 85, 0.18);
 }
 
 .btn-primary:hover {
-    background: var(--accent-hover);
+    background: var(--primary-gradient-hover);
+    box-shadow: 0 2px 4px rgba(225, 112, 85, 0.22), 0 4px 12px rgba(225, 112, 85, 0.28);
+    transform: translateY(-1px);
+}
+.btn-primary:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(225, 112, 85, 0.15);
 }
 
 .btn-secondary {
@@ -2314,12 +2411,13 @@ input:checked + .slider:before {
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #2980b9, #3498db);
+    /* Sugjerimi #3 + #6: gradient brand-aligned (jo blu — orange-to-deep-orange) */
+    background: var(--primary-gradient);
     color: white;
     border: none;
     font-size: 1.4rem;
     cursor: pointer;
-    box-shadow: 0 4px 15px rgba(41, 128, 185, 0.4);
+    box-shadow: 0 4px 15px rgba(225, 112, 85, 0.40);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     align-items: center;
@@ -2328,8 +2426,9 @@ input:checked + .slider:before {
 }
 
 .fab-button:hover {
-    transform: scale(1.1);
-    box-shadow: 0 6px 20px rgba(41, 128, 185, 0.6);
+    transform: scale(1.08);
+    background: var(--primary-gradient-hover);
+    box-shadow: 0 6px 20px rgba(225, 112, 85, 0.55);
 }
 
 .fab-button.open i {
