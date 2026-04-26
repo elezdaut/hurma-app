@@ -19358,6 +19358,19 @@ function _registerServiceWorker() {
             // Kontrollo update menjëherë pas regjistrimit
             try { reg.update(); } catch(e) {}
 
+            // (FIX agresiv) Pas 3s, kontrollo nëse ka SW të ri që pret aktivizim
+            // dhe shfaq banner-in pa pritur statechange event (mund të ketë ndodhur më herët)
+            setTimeout(() => {
+                try {
+                    if (reg.waiting) {
+                        var banner = document.getElementById('pwa-update-banner');
+                        if (banner) banner.style.display = 'block';
+                        // Auto-skipWaiting që user-i të mos presë
+                        try { reg.waiting.postMessage({ type: 'SKIP_WAITING' }); } catch(_) {}
+                    }
+                } catch(e) {}
+            }, 3000);
+
             // Kontrollo periodikisht (çdo 5 min) për versione të reja
             setInterval(() => { try { reg.update(); } catch(e) {} }, 5 * 60 * 1000);
 
