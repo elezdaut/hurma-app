@@ -283,17 +283,9 @@
         if (tourOverlay) { tourOverlay.remove(); tourOverlay = null; }
     }
 
-    // Auto-trigger te first run (nëse s'ka të dhëna ose s'ka bërë tour)
-    document.addEventListener('DOMContentLoaded', () => {
-        setTimeout(() => {
-            try {
-                if (localStorage.getItem(ONBOARD_KEY) === '1') return;
-                const state = window.state || {};
-                const isFirstRun = !(state.sales || []).length && !(state.clients || []).length;
-                if (isFirstRun) startOnboardingTour();
-            } catch(e) {}
-        }, 1500);
-    });
+    // Auto-trigger DEAKTIVIZUAR — user-i mund ta thërrasë me window.startOnboardingTour()
+    // Dikur shkaktonte ngecje në init nëse query-selectorët mungonin.
+    // Trigger manual mbetet i mundshëm nga ⚙️ Cilësimet.
 
     // ─── (#33) WELCOME SCREEN — Quick actions për new users ────────────
     window.showWelcomeScreen = function() {

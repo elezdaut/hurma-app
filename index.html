@@ -1402,7 +1402,7 @@
     <script src="app.js?v=94"></script>
     <script src="hurma-polish.js?v=6" defer></script>
     <script src="hurma-ai.js?v=11" defer></script>
-    <script src="hurma-ux.js?v=1" defer></script>
+    <script src="hurma-ux.js?v=2" defer></script>
 
     <!-- ==========================================================================
          Hurma — App Store enhancement layer (v11)
@@ -1426,9 +1426,14 @@
         // Minimum 450ms so the brand mark is actually visible; hide after
         // the page has rendered (load) — but never wait longer than 3.5s,
         // even if something below fails.
-        var MIN_SPLASH_MS = 450;
-        var MAX_SPLASH_MS = 3500;
+        var MIN_SPLASH_MS = 200;
+        var MAX_SPLASH_MS = 1500; // shkurtuar nga 3500 — failsafe agresiv
         var t0 = Date.now();
+        // Failsafe i pavarur: edhe nëse logjika poshtë dështon, splash do fshihet pas 2s
+        setTimeout(function() {
+            var s = document.getElementById('hurma-splash');
+            if (s) { s.classList.add('hurma-splash-hide'); setTimeout(function(){ try{s.remove();}catch(e){} }, 600); }
+        }, 2000);
         function scheduleHide() {
             var elapsed = Date.now() - t0;
             var wait = Math.max(0, MIN_SPLASH_MS - elapsed);
