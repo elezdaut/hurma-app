@@ -7016,15 +7016,26 @@ function showToast(message, type = 'info') {
     if (!container) {
         container = document.createElement('div');
         container.id = 'toast-container';
+        container.setAttribute('role', 'status');
+        container.setAttribute('aria-live', 'polite');
         container.style.cssText = 'position:fixed;top:20px;right:20px;z-index:10000;display:flex;flex-direction:column;gap:8px;';
         document.body.appendChild(container);
     }
     const toast = document.createElement('div');
     const colors = { success: '#00b894', error: '#d63031', warning: '#fdcb6e', info: '#0984e3' };
+    toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
     toast.style.cssText = `background:${colors[type] || colors.info};color:#fff;padding:12px 20px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);font-size:0.9em;max-width:350px;animation:slideIn 0.3s ease;cursor:pointer;`;
     toast.textContent = message;
     toast.onclick = () => toast.remove();
     container.appendChild(toast);
+    // Anunco te aria-live region për screen readers
+    try {
+        const live = document.getElementById('aria-live-region');
+        if (live) {
+            live.textContent = message;
+            setTimeout(() => { live.textContent = ''; }, 1000);
+        }
+    } catch(e) {}
     setTimeout(() => {
         if (toast.parentNode) toast.remove();
     }, 4000);
