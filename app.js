@@ -131,6 +131,22 @@
         } catch(e) { return dateStr; }
     };
 
+    // Onclick-arg escape: makes a string safe to drop inside
+    //   onclick="fn('${_oa(value)}')"
+    // Escapes the characters that would break out of the JS string literal
+    // OR the HTML attribute. Idempotent for already-clean strings.
+    window._oa = function (s) {
+        if (s == null) return '';
+        return String(s)
+            .replace(/\\/g, '\\\\')
+            .replace(/'/g, "\\'")
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/\r?\n/g, '\\n');
+    };
+
     // Safe invoker: parse "funcName(arg1, arg2)" → window.funcName(arg1, arg2)
     // Replaces eval() to eliminate code-injection risk if action strings ever
     // contain user-controlled data.
@@ -532,13 +548,19 @@ function initStock() {
 // ===================== NAVIGATION =====================
 function navigateTo(page) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    // K: clear aria-current from previous nav items
+    document.querySelectorAll('.nav-item').forEach(n => {
+        n.classList.remove('active');
+        n.removeAttribute('aria-current');
+    });
 
     const pageEl = document.getElementById(`page-${page}`);
     const navEl = document.querySelector(`.nav-item[data-page="${page}"]`);
     if (!pageEl || !navEl) return;
     pageEl.classList.add('active');
     navEl.classList.add('active');
+    // K: announce the active page to assistive tech
+    navEl.setAttribute('aria-current', 'page');
 
     const spanEl = navEl.querySelector('span');
     const titleKey = spanEl ? spanEl.getAttribute('data-i18n') : page;
@@ -558,15 +580,42 @@ function navigateTo(page) {
     showFatonFAB(page === 'faton');
 }
 
-// P19: event delegation — single listener on the menu container instead of N
-// listeners on every .nav-item. Survives dynamically-added nav items too.
+// P19 + K: event delegation + keyboard accessibility for nav items.
+// Single listener on the menu container; we also upgrade every <li.nav-item>
+// to be keyboard-reachable (Tab + Enter/Space) since they act as buttons.
 (function _bindNavOnce() {
     if (window.__hurmaNavBound) return;
     window.__hurmaNavBound = true;
     var menu = document.querySelector('.nav-menu') || document;
+    // Upgrade existing nav-items
+    function upgrade(el) {
+        if (!el || el.dataset.hurmaNavReady) return;
+        el.dataset.hurmaNavReady = '1';
+        if (!el.hasAttribute('role')) el.setAttribute('role', 'button');
+        if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
+        var label = el.dataset.label || (el.querySelector('span[data-i18n]') &&
+                                         el.querySelector('span[data-i18n]').textContent);
+        if (label && !el.hasAttribute('aria-label')) {
+            el.setAttribute('aria-label', String(label).trim());
+        }
+    }
+    document.querySelectorAll('.nav-item[data-page]').forEach(upgrade);
+    if (typeof MutationObserver === 'function') {
+        new MutationObserver(function () {
+            document.querySelectorAll('.nav-item[data-page]').forEach(upgrade);
+        }).observe(menu, { childList: true, subtree: true });
+    }
     menu.addEventListener('click', function (e) {
         var item = e.target.closest('.nav-item[data-page]');
         if (!item) return;
+        try { navigateTo(item.dataset.page); }
+        catch (err) { console.warn('navigateTo failed:', err); }
+    });
+    menu.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        var item = e.target.closest('.nav-item[data-page]');
+        if (!item) return;
+        e.preventDefault();
         try { navigateTo(item.dataset.page); }
         catch (err) { console.warn('navigateTo failed:', err); }
     });
@@ -576,6 +625,14 @@ function toggleSidebar() {
     // Bug #153: sidebar null-guard
     const _sb = document.getElementById('sidebar');
     if (_sb) _sb.classList.toggle('open');
+    // A.1: keep aria-expanded in sync on every trigger so screen readers
+    // announce the correct state. We update both triggers (top-bar bars +
+    // in-sidebar X) since either can flip the state.
+    try {
+        const isOpen = !!(_sb && _sb.classList.contains('open'));
+        document.querySelectorAll('.sidebar-toggle, .sidebar-toggle-open')
+            .forEach(b => b.setAttribute('aria-expanded', isOpen ? 'true' : 'false'));
+    } catch (e) {}
 }
 
 // (Sugjerimi #8) Sidebar collapse në desktop — ruan preferencën
@@ -584,6 +641,11 @@ function toggleSidebarCollapse() {
     try { localStorage.setItem('hurma-sidebar-collapsed', collapsed ? '1' : '0'); } catch(e) {}
     // Pa sin a animimi i smooth-it: forco reflow që transition të punojë
     void document.body.offsetWidth;
+    // A.2: keep aria-pressed in sync
+    try {
+        document.querySelectorAll('.sidebar-collapse-toggle')
+            .forEach(b => b.setAttribute('aria-pressed', collapsed ? 'true' : 'false'));
+    } catch (e) {}
 }
 
 // (Sugjerimi #10) Density mode switching
@@ -652,6 +714,11 @@ function toggleTheme() {
     localStorage.setItem('hurma-theme', next);
     const _dmt = document.getElementById('dark-mode-toggle');
     if (_dmt) _dmt.checked = next === 'dark';
+    // A.3: keep aria-pressed in sync (pressed = dark mode active)
+    try {
+        document.querySelectorAll('.theme-toggle')
+            .forEach(b => b.setAttribute('aria-pressed', next === 'dark' ? 'true' : 'false'));
+    } catch (e) {}
 }
 
 // ===================== REFRESH =====================
@@ -903,7 +970,7 @@ function showExecutiveDashboard() {
     const topClients = rankedClients.slice(0, 10).map((row, index) => `
         <tr>
             <td>${index + 1}</td>
-            <td><span style="cursor:pointer;color:var(--primary);text-decoration:underline;" onclick="openClient360('${row.client.id}')">${row.client.name}</span></td>
+            <td><span style="cursor:pointer;color:var(--primary);text-decoration:underline;" onclick="openClient360('${_oa(row.client.id)}')">${row.client.name}</span></td>
             <td>${row.totalPurchases} ден</td>
             <td style="color:var(--danger);">${row.client.debt || 0} ден</td>
             <td style="font-weight:700;color:${row.status.color};">${row.status.label}</td>
@@ -1498,7 +1565,7 @@ function refreshSales() {
         let clientCellHtml = '-';
         if (client) {
             const cDebt = (typeof calcClientDebt === 'function') ? (calcClientDebt(client.id) || 0) : 0;
-            clientCellHtml = `<a class="client-link" onclick="openClient360('${client.id}')">${client.name}</a>`;
+            clientCellHtml = `<a class="client-link" onclick="openClient360('${_oa(client.id)}')">${client.name}</a>`;
             if (cDebt > 0 || s.isDebt) {
                 clientCellHtml += `<span class="client-debt-chip" title="Borxh aktual"><i class="fas fa-circle-exclamation" aria-hidden="true"></i>${cDebt > 0 ? cDebt.toLocaleString('sq-AL') + ' ден' : 'borxh'}</span>`;
             }
@@ -1529,7 +1596,7 @@ function refreshSales() {
         tbody.innerHTML += `
             <tr style="${rowBorderColor}">
                 <td class="cell-date" title="${s.date}">${dateFmt}</td>
-                <td><a class="product-link" onclick="openProduct360('${s.productId}')">${product.name}</a></td>
+                <td><a class="product-link" onclick="openProduct360('${_oa(s.productId)}')">${product.name}</a></td>
                 <td class="cell-num">${s.quantity}</td>
                 <td class="cell-num">${product.buyPrice}</td>
                 <td class="cell-num">${product.sellPrice}${s.discount ? `<span class="cell-discount"> (-${s.discount}%)</span>` : ''}</td>
@@ -1541,7 +1608,7 @@ function refreshSales() {
                 <td class="cell-actions">
                     <button type="button" class="btn btn-sm btn-secondary" onclick="openSaleModal(${realIndex})" title="Modifiko" aria-label="Modifiko"><i class="fas fa-edit" aria-hidden="true"></i></button>
                     <button type="button" class="btn btn-sm btn-danger" onclick="deleteSale(${realIndex})" title="Fshi" aria-label="Fshi"><i class="fas fa-trash" aria-hidden="true"></i></button>
-                    <button type="button" class="btn btn-sm btn-more" onclick="_openRowMenu(this, '${moreActionsJson}')" title="Më shumë" aria-label="Më shumë"><i class="fas fa-ellipsis-vertical" aria-hidden="true"></i></button>
+                    <button type="button" class="btn btn-sm btn-more" onclick="_openRowMenu(this, '${_oa(moreActionsJson)}')" title="Më shumë" aria-label="Më shumë"><i class="fas fa-ellipsis-vertical" aria-hidden="true"></i></button>
                 </td>
             </tr>
         `;
@@ -2590,7 +2657,7 @@ function refreshStock() {
         const depletionDays = calcStockDepletionDays(p.id);
         const depletionHtml = depletionDays !== null ? `<div style="color:${depletionDays < 7 ? 'var(--danger)' : 'var(--warning)'};margin-top:5px;font-size:0.85em;"><i class="fas fa-hourglass-half" aria-hidden="true"></i> Do te mbaroje per ~${depletionDays} dite</div>` : '';
         container.innerHTML += `
-            <div class="stock-card" style="cursor:pointer;" onclick="showProductHistory('${p.id}')">
+            <div class="stock-card" style="cursor:pointer;" onclick="showProductHistory('${_oa(p.id)}')">
                 <h4>${p.name}</h4>
                 <div class="stock-count ${isLow ? 'stock-low' : ''}">${count}</div>
                 <div class="stock-info">${t('pieces')}</div>
@@ -2599,8 +2666,8 @@ function refreshStock() {
                 ${depletionHtml}
                 <div style="margin-top:10px;" id="qr-${p.id}"></div>
                 <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
-                    <button type="button" class="btn btn-sm btn-secondary" onclick="event.stopPropagation();showQR('${p.id}')"><i class="fas fa-qrcode" aria-hidden="true"></i> ${t('qr_code')}</button>
-                    ${count > 0 ? `<button type="button" class="btn btn-sm btn-danger" onclick="event.stopPropagation();resetProductStock('${p.id}')" title="Zero stokun"><i class="fas fa-trash" aria-hidden="true"></i> Fshi</button>` : ''}
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="event.stopPropagation();showQR('${_oa(p.id)}')"><i class="fas fa-qrcode" aria-hidden="true"></i> ${t('qr_code')}</button>
+                    ${count > 0 ? `<button type="button" class="btn btn-sm btn-danger" onclick="event.stopPropagation();resetProductStock('${_oa(p.id)}')" title="Zero stokun"><i class="fas fa-trash" aria-hidden="true"></i> Fshi</button>` : ''}
                 </div>
             </div>
         `;
@@ -2676,7 +2743,7 @@ function openClientModal(editId) {
                 ${(state.clientCategories || []).map(cat => `<option value="${cat}" ${client && client.category === cat ? 'selected' : ''}>${cat}</option>`).join('')}
             </select>
         </div>
-        <button type="button" class="btn btn-primary" onclick="${isEdit ? `updateClient('${editId}')` : 'addClient()'}" style="width:100%;">
+        <button type="button" class="btn btn-primary" onclick="${isEdit ? `updateClient('${_oa(editId)}')` : 'addClient()'}" style="width:100%;">
             ${isEdit ? t('edit') : t('add_client')}
         </button>
     `;
@@ -2755,7 +2822,7 @@ function openClientTaskModal(clientId, editId) {
         <div class="form-group"><label>Prioriteti:</label><select id="client-task-priority"><option value="low" ${task && task.priority === 'low' ? 'selected' : ''}>I ulët</option><option value="medium" ${!task || task.priority === 'medium' ? 'selected' : ''}>Mesatar</option><option value="high" ${task && task.priority === 'high' ? 'selected' : ''}>I lartë</option></select></div>
         <div class="form-group"><label>Afati:</label><input type="date" id="client-task-due" value="${task ? task.dueDate || '' : ''}"></div>
         <div class="form-group"><label>Shënim:</label><textarea id="client-task-note">${task ? task.note || '' : ''}</textarea></div>
-        <button type="button" class="btn btn-primary" onclick="${task ? `saveClientTask('${task.id}')` : 'saveClientTask()'}" style="width:100%;">Ruaj Task-un</button>
+        <button type="button" class="btn btn-primary" onclick="${task ? `saveClientTask('${_oa(task.id)}')` : 'saveClientTask()'}" style="width:100%;">Ruaj Task-un</button>
     `);
 }
 
@@ -2807,14 +2874,14 @@ function showTaskBoard(clientId) {
             <td>${task.dueDate || '-'}</td>
             <td>${task.status === 'done' ? 'Kryer' : 'Hapur'}</td>
             <td style="white-space:nowrap;">
-                <button type="button" class="btn btn-sm btn-success" onclick="toggleClientTaskDone('${task.id}')" aria-label="Toggle client task done"><i class="fas ${task.status === 'done' ? 'fa-rotate-left' : 'fa-check'}" aria-hidden="true"></i></button>
-                <button type="button" class="btn btn-sm btn-secondary" onclick="openClientTaskModal('${task.clientId}','${task.id}')" aria-label="Open client task modal"><i class="fas fa-edit" aria-hidden="true"></i></button>
+                <button type="button" class="btn btn-sm btn-success" onclick="toggleClientTaskDone('${_oa(task.id)}')" aria-label="${task.status === 'done' ? 'Shëno si pa kryer' : 'Shëno si i kryer'}" aria-pressed="${task.status === 'done' ? 'true' : 'false'}"><i class="fas ${task.status === 'done' ? 'fa-rotate-left' : 'fa-check'}" aria-hidden="true"></i></button>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="openClientTaskModal('${_oa(task.clientId)}','${_oa(task.id)}')" aria-label="Open client task modal"><i class="fas fa-edit" aria-hidden="true"></i></button>
             </td>
         </tr>`;
     }).join('') || '<tr><td colspan="6">Nuk ka task-e.</td></tr>';
     openModal('Task Board', `
         <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
-            <button type="button" class="btn btn-primary" onclick="openClientTaskModal('${clientId || ''}')"><i class="fas fa-plus" aria-hidden="true"></i> Shto Task</button>
+            <button type="button" class="btn btn-primary" onclick="openClientTaskModal('${_oa(clientId || '')}')"><i class="fas fa-plus" aria-hidden="true"></i> Shto Task</button>
         </div>
         <div class="table-container"><table class="data-table"><thead><tr><th>Titulli</th><th>Klienti</th><th>Prioriteti</th><th>Afati</th><th>Statusi</th><th>Veprime</th></tr></thead><tbody>${rows}</tbody></table></div>
     `);
@@ -2828,7 +2895,7 @@ function openClientVisitModal(clientId, editId) {
         <div class="form-group"><label>Qëllimi:</label><input type="text" id="client-visit-purpose" value="${visit ? visit.purpose || '' : ''}" placeholder="Kontroll, ofertë, pagesë..."></div>
         <div class="form-group"><label>Vizita e ardhshme:</label><input type="date" id="client-next-visit-date" value="${visit ? visit.nextVisitDate || '' : ''}"></div>
         <div class="form-group"><label>Shënime:</label><textarea id="client-visit-note">${visit ? visit.note || '' : ''}</textarea></div>
-        <button type="button" class="btn btn-primary" onclick="${visit ? `saveClientVisit('${visit.id}')` : 'saveClientVisit()'}" style="width:100%;">Ruaj Vizitën</button>
+        <button type="button" class="btn btn-primary" onclick="${visit ? `saveClientVisit('${_oa(visit.id)}')` : 'saveClientVisit()'}" style="width:100%;">Ruaj Vizitën</button>
     `);
 }
 
@@ -2867,12 +2934,12 @@ function showVisitsBoard(clientId) {
             <td>${visit.purpose || '-'}</td>
             <td>${visit.nextVisitDate || '-'}</td>
             <td>${visit.note || '-'}</td>
-            <td><button type="button" class="btn btn-sm btn-secondary" onclick="openClientVisitModal('${visit.clientId}','${visit.id}')" aria-label="Open client visit modal"><i class="fas fa-edit" aria-hidden="true"></i></button></td>
+            <td><button type="button" class="btn btn-sm btn-secondary" onclick="openClientVisitModal('${_oa(visit.clientId)}','${_oa(visit.id)}')" aria-label="Open client visit modal"><i class="fas fa-edit" aria-hidden="true"></i></button></td>
         </tr>`;
     }).join('') || '<tr><td colspan="6">Nuk ka vizita.</td></tr>';
     openModal('Vizita në Terren', `
         <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
-            <button type="button" class="btn btn-primary" onclick="openClientVisitModal('${clientId || ''}')"><i class="fas fa-plus" aria-hidden="true"></i> Shto Vizitë</button>
+            <button type="button" class="btn btn-primary" onclick="openClientVisitModal('${_oa(clientId || '')}')"><i class="fas fa-plus" aria-hidden="true"></i> Shto Vizitë</button>
         </div>
         <div class="table-container"><table class="data-table"><thead><tr><th>Klienti</th><th>Data</th><th>Qëllimi</th><th>Vizita tjetër</th><th>Shënime</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
     `);
@@ -2912,7 +2979,7 @@ function generateAllMarketMonthlyReports() {
             <td>${totalPayments} ден</td>
             <td>${client.debt || 0} ден</td>
             <td style="color:${status.color};font-weight:700;">${status.label}</td>
-            <td><button type="button" class="btn btn-sm btn-primary" onclick="openClientHistoryReport('${client.id}', { fromDate: '${month}-01', toDate: '${month}-${new Date(new Date().getFullYear(), new Date().getMonth()+1, 0).getDate().toString().padStart(2,'0')}' })" aria-label="Open client history report"><i class="fas fa-eye" aria-hidden="true"></i></button></td>
+            <td><button type="button" class="btn btn-sm btn-primary" onclick="openClientHistoryReport('${_oa(client.id)}', { fromDate: '${month}-01', toDate: '${month}-${new Date(new Date().getFullYear(), new Date().getMonth()+1, 0).getDate().toString().padStart(2,'0')}' })" aria-label="Open client history report"><i class="fas fa-eye" aria-hidden="true"></i></button></td>
         </tr>`;
     }).join('');
     openModal('Raporte Mujore për Marketet', `<p style="margin-bottom:10px;color:var(--text-secondary);">Muaji: ${month}</p><div class="table-container"><table class="data-table"><thead><tr><th>Klienti</th><th>Blerje</th><th>Pagesa</th><th>Borxhi</th><th>Statusi</th><th>Raporti</th></tr></thead><tbody>${rows || '<tr><td colspan="6">Nuk ka klientë.</td></tr>'}</tbody></table></div>`);
@@ -2936,7 +3003,7 @@ function payClientDebt(id) {
             <label>${t('amount')} (${t('debt')}: ${client.debt} ден):</label>
             <input type="number" id="debt-amount" value="${client.debt}" min="0" max="${client.debt}">
         </div>
-        <button type="button" class="btn btn-primary" onclick="processDebtPayment('${id}')" style="width:100%;">${t('pay_debt')}</button>
+        <button type="button" class="btn btn-primary" onclick="processDebtPayment('${_oa(id)}')" style="width:100%;">${t('pay_debt')}</button>
     `;
     openModal(t('pay_debt') + ' - ' + client.name, html);
 }
@@ -3015,7 +3082,7 @@ function refreshClients() {
 
         tbody.innerHTML += `
             <tr>
-                <td>${isPinned ? '<i class="fas fa-star" style="color:var(--warning);margin-right:4px;" aria-hidden="true"></i>' : ''}<span style="cursor:pointer;color:var(--primary);text-decoration:underline;" onclick="openClient360('${c.id}')">${c.name}</span></td>
+                <td>${isPinned ? '<i class="fas fa-star" style="color:var(--warning);margin-right:4px;" aria-hidden="true"></i>' : ''}<span style="cursor:pointer;color:var(--primary);text-decoration:underline;" onclick="openClient360('${_oa(c.id)}')">${c.name}</span></td>
                 <td>${c.phone || '-'}</td>
                 <td>${totalPurchases} ден</td>
                 <td>${clientCash} ден</td>
@@ -3025,24 +3092,24 @@ function refreshClients() {
                 <td>${clientStatusBadge(c.id)}</td>
                 <td><strong style="color:${statusInfo.color};">${score}</strong></td>
                 <td>
-                    <button type="button" class="btn btn-sm ${isPinned ? 'btn-warning' : 'btn-secondary'}" onclick="togglePinClient('${c.id}')" title="${isPinned ? 'Hiq pin' : 'Pin'}" aria-label="${isPinned ? 'Hiq pin' : 'Pin'}"><i class="fas fa-thumbtack" aria-hidden="true"></i></button>
-                    <button type="button" class="btn btn-sm btn-secondary" onclick="openClientModal('${c.id}')" aria-label="Open client modal"><i class="fas fa-edit" aria-hidden="true"></i></button>
-                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteClient('${c.id}')" aria-label="Delete client"><i class="fas fa-trash" aria-hidden="true"></i></button>
-                    ${c.debt > 0 ? `<button type="button" class="btn btn-sm btn-success" onclick="payClientDebt('${c.id}')" aria-label="Pay client debt"><i class="fas fa-money-bill" aria-hidden="true"></i></button>` : ''}
-                    ${clientOpenInvoices.length > 0 ? `<button type="button" class="btn btn-sm btn-secondary" onclick="showClientInvoices('${c.id}')" aria-label="Show client invoices"><i class="fas fa-file-invoice" aria-hidden="true"></i></button>` : ''}
-                    ${c.phone ? `<button type="button" class="btn btn-sm" style="background:#25D366; color:white;" onclick="sendWhatsApp('${c.phone}', 'Përshëndetje ${c.name}')" title="WhatsApp" aria-label="WhatsApp"><i class="fab fa-whatsapp" aria-hidden="true"></i></button>` : ''}
-                    ${c.phone ? `<button type="button" class="btn btn-sm btn-secondary" onclick="showWhatsAppTemplates('${c.phone}', '${c.name}')" title="Shabllone WhatsApp" aria-label="Shabllone WhatsApp"><i class="fas fa-comment-dots" aria-hidden="true"></i></button>` : ''}
-                    <button type="button" class="btn btn-sm btn-secondary" onclick="showClientPaymentHistory('${c.id}')" title="Historia" aria-label="Historia"><i class="fas fa-history" aria-hidden="true"></i></button>
-                    <button type="button" class="btn btn-sm btn-success" onclick="openQuickCollectModal('${c.id}')" title="Mbledh Pagese" aria-label="Mbledh Pagese"><i class="fas fa-hand-holding-usd" aria-hidden="true"></i></button>
-                    <button type="button" class="btn btn-sm btn-primary" onclick="openClientTaskModal('${c.id}')" title="Task" aria-label="Task"><i class="fas fa-list-check" aria-hidden="true"></i></button>
-                    <button type="button" class="btn btn-sm btn-info" onclick="openClientVisitModal('${c.id}')" title="Vizitë" aria-label="Vizitë"><i class="fas fa-route" aria-hidden="true"></i></button>
-                    <button type="button" class="btn btn-sm btn-info" onclick="showClientQR('${c.id}')" title="QR Kod" aria-label="QR Kod"><i class="fas fa-qrcode" aria-hidden="true"></i></button>
-                    <button type="button" class="btn btn-sm btn-secondary" onclick="generateClientStatement('${c.id}')" title="Pasqyrë" aria-label="Pasqyrë"><i class="fas fa-file-alt" aria-hidden="true"></i></button>
-                    ${c.debt > 0 ? `<button type="button" class="btn btn-sm btn-warning" onclick="sendClientDebtWhatsApp('${c.id}')" title="Kujto Borxhin" aria-label="Kujto Borxhin"><i class="fas fa-comment-dollar" aria-hidden="true"></i></button>` : ''}
-                    ${c.debt > 0 ? `<button type="button" class="btn btn-sm btn-info" onclick="openClientInstallmentModal('${c.id}')" title="Këste" aria-label="Këste"><i class="fas fa-calendar-check" aria-hidden="true"></i></button>` : ''}
-                    ${c.debt > 0 ? `<button type="button" class="btn btn-sm btn-success" onclick="openEarlyPaymentModal('${c.id}')" title="Zbritje e Hershme" aria-label="Zbritje e Hershme"><i class="fas fa-percentage" aria-hidden="true"></i></button>` : ''}
-                    <button type="button" class="btn btn-sm btn-secondary" onclick="showClientPaymentChart('${c.id}')" title="Grafiku" aria-label="Grafiku"><i class="fas fa-chart-line" aria-hidden="true"></i></button>
-                    <button type="button" class="btn btn-sm btn-secondary" onclick="printClientHistory('${c.id}')" title="Printo" aria-label="Printo"><i class="fas fa-print" aria-hidden="true"></i></button>
+                    <button type="button" class="btn btn-sm ${isPinned ? 'btn-warning' : 'btn-secondary'}" onclick="togglePinClient('${_oa(c.id)}')" title="${isPinned ? 'Hiq pin' : 'Pin'}" aria-label="${isPinned ? 'Hiq pin' : 'Pin'}" aria-pressed="${isPinned ? 'true' : 'false'}"><i class="fas fa-thumbtack" aria-hidden="true"></i></button>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="openClientModal('${_oa(c.id)}')" aria-label="Open client modal"><i class="fas fa-edit" aria-hidden="true"></i></button>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteClient('${_oa(c.id)}')" aria-label="Delete client"><i class="fas fa-trash" aria-hidden="true"></i></button>
+                    ${c.debt > 0 ? `<button type="button" class="btn btn-sm btn-success" onclick="payClientDebt('${_oa(c.id)}')" aria-label="Pay client debt"><i class="fas fa-money-bill" aria-hidden="true"></i></button>` : ''}
+                    ${clientOpenInvoices.length > 0 ? `<button type="button" class="btn btn-sm btn-secondary" onclick="showClientInvoices('${_oa(c.id)}')" aria-label="Show client invoices"><i class="fas fa-file-invoice" aria-hidden="true"></i></button>` : ''}
+                    ${c.phone ? `<button type="button" class="btn btn-sm" style="background:#25D366; color:white;" onclick="sendWhatsApp('${_oa(c.phone)}', 'Përshëndetje ${c.name}')" title="WhatsApp" aria-label="WhatsApp"><i class="fab fa-whatsapp" aria-hidden="true"></i></button>` : ''}
+                    ${c.phone ? `<button type="button" class="btn btn-sm btn-secondary" onclick="showWhatsAppTemplates('${_oa(c.phone)}', '${_oa(c.name)}')" title="Shabllone WhatsApp" aria-label="Shabllone WhatsApp"><i class="fas fa-comment-dots" aria-hidden="true"></i></button>` : ''}
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="showClientPaymentHistory('${_oa(c.id)}')" title="Historia" aria-label="Historia"><i class="fas fa-history" aria-hidden="true"></i></button>
+                    <button type="button" class="btn btn-sm btn-success" onclick="openQuickCollectModal('${_oa(c.id)}')" title="Mbledh Pagese" aria-label="Mbledh Pagese"><i class="fas fa-hand-holding-usd" aria-hidden="true"></i></button>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="openClientTaskModal('${_oa(c.id)}')" title="Task" aria-label="Task"><i class="fas fa-list-check" aria-hidden="true"></i></button>
+                    <button type="button" class="btn btn-sm btn-info" onclick="openClientVisitModal('${_oa(c.id)}')" title="Vizitë" aria-label="Vizitë"><i class="fas fa-route" aria-hidden="true"></i></button>
+                    <button type="button" class="btn btn-sm btn-info" onclick="showClientQR('${_oa(c.id)}')" title="QR Kod" aria-label="QR Kod"><i class="fas fa-qrcode" aria-hidden="true"></i></button>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="generateClientStatement('${_oa(c.id)}')" title="Pasqyrë" aria-label="Pasqyrë"><i class="fas fa-file-alt" aria-hidden="true"></i></button>
+                    ${c.debt > 0 ? `<button type="button" class="btn btn-sm btn-warning" onclick="sendClientDebtWhatsApp('${_oa(c.id)}')" title="Kujto Borxhin" aria-label="Kujto Borxhin"><i class="fas fa-comment-dollar" aria-hidden="true"></i></button>` : ''}
+                    ${c.debt > 0 ? `<button type="button" class="btn btn-sm btn-info" onclick="openClientInstallmentModal('${_oa(c.id)}')" title="Këste" aria-label="Këste"><i class="fas fa-calendar-check" aria-hidden="true"></i></button>` : ''}
+                    ${c.debt > 0 ? `<button type="button" class="btn btn-sm btn-success" onclick="openEarlyPaymentModal('${_oa(c.id)}')" title="Zbritje e Hershme" aria-label="Zbritje e Hershme"><i class="fas fa-percentage" aria-hidden="true"></i></button>` : ''}
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="showClientPaymentChart('${_oa(c.id)}')" title="Grafiku" aria-label="Grafiku"><i class="fas fa-chart-line" aria-hidden="true"></i></button>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="printClientHistory('${_oa(c.id)}')" title="Printo" aria-label="Printo"><i class="fas fa-print" aria-hidden="true"></i></button>
                 </td>
             </tr>
         `;
@@ -3906,7 +3973,7 @@ function refreshFaton() {
             html += '<div style="font-size:0.8em;opacity:0.8;">Kesti ' + (i + 1) + '</div>';
             html += '<div style="font-weight:bold;font-size:1.1em;">' + inst.amount + ' den</div>';
             html += '<div style="font-size:0.85em;">' + inst.date + '</div>';
-            if (!inst.paid) html += '<button type="button" class="btn btn-sm" style="margin-top:5px;background:white;color:#333;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;" onclick="markInstallmentPaid(' + i + ')">Paguaj</button>';
+            if (!inst.paid) html += '<button type="button" class="btn btn-sm btn-secondary" style="margin-top:5px;" onclick="markInstallmentPaid(' + i + ')">Paguaj</button>';
             else html += '<div style="margin-top:5px;font-size:0.8em;"><i class="fas fa-check" aria-hidden="true"></i> Paguar</div>';
             html += '</div>';
         });
@@ -5548,7 +5615,7 @@ function openContactModal(editId) {
             <label>${t('note')} (${t('optional')}):</label>
             <textarea id="contact-note">${contact ? contact.note || '' : ''}</textarea>
         </div>
-        <button type="button" class="btn btn-primary" onclick="${isEdit ? `updateContact('${editId}')` : 'addContact()'}" style="width:100%;">
+        <button type="button" class="btn btn-primary" onclick="${isEdit ? `updateContact('${_oa(editId)}')` : 'addContact()'}" style="width:100%;">
             ${isEdit ? t('edit') : t('add_contact')}
         </button>
     `;
@@ -5620,8 +5687,8 @@ function refreshContacts() {
                 <div class="contact-actions">
                     ${c.phone ? `<a href="tel:${c.phone}" class="btn btn-sm btn-success"><i class="fas fa-phone" aria-hidden="true"></i></a>` : ''}
                     ${c.phone ? `<a href="sms:${c.phone}" class="btn btn-sm btn-secondary"><i class="fas fa-sms" aria-hidden="true"></i></a>` : ''}
-                    <button type="button" class="btn btn-sm btn-secondary" onclick="openContactModal('${c.id}')" aria-label="Open contact modal"><i class="fas fa-edit" aria-hidden="true"></i></button>
-                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteContact('${c.id}')" aria-label="Delete contact"><i class="fas fa-trash" aria-hidden="true"></i></button>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="openContactModal('${_oa(c.id)}')" aria-label="Open contact modal"><i class="fas fa-edit" aria-hidden="true"></i></button>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteContact('${_oa(c.id)}')" aria-label="Delete contact"><i class="fas fa-trash" aria-hidden="true"></i></button>
                 </div>
             </div>
         `;
@@ -5642,7 +5709,7 @@ function openNoteModal(editId) {
             <label>${t('enter_note')}:</label>
             <textarea id="note-content">${note ? note.content : ''}</textarea>
         </div>
-        <button type="button" class="btn btn-primary" onclick="${isEdit ? `updateNote('${editId}')` : 'addNote()'}" style="width:100%;">
+        <button type="button" class="btn btn-primary" onclick="${isEdit ? `updateNote('${_oa(editId)}')` : 'addNote()'}" style="width:100%;">
             ${isEdit ? t('edit') : t('add_note')}
         </button>
     `;
@@ -5702,8 +5769,8 @@ function refreshNotes() {
                 <p>${n.content}</p>
                 <div class="note-date">${n.date}</div>
                 <div class="note-actions">
-                    <button type="button" class="btn btn-sm btn-secondary" onclick="openNoteModal('${n.id}')" aria-label="Open note modal"><i class="fas fa-edit" aria-hidden="true"></i></button>
-                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteNote('${n.id}')" aria-label="Delete note"><i class="fas fa-trash" aria-hidden="true"></i></button>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="openNoteModal('${_oa(n.id)}')" aria-label="Open note modal"><i class="fas fa-edit" aria-hidden="true"></i></button>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteNote('${_oa(n.id)}')" aria-label="Delete note"><i class="fas fa-trash" aria-hidden="true"></i></button>
                 </div>
             </div>
         `;
@@ -5736,7 +5803,7 @@ function openTargetModal(editId) {
             <label>${t('enter_description')} (${t('optional')}):</label>
             <textarea id="target-desc">${target ? target.description || '' : ''}</textarea>
         </div>
-        <button type="button" class="btn btn-primary" onclick="${isEdit ? `updateTarget('${editId}')` : 'addTarget()'}" style="width:100%;">
+        <button type="button" class="btn btn-primary" onclick="${isEdit ? `updateTarget('${_oa(editId)}')` : 'addTarget()'}" style="width:100%;">
             ${isEdit ? t('edit') : t('add_target')}
         </button>
     `;
@@ -5815,8 +5882,8 @@ function refreshTargets() {
                     <span>${pct >= 100 ? '&#10003; ' + t('completed') : ''}</span>
                 </div>
                 <div style="margin-top:10px;display:flex;gap:8px;">
-                    <button type="button" class="btn btn-sm btn-secondary" onclick="openTargetModal('${tg.id}')" aria-label="Open target modal"><i class="fas fa-edit" aria-hidden="true"></i></button>
-                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteTarget('${tg.id}')" aria-label="Delete target"><i class="fas fa-trash" aria-hidden="true"></i></button>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="openTargetModal('${_oa(tg.id)}')" aria-label="Open target modal"><i class="fas fa-edit" aria-hidden="true"></i></button>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteTarget('${_oa(tg.id)}')" aria-label="Delete target"><i class="fas fa-trash" aria-hidden="true"></i></button>
                 </div>
             </div>
         `;
@@ -6010,7 +6077,7 @@ function refreshLocations() {
     container.innerHTML = '';
     (state.locations || []).forEach(l => {
         container.innerHTML += `
-            <span class="location-tag">${l} <button type="button" onclick="deleteLocation('${l}')">&times;</button></span>
+            <span class="location-tag">${l} <button type="button" onclick="deleteLocation('${_oa(l)}')">&times;</button></span>
         `;
     });
 }
@@ -7190,7 +7257,7 @@ function renderSalesMonthTabs() {
         const [year, month] = m.split('-');
         const monthNames = ['Jan', 'Shk', 'Mar', 'Pri', 'Maj', 'Qer', 'Kor', 'Gus', 'Sht', 'Tet', 'Nen', 'Dhj'];
         const label = monthNames[parseInt(month) - 1] + ' ' + year;
-        html += `<button type="button" class="btn btn-sm ${state.salesMonthFilter === m ? 'btn-primary' : 'btn-secondary'}" onclick="setSalesMonthFilter('${m}')" style="margin:2px;">${label}</button>`;
+        html += `<button type="button" class="btn btn-sm ${state.salesMonthFilter === m ? 'btn-primary' : 'btn-secondary'}" onclick="setSalesMonthFilter('${_oa(m)}')" style="margin:2px;">${label}</button>`;
     });
     tabsEl.innerHTML = html;
 }
@@ -7786,10 +7853,10 @@ function openProductModal(editId) {
             <label>Sell Price (den):</label>
             <input type="number" id="product-sell-price" min="0" value="${product ? product.sellPrice : 0}">
         </div>
-        <button type="button" class="btn btn-primary" onclick="${isEdit ? `updateProduct('${editId}')` : 'addProduct()'}" style="width:100%;">
+        <button type="button" class="btn btn-primary" onclick="${isEdit ? `updateProduct('${_oa(editId)}')` : 'addProduct()'}" style="width:100%;">
             ${isEdit ? 'Update Product' : 'Add Product'}
         </button>
-        ${isEdit ? `<button type="button" class="btn btn-danger" onclick="deleteProduct('${editId}')" style="width:100%; margin-top:10px;">Delete Product</button>` : ''}
+        ${isEdit ? `<button type="button" class="btn btn-danger" onclick="deleteProduct('${_oa(editId)}')" style="width:100%; margin-top:10px;">Delete Product</button>` : ''}
     `;
     openModal(isEdit ? 'Edit Product' : 'Add Product', html);
 }
@@ -7905,7 +7972,7 @@ function refreshProducts() {
                 <td>${sellPrice} den</td>
                 <td>${margin} den (${marginPct}%)</td>
                 <td>
-                    <button type="button" class="btn btn-sm" onclick="openProductModal('${p.id}')">Edit</button>
+                    <button type="button" class="btn btn-sm" onclick="openProductModal('${_oa(p.id)}')">Edit</button>
                 </td>
             </tr>
         `;
@@ -8728,7 +8795,7 @@ function refreshSettingsUI() {
     ];
     modes.forEach(m => {
         const active = m.v === curDensity ? 'background:var(--primary);color:white;border-color:var(--primary);' : '';
-        html += `<button type="button" class="btn btn-sm" onclick="setDensity('${m.v}'); refreshSettingsUI();" style="flex:1;min-width:120px;${active}" title="${m.d}">${m.l}</button>`;
+        html += `<button type="button" class="btn btn-sm" onclick="setDensity('${_oa(m.v)}'); refreshSettingsUI();" style="flex:1;min-width:120px;${active}" title="${m.d}">${m.l}</button>`;
     });
     html += '</div></div>';
 
@@ -10599,17 +10666,17 @@ function openClientHistoryReport(clientId, filters) {
     const report = buildClientHistoryReport(clientId, normalizedFilters);
     if (!report) return;
     const waButton = report.client.phone && report.debt > 0
-        ? `<button type="button" class="btn btn-success" onclick="sendClientMarketHistoryWhatsApp('${clientId}')"><i class="fab fa-whatsapp" aria-hidden="true"></i> Kujtesë WhatsApp</button>`
+        ? `<button type="button" class="btn btn-success" onclick="sendClientMarketHistoryWhatsApp('${_oa(clientId)}')"><i class="fab fa-whatsapp" aria-hidden="true"></i> Kujtesë WhatsApp</button>`
         : '';
 
     openModal('Historiku i Marketit', `
         <div class="market-history-actions">
             <input type="date" id="market-history-date-from" value="${normalizedFilters.fromDate || ''}">
             <input type="date" id="market-history-date-to" value="${normalizedFilters.toDate || ''}">
-            <button type="button" class="btn btn-secondary" onclick="openClientHistoryReport('${clientId}', readMarketHistoryFilters())"><i class="fas fa-filter" aria-hidden="true"></i> Apliko</button>
+            <button type="button" class="btn btn-secondary" onclick="openClientHistoryReport('${_oa(clientId)}', readMarketHistoryFilters())"><i class="fas fa-filter" aria-hidden="true"></i> Apliko</button>
             ${waButton}
-            <button type="button" class="btn btn-primary" onclick="downloadClientHistoryPdf('${clientId}', readMarketHistoryFilters())"><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</button>
-            <button type="button" class="btn btn-secondary" onclick="printClientHistory('${clientId}', readMarketHistoryFilters())"><i class="fas fa-print" aria-hidden="true"></i> Printo</button>
+            <button type="button" class="btn btn-primary" onclick="downloadClientHistoryPdf('${_oa(clientId)}', readMarketHistoryFilters())"><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</button>
+            <button type="button" class="btn btn-secondary" onclick="printClientHistory('${_oa(clientId)}', readMarketHistoryFilters())"><i class="fas fa-print" aria-hidden="true"></i> Printo</button>
         </div>
         ${getClientHistoryReportDocument(clientId, normalizedFilters)}
     `);
@@ -11044,7 +11111,7 @@ function _doGlobalSearch(query, results) {
     if (clientMatches.length) {
         let html = '<div class="sr-section-header"><i class="fas fa-user" aria-hidden="true"></i> Klientë (' + clientMatches.length + ')</div>';
         clientMatches.slice(0, 5).forEach(c => {
-            html += `<div class="search-result-item" data-sr-action="client" data-sr-id="${_srEsc(c.id)}" onclick="_srOpen('client','${_srEsc(c.id)}')">
+            html += `<div class="search-result-item" data-sr-action="client" data-sr-id="${_srEsc(c.id)}" onclick="_srOpen('client','${_oa(_srEsc(c.id))}')">
                 <i class="fas fa-user" aria-hidden="true"></i>
                 <div class="sr-body"><div class="sr-name">${_srHi(c.name || '-', query)}</div>
                 <div class="sr-detail">${_srEsc(c.phone || '')}${c.email ? ' | ' + _srEsc(c.email) : ''} | Borxh: ${c.debt || 0} ден</div></div>
@@ -11077,15 +11144,15 @@ function _doGlobalSearch(query, results) {
             // Quick actions: Shit (sale), Shto Stok (add stock), 360° (full view)
             const actions = `
                 <div class="sr-quick-actions" onclick="event.stopPropagation();">
-                    <button type="button" class="sr-qa-btn" title="Shit menjëherë" onclick="hideSearchResults();navigateTo('sales');setTimeout(()=>{if(typeof openSaleModal==='function'){openSaleModal();setTimeout(()=>{const sel=document.getElementById('sale-product');if(sel){sel.value='${pidEsc}';sel.dispatchEvent(new Event('change'));}},100);}},150);">
+                    <button type="button" class="sr-qa-btn" title="Shit menjëherë" onclick="hideSearchResults();navigateTo('sales');setTimeout(()=>{if(typeof openSaleModal==='function'){openSaleModal();setTimeout(()=>{const sel=document.getElementById('sale-product');if(sel){sel.value='${_oa(pidEsc)}';sel.dispatchEvent(new Event('change'));}},100);}},150);">
                         <i class="fas fa-cash-register" aria-hidden="true"></i>
                     </button>
                     <button type="button" class="sr-qa-btn" title="Shto stok" onclick="hideSearchResults();navigateTo('stock');setTimeout(()=>{const el=document.getElementById('stock-product-${pidEsc}');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},150);">
                         <i class="fas fa-plus-circle" aria-hidden="true"></i>
                     </button>
-                    <button type="button" class="sr-qa-btn" title="Pamja 360°" onclick="_srOpen('product','${pidEsc}');" aria-label="Pamja 360°"><i class="fas fa-chart-pie" aria-hidden="true"></i></button>
+                    <button type="button" class="sr-qa-btn" title="Pamja 360°" onclick="_srOpen('product','${_oa(pidEsc)}');" aria-label="Pamja 360°"><i class="fas fa-chart-pie" aria-hidden="true"></i></button>
                 </div>`;
-            html += `<div class="search-result-item search-result-product" data-sr-action="product" data-sr-id="${pidEsc}" onclick="_srOpen('product','${pidEsc}')">
+            html += `<div class="search-result-item search-result-product" data-sr-action="product" data-sr-id="${pidEsc}" onclick="_srOpen('product','${_oa(pidEsc)}')">
                 <i class="fas fa-box" aria-hidden="true"></i>
                 <div class="sr-body">
                     <div class="sr-name">${_srHi(p.name, query)}</div>
@@ -11530,9 +11597,13 @@ function getFABItems() {
 function toggleGlobalFAB() {
     const menu = document.getElementById('global-fab-menu');
     const icon = document.getElementById('fab-icon');
+    const triggerBtn = document.getElementById('fab-main-btn');
     if (!menu) return;
 
     const isOpen = menu.classList.contains('active');
+    // A.7: keep aria-expanded in sync — set BEFORE animation so screen
+    // readers announce the new state immediately.
+    if (triggerBtn) triggerBtn.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
 
     if (isOpen) {
         // Close with animation
@@ -11760,11 +11831,11 @@ function openClient360(clientId) {
 
     // Contact info
     html += '<div style="margin-bottom:12px;">';
-    if (client.phone) html += `<button type="button" class="btn btn-sm" style="background:#25D366;color:white;" onclick="sendWhatsApp('${client.phone}','Përshëndetje ${client.name}')"><i class="fab fa-whatsapp" aria-hidden="true"></i> WhatsApp</button> `;
-    html += `<button type="button" class="btn btn-sm btn-success" onclick="openQuickCollectModal('${clientId}');closeSidePanel()"><i class="fas fa-hand-holding-usd" aria-hidden="true"></i> Mbledh Pagesë</button> `;
-    html += `<button type="button" class="btn btn-sm btn-info" onclick="generateClientStatement('${clientId}')"><i class="fas fa-file-alt" aria-hidden="true"></i> Pasqyrë</button>`;
-    html += ` <button type="button" class="btn btn-sm btn-primary" onclick="openClientTaskModal('${clientId}');closeSidePanel()"><i class="fas fa-list-check" aria-hidden="true"></i> Task</button>`;
-    html += ` <button type="button" class="btn btn-sm btn-secondary" onclick="openClientVisitModal('${clientId}');closeSidePanel()"><i class="fas fa-route" aria-hidden="true"></i> Vizitë</button>`;
+    if (client.phone) html += `<button type="button" class="btn btn-sm" style="background:#25D366;color:white;" onclick="sendWhatsApp('${_oa(client.phone)}','Përshëndetje ${client.name}')"><i class="fab fa-whatsapp" aria-hidden="true"></i> WhatsApp</button> `;
+    html += `<button type="button" class="btn btn-sm btn-success" onclick="openQuickCollectModal('${_oa(clientId)}');closeSidePanel()"><i class="fas fa-hand-holding-usd" aria-hidden="true"></i> Mbledh Pagesë</button> `;
+    html += `<button type="button" class="btn btn-sm btn-info" onclick="generateClientStatement('${_oa(clientId)}')"><i class="fas fa-file-alt" aria-hidden="true"></i> Pasqyrë</button>`;
+    html += ` <button type="button" class="btn btn-sm btn-primary" onclick="openClientTaskModal('${_oa(clientId)}');closeSidePanel()"><i class="fas fa-list-check" aria-hidden="true"></i> Task</button>`;
+    html += ` <button type="button" class="btn btn-sm btn-secondary" onclick="openClientVisitModal('${_oa(clientId)}');closeSidePanel()"><i class="fas fa-route" aria-hidden="true"></i> Vizitë</button>`;
     html += '</div>';
 
     // Last 5 sales
@@ -12060,7 +12131,7 @@ function refreshRecentActivityBar() {
         const page = a.page || pageMap[type] || 'activity';
         const text = a.text || a.details || a.action || 'Veprim';
         const time = a.time || (a.timestamp ? new Date(a.timestamp).toLocaleTimeString('sq', { hour: '2-digit', minute: '2-digit' }) : '');
-        return `<div class="rab-item" onclick="navigateTo('${page}')" title="${text}">
+        return `<div class="rab-item" onclick="navigateTo('${_oa(page)}')" title="${text}">
             <i class="fas ${icon}" aria-hidden="true"></i>
             <span>${text.length > 40 ? text.substring(0, 40) + '...' : text}</span>
             <span class="rab-time">${time}</span>
@@ -12514,7 +12585,7 @@ function showWhatsAppTemplates(phone, clientName) {
     let html = '<h3><i class="fab fa-whatsapp" style="color:#25D366" aria-hidden="true"></i> Shabllone WhatsApp</h3><div style="display:grid;gap:10px;">';
     templates.forEach(t => {
         const encodedMsg = encodeURIComponent(t.msg);
-        html += `<div style="background:var(--bg);border-radius:10px;padding:12px;border:1px solid var(--border);"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><strong><i class="fas ${t.icon}" aria-hidden="true"></i> ${t.name}</strong><button type="button" class="btn btn-sm" style="background:#25D366;color:white;" onclick="window.open('https://wa.me/${(phone||'').replace(/[^0-9]/g,'')}?text=${encodedMsg}','_blank');closeModal();"><i class="fab fa-whatsapp" aria-hidden="true"></i> Dërgo</button></div><p style="font-size:0.85rem;color:var(--text-secondary);margin:0;">${t.msg}</p></div>`;
+        html += `<div style="background:var(--bg);border-radius:10px;padding:12px;border:1px solid var(--border);"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><strong><i class="fas ${t.icon}" aria-hidden="true"></i> ${t.name}</strong><a class="btn btn-sm" role="button" target="_blank" rel="noopener noreferrer" style="background:#25D366;color:white;" href="https://wa.me/${(phone||'').replace(/[^0-9]/g,'')}?text=${encodedMsg}" onclick="closeModal();"><i class="fab fa-whatsapp" aria-hidden="true"></i> Dërgo</a></div><p style="font-size:0.85rem;color:var(--text-secondary);margin:0;">${t.msg}</p></div>`;
     });
     html += '</div>';
     openModal(html);
@@ -12557,7 +12628,7 @@ function applyStockCount() {
 function openSuppliersModal() {
     if (!state.suppliers) state.suppliers = [{ id: 'faton', name: 'Faton', phone: '', balance: 0 }];
     let html = '<h3><i class="fas fa-truck" aria-hidden="true"></i> Furnitorët</h3><div class="table-container"><table class="data-table"><thead><tr><th>Emri</th><th>Telefoni</th><th>Borxhi</th><th>Veprime</th></tr></thead><tbody>';
-    (state.suppliers || []).forEach(s => { html += `<tr><td>${s.name}</td><td>${s.phone || '-'}</td><td style="color:var(--danger)">${s.balance || 0} ден</td><td><button type="button" class="btn btn-sm btn-secondary" onclick="editSupplier('${s.id}')" aria-label="Edit supplier"><i class="fas fa-edit" aria-hidden="true"></i></button></td></tr>`; });
+    (state.suppliers || []).forEach(s => { html += `<tr><td>${s.name}</td><td>${s.phone || '-'}</td><td style="color:var(--danger)">${s.balance || 0} ден</td><td><button type="button" class="btn btn-sm btn-secondary" onclick="editSupplier('${_oa(s.id)}')" aria-label="Edit supplier"><i class="fas fa-edit" aria-hidden="true"></i></button></td></tr>`; });
     html += '</tbody></table></div><button type="button" class="btn btn-primary" style="margin-top:10px;" onclick="addNewSupplier()"><i class="fas fa-plus" aria-hidden="true"></i> Shto furnitor</button>';
     openModal(html);
 }
@@ -12584,7 +12655,7 @@ function openBarcodeScanner() {
     let html = `<h3><i class="fas fa-barcode" aria-hidden="true"></i> Skaner Barkod/QR</h3><div style="margin-bottom:10px;"><input type="text" id="barcode-input" placeholder="Fut barkodin..." style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:1rem;"></div>
         <button type="button" class="btn btn-primary" onclick="searchBarcode()"><i class="fas fa-search" aria-hidden="true"></i> Kërko</button><div id="barcode-result" style="margin-top:15px;"></div>
         <hr style="margin:15px 0;"><h4>Barkodët</h4><div class="table-container"><table class="data-table"><thead><tr><th>Produkti</th><th>ID</th><th>QR</th></tr></thead><tbody>`;
-    (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).forEach(p => { html += `<tr><td>${p.name}</td><td>${p.id}</td><td><button type="button" class="btn btn-sm btn-info" onclick="showProductQR('${p.id}')" aria-label="Show product qr"><i class="fas fa-qrcode" aria-hidden="true"></i></button></td></tr>`; });
+    (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).forEach(p => { html += `<tr><td>${p.name}</td><td>${p.id}</td><td><button type="button" class="btn btn-sm btn-info" onclick="showProductQR('${_oa(p.id)}')" aria-label="Show product qr"><i class="fas fa-qrcode" aria-hidden="true"></i></button></td></tr>`; });
     html += '</tbody></table></div>';
     openModal(html);
 }
@@ -12615,7 +12686,7 @@ function openPromotionsModal() {
     const today = new Date().toISOString().split('T')[0];
     const active = (state.promotions || []).filter(p => (!p.endDate || p.endDate >= today) && (!p.startDate || p.startDate <= today));
     let html = '<h3><i class="fas fa-tag" aria-hidden="true"></i> Oferta & Promocione</h3>';
-    if (active.length > 0) { html += '<h4 style="color:var(--success)">Aktive</h4>'; active.forEach(p => { html += `<div style="background:var(--bg);padding:12px;border-radius:8px;margin-bottom:8px;border-left:4px solid var(--success);"><strong>${p.name}</strong> - ${p.discount}% zbritje<br><small>${p.productId ? (getProduct(p.productId)||{}).name || 'Të gjitha' : 'Të gjitha'} | Deri: ${p.endDate || 'Pa limit'}</small><button type="button" class="btn btn-sm btn-danger" style="float:right" onclick="deletePromotion('${p.id}')" aria-label="Delete promotion"><i class="fas fa-trash" aria-hidden="true"></i></button></div>`; }); }
+    if (active.length > 0) { html += '<h4 style="color:var(--success)">Aktive</h4>'; active.forEach(p => { html += `<div style="background:var(--bg);padding:12px;border-radius:8px;margin-bottom:8px;border-left:4px solid var(--success);"><strong>${p.name}</strong> - ${p.discount}% zbritje<br><small>${p.productId ? (getProduct(p.productId)||{}).name || 'Të gjitha' : 'Të gjitha'} | Deri: ${p.endDate || 'Pa limit'}</small><button type="button" class="btn btn-sm btn-danger" style="float:right" onclick="deletePromotion('${_oa(p.id)}')" aria-label="Delete promotion"><i class="fas fa-trash" aria-hidden="true"></i></button></div>`; }); }
     html += `<h4 style="margin-top:15px;">Shto ofertë</h4><div style="display:grid;gap:8px;">
         <input type="text" id="promo-name" placeholder="Emri" style="padding:8px;border:1px solid var(--border);border-radius:6px;">
         <select id="promo-product" style="padding:8px;border:1px solid var(--border);border-radius:6px;"><option value="">Të gjitha</option>${(typeof PRODUCTS !== "undefined" ? PRODUCTS : []).map(p => `<option value="${p.id}">${p.name}</option>`).join('')}</select>
@@ -12659,7 +12730,7 @@ function checkAutoOrders() {
     if (lowProducts.length === 0) { if (typeof showToast === 'function') showToast('Stoku OK, nuk nevojiten porosi'); return; }
     let html = `<h3><i class="fas fa-magic" aria-hidden="true"></i> Porosi Automatike</h3><p>Produkte me stok nën ${state.autoOrderThreshold}:</p>`;
     html += '<div class="table-container"><table class="data-table"><thead><tr><th>Produkti</th><th>Stoku</th><th>Porosi</th><th>Veprim</th></tr></thead><tbody>';
-    lowProducts.forEach(p => { const stock = state.stock[p.id] || 0; html += `<tr><td>${p.name || '-'}</td><td style="color:var(--danger)">${stock}</td><td><input type="number" id="auto-order-${p.id}" value="${10 - stock}" min="1" style="width:60px;padding:4px;border:1px solid var(--border);border-radius:4px;"></td><td><button type="button" class="btn btn-sm btn-success" onclick="createAutoOrder('${p.id}')" aria-label="Create auto order"><i class="fas fa-check" aria-hidden="true"></i></button></td></tr>`; });
+    lowProducts.forEach(p => { const stock = state.stock[p.id] || 0; html += `<tr><td>${p.name || '-'}</td><td style="color:var(--danger)">${stock}</td><td><input type="number" id="auto-order-${p.id}" value="${10 - stock}" min="1" style="width:60px;padding:4px;border:1px solid var(--border);border-radius:4px;"></td><td><button type="button" class="btn btn-sm btn-success" onclick="createAutoOrder('${_oa(p.id)}')" aria-label="Create auto order"><i class="fas fa-check" aria-hidden="true"></i></button></td></tr>`; });
     html += '</tbody></table></div><button type="button" class="btn btn-primary" style="margin-top:10px;" onclick="createAllAutoOrders()"><i class="fas fa-cart-plus" aria-hidden="true"></i> Porosit të gjitha</button>';
     openModal(html);
 }
@@ -12691,7 +12762,7 @@ function showProfitByClient() {
         return { ...c, totalProfit, totalRevenue, salesCount: sales.length, avgOrder: sales.length > 0 ? Math.round(totalRevenue / sales.length) : 0 };
     }).filter(c => c.salesCount > 0).sort((a, b) => b.totalProfit - a.totalProfit);
     let html = '<h3><i class="fas fa-users" aria-hidden="true"></i> Fitimi sipas Klientit</h3><div class="table-container"><table class="data-table"><thead><tr><th>#</th><th>Klienti</th><th>Shitje</th><th>Qarkullim</th><th>Fitimi</th><th>Mesatare</th></tr></thead><tbody>';
-    clientStats.forEach((c, i) => { const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i+1); html += `<tr onclick="openClient360('${c.id}')" style="cursor:pointer"><td>${medal}</td><td>${c.name}</td><td>${c.salesCount}</td><td>${c.totalRevenue} ден</td><td style="color:var(--success);font-weight:700">${c.totalProfit} ден</td><td>${c.avgOrder} ден</td></tr>`; });
+    clientStats.forEach((c, i) => { const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i+1); html += `<tr onclick="openClient360('${_oa(c.id)}')" style="cursor:pointer"><td>${medal}</td><td>${c.name}</td><td>${c.salesCount}</td><td>${c.totalRevenue} ден</td><td style="color:var(--success);font-weight:700">${c.totalProfit} ден</td><td>${c.avgOrder} ден</td></tr>`; });
     html += '</tbody></table></div>';
     openModal(html);
 }
@@ -12945,7 +13016,7 @@ function generateWeeklyWhatsAppReport() {
     let html = `<h3><i class="fab fa-whatsapp" style="color:#25D366" aria-hidden="true"></i> Raport Javor WhatsApp</h3>`;
     html += `<pre style="background:var(--bg);padding:15px;border-radius:10px;white-space:pre-wrap;font-size:0.85rem;">${msg}</pre>`;
     html += `<div style="display:flex;gap:10px;margin-top:15px;">
-        <button type="button" class="btn" style="background:#25D366;color:white;flex:1;" onclick="window.open('https://wa.me/?text=${encoded}','_blank')"><i class="fab fa-whatsapp" aria-hidden="true"></i> Dërgo në WhatsApp</button>
+        <a class="btn" role="button" target="_blank" rel="noopener noreferrer" style="background:#25D366;color:white;flex:1;text-align:center;text-decoration:none;" href="https://wa.me/?text=${encoded}"><i class="fab fa-whatsapp" aria-hidden="true"></i> Dërgo në WhatsApp</a>
         <button type="button" class="btn btn-secondary" onclick="navigator.clipboard.writeText(\`${msg.replace(/`/g, '\\`')}\`);showToast('U kopjua!')"><i class="fas fa-copy" aria-hidden="true"></i> Kopjo</button>
     </div>`;
     openModal(html);
@@ -13045,7 +13116,7 @@ function getClientOfDay() {
 function showClientOfDay() {
     const cod = getClientOfDay();
     if (!cod) { showToast('Asnjë klient sot'); return; }
-    openModal(`<div style="text-align:center;padding:20px;"><i class="fas fa-crown" style="font-size:3rem;color:#f1c40f;" aria-hidden="true"></i><h2 style="margin:10px 0;">Klienti i Ditës</h2><h3 style="color:var(--primary);">${cod.name}</h3><p style="font-size:1.5rem;font-weight:700;">${cod.total || 0} ден</p><button type="button" class="btn btn-primary" onclick="openClient360('${cod.id}');closeModal();"><i class="fas fa-user" aria-hidden="true"></i> Shiko profilin</button></div>`);
+    openModal(`<div style="text-align:center;padding:20px;"><i class="fas fa-crown" style="font-size:3rem;color:#f1c40f;" aria-hidden="true"></i><h2 style="margin:10px 0;">Klienti i Ditës</h2><h3 style="color:var(--primary);">${cod.name}</h3><p style="font-size:1.5rem;font-weight:700;">${cod.total || 0} ден</p><button type="button" class="btn btn-primary" onclick="openClient360('${_oa(cod.id)}');closeModal();"><i class="fas fa-user" aria-hidden="true"></i> Shiko profilin</button></div>`);
 }
 
 // FIX-10: Comparison Chart
@@ -13217,7 +13288,10 @@ function toggleFABMenu() {
     const btn = fab.querySelector('.fab-button');
     if (menu) {
         menu.classList.toggle('active');
-        if (btn) btn.innerHTML = menu.classList.contains('active') ? '<i class="fas fa-times" aria-hidden="true"></i>' : '<i class="fas fa-plus" aria-hidden="true"></i>';
+        const isOpen = menu.classList.contains('active');
+        if (btn) btn.innerHTML = isOpen ? '<i class="fas fa-times" aria-hidden="true"></i>' : '<i class="fas fa-plus" aria-hidden="true"></i>';
+        // A.8: aria-expanded sync
+        if (btn) btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
     }
 }
 
@@ -13636,7 +13710,7 @@ function showQuickSaleButtons() {
 
     let html = '<div style="display:flex;flex-wrap:wrap;gap:8px;">';
     top3.forEach(p => {
-        html += `<button type="button" class="btn btn-primary" style="flex:1;min-width:100px;" onclick="openQuickSaleForProduct('${p.id}')">
+        html += `<button type="button" class="btn btn-primary" style="flex:1;min-width:100px;" onclick="openQuickSaleForProduct('${_oa(p.id)}')">
             <i class="fas fa-bolt" aria-hidden="true"></i><br>
             <strong>${p.name}</strong><br>
             <small>${p.sellPrice} ден</small>
@@ -13804,7 +13878,7 @@ function openClientNotesModal(clientId) {
     let html = `<h3><i class="fas fa-sticky-note" aria-hidden="true"></i> Notat për ${client.name}</h3>`;
     html += `<div class="form-group" style="display:flex;gap:8px;">
         <textarea id="client-note-text" placeholder="Shkruaj një shënim..." rows="2" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;resize:none;"></textarea>
-        <button type="button" class="btn btn-primary" onclick="addClientNote('${clientId}')" style="align-self:flex-end;"><i class="fas fa-plus" aria-hidden="true"></i> Shto</button>
+        <button type="button" class="btn btn-primary" onclick="addClientNote('${_oa(clientId)}')" style="align-self:flex-end;"><i class="fas fa-plus" aria-hidden="true"></i> Shto</button>
     </div>`;
 
     if (notes.length === 0) {
@@ -13815,7 +13889,7 @@ function openClientNotesModal(clientId) {
             html += `<div style="background:var(--bg);padding:10px 12px;border-radius:8px;border-left:3px solid var(--primary);">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
                     <small style="color:var(--text-secondary);">${n.date}</small>
-                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteClientNote('${n.id}','${clientId}')" style="padding:2px 6px;" aria-label="Delete client note"><i class="fas fa-trash" aria-hidden="true"></i></button>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteClientNote('${_oa(n.id)}','${_oa(clientId)}')" style="padding:2px 6px;" aria-label="Delete client note"><i class="fas fa-trash" aria-hidden="true"></i></button>
                 </div>
                 <div>${n.text}</div>
             </div>`;
@@ -14028,7 +14102,7 @@ function showQuickPaymentDashboard() {
             <td style="padding:10px;color:var(--danger);font-weight:700;">${c.debt} den</td>
             <td style="padding:10px;">${c.phone || '-'}</td>
             <td style="padding:10px;">
-                <button type="button" onclick="openQuickCollectModal('${c.id}')" style="background:var(--primary);color:white;border:none;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:0.85rem;">Merr Pagese</button>
+                <button type="button" onclick="openQuickCollectModal('${_oa(c.id)}')" style="background:var(--primary);color:white;border:none;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:0.85rem;">Merr Pagese</button>
             </td>
         </tr>`).join('');
 
@@ -14081,7 +14155,7 @@ function processQuickCollect(clientId) {
     showToast(`Pagesa e ${amount} den u regjistrua per ${client.name}!`, 'success');
 
     // Ask to send thank you
-    const sendWa = client.phone ? `<br><br><button type="button" onclick="sendThankYouWhatsApp('${client.id}', ${amount})" style="background:var(--success);color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;margin-top:8px;">Dergo Faleminderit WhatsApp</button>` : '';
+    const sendWa = client.phone ? `<br><br><button type="button" onclick="sendThankYouWhatsApp('${_oa(client.id)}', ${amount})" style="background:var(--success);color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;margin-top:8px;">Dergo Faleminderit WhatsApp</button>` : '';
     openModal('Pagesa u Regjistrua', `<div style="text-align:center;padding:1rem;"><span style="font-size:2rem;">✓</span><p style="font-size:1.1rem;margin-top:0.5rem;">${client.name} pagoi <strong>${amount} den</strong>.</p><p>Borxh mbetur: <strong style="color:${client.debt>0?'var(--danger)':'var(--success)'};">${client.debt} den</strong></p>${sendWa}</div>`);
 }
 
@@ -18003,7 +18077,7 @@ function _showBackupBanner(days) {
     banner.innerHTML = `
         <span>⚠️ ${msg}</span>
         <div style="display:flex;gap:10px;align-items:center;">
-            <button type="button" onclick="_quickBackupFromBanner()" style="background:#fff;color:#e65100;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;">Backup tani</button>
+            <button type="button" onclick="_quickBackupFromBanner()" style="background:var(--bg-primary,#fff);color:#e65100;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;">Backup tani</button>
             <button type="button" onclick="this.closest('#backup-reminder-banner').remove()" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.6);padding:6px 10px;border-radius:6px;cursor:pointer;font-size:13px;">✕</button>
         </div>`;
     document.body.prepend(banner);
@@ -18257,8 +18331,7 @@ function showExportOptions() {
         { key: 'activities', label: 'Aktiviteti',   icon: '📊' }
     ];
     const btns = tabs.map(t => `
-        <button type="button" onclick="exportTabData('${t.key}')" style="background:#f5f5f5;color:#333;border:1px solid #e0e0e0;padding:14px 12px;border-radius:10px;cursor:pointer;text-align:center;font-size:13px;transition:background 0.2s;"
-            onmouseover="this.style.background='#e3f2fd'" onmouseout="this.style.background='#f5f5f5'">
+        <button type="button" class="btn-secondary" onclick="exportTabData('${_oa(t.key)}')" style="padding:14px 12px;border-radius:10px;cursor:pointer;text-align:center;font-size:13px;">
             <div style="font-size:22px;margin-bottom:4px;">${t.icon}</div>
             <div style="font-weight:600;">${t.label}</div>
         </button>`).join('');
@@ -18575,8 +18648,8 @@ function showTrashBin() {
             <td style="padding:8px;">${deletedDate}</td>
             <td style="padding:8px;"><span style="color:${daysLeft < 7 ? 'var(--danger)' : '#888'};">${daysLeft} ditë</span></td>
             <td style="padding:8px;">
-                <button type="button" onclick="restoreFromTrash('${t.id}')" class="btn btn-sm btn-success" title="Rikthe" aria-label="Rikthe"><i class="fas fa-undo" aria-hidden="true"></i></button>
-                <button type="button" onclick="permanentDeleteFromTrash('${t.id}')" class="btn btn-sm btn-danger" title="Fshi përgjithmonë" aria-label="Fshi përgjithmonë"><i class="fas fa-times" aria-hidden="true"></i></button>
+                <button type="button" onclick="restoreFromTrash('${_oa(t.id)}')" class="btn btn-sm btn-success" title="Rikthe" aria-label="Rikthe"><i class="fas fa-undo" aria-hidden="true"></i></button>
+                <button type="button" onclick="permanentDeleteFromTrash('${_oa(t.id)}')" class="btn btn-sm btn-danger" title="Fshi përgjithmonë" aria-label="Fshi përgjithmonë"><i class="fas fa-times" aria-hidden="true"></i></button>
             </td>
         </tr>`;
     }).join('');

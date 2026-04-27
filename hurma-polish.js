@@ -2344,4 +2344,58 @@
 
     })();
 
+    // ============================================================
+    // BUTTON DOUBLE-CLICK GUARD (v112) — F+L
+    // ----------------------------------------------------
+    // Problem: many submit/save buttons trigger async work (saveState,
+    // network, modal close + re-render). A user double-tapping creates
+    // duplicate sales / payments / clients.
+    //
+    // Solution: capture-phase delegated listener on the document. When a
+    // button-like element fires a click, we mark it `.is-busy` for 700ms,
+    // which CSS already styles (cursor: progress, ignore pointer events
+    // via .is-busy in style.css). After 700ms we clean up automatically.
+    //
+    // Opt-out: add `data-no-guard` to any button that genuinely needs
+    // rapid-fire clicks (pagination, +/- counters). Toggle buttons
+    // (aria-pressed) are auto-skipped since their own state-flip is the
+    // double-click protection.
+    // ============================================================
+    (function dblClickGuard() {
+        if (window.__hurmaDblGuardAttached__) return;
+        window.__hurmaDblGuardAttached__ = true;
+
+        var BUSY_MS = 700;
+
+        function isClickable(el) {
+            if (!el || el.nodeType !== 1) return false;
+            if (el.tagName === 'BUTTON') return true;
+            if (el.getAttribute && el.getAttribute('role') === 'button') return true;
+            return false;
+        }
+
+        document.addEventListener('click', function (e) {
+            // Walk up to a button-like target (icons inside buttons are common)
+            var t = e.target;
+            while (t && t !== document && !isClickable(t)) t = t.parentNode;
+            if (!isClickable(t)) return;
+            if (t.hasAttribute('data-no-guard')) return;
+            if (t.hasAttribute('aria-pressed')) return; // toggles guard themselves
+            if (t.classList.contains('is-busy')) {
+                // Already in flight — swallow the duplicate click
+                e.stopImmediatePropagation();
+                e.preventDefault();
+                return;
+            }
+            t.classList.add('is-busy');
+            setTimeout(function () {
+                try { t.classList.remove('is-busy'); } catch (err) {}
+            }, BUSY_MS);
+        }, true); // capture so we run before the inline onclick
+
+        try {
+            console.log('%c[hurma-polish v3.4] dbl-click guard ON', 'color:#B8731A;');
+        } catch (e) {}
+    })();
+
 })();
