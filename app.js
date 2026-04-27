@@ -7655,10 +7655,46 @@ function calcStockDepletionDays(productId) {
 // ===================== FEATURE 12: KEYBOARD SHORTCUTS =====================
 function initKeyboardShortcuts() {
     document.addEventListener('keydown', function(e) {
+        // Q: ESC must work even from inside inputs/textareas — users
+        // press it to close a modal while still inside a form field.
+        if (e.key === 'Escape') {
+            // Try every overlay close in priority order. Each function
+            // is null-safe (already checks for the element existing).
+            try {
+                var anyClosed = false;
+                // Side panel (highest priority — usually opens over modal)
+                var sp = document.getElementById('side-panel');
+                if (sp && !sp.classList.contains('hidden')) {
+                    if (typeof closeSidePanel === 'function') {
+                        closeSidePanel(); anyClosed = true;
+                    }
+                }
+                // Invoice modal
+                var im = document.getElementById('invoice-modal');
+                if (!anyClosed && im && !im.classList.contains('hidden')) {
+                    if (typeof closeInvoiceModal === 'function') {
+                        closeInvoiceModal(); anyClosed = true;
+                    }
+                }
+                // Generic modal
+                var m = document.getElementById('modal');
+                if (!anyClosed && m && !m.classList.contains('hidden')) {
+                    if (typeof closeModal === 'function') {
+                        closeModal(); anyClosed = true;
+                    }
+                }
+                if (anyClosed) {
+                    e.preventDefault();
+                    return;
+                }
+            } catch (err) { console.warn('ESC handler:', err); }
+            // Fall through to other ESC consumers (search, palette, etc.)
+        }
+
         // Don't trigger shortcuts when typing in inputs
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
 
-        // Escape: close modal
+        // Escape: close modal (legacy fallback — kept for safety)
         if (e.key === 'Escape') {
             closeModal();
             return;
@@ -13538,7 +13574,7 @@ function showSleepingClients() {
                 <td style="color:var(--danger);font-weight:700;">${c.daysSince} ditë</td>
                 <td>${c.lastDate}</td>
                 <td>${c.totalBought} ден</td>
-                <td>${c.phone ? `<a href="${waLink}" target="_blank" class="btn btn-sm" style="background:#25D366;color:white;"><i class="fab fa-whatsapp" aria-hidden="true"></i></a>` : '-'}</td>
+                <td>${c.phone ? `<a href="${waLink}" target="_blank" rel="noopener noreferrer" class="btn btn-sm" style="background:#25D366;color:white;"><i class="fab fa-whatsapp" aria-hidden="true"></i></a>` : '-'}</td>
             </tr>`;
         });
         html += '</tbody></table></div>';
@@ -14055,7 +14091,7 @@ function showDebtRemindersModal() {
         const daysStr = daysSince !== null ? daysSince + ' dite' : 'Asnje aktivitet';
         const phone = (client.phone || '').replace(/\s+/g, '');
         const msg = encodeURIComponent(`Pershendetje ${client.name}, deshironim t'ju kujtojme per borxhin prej ${client.debt} den. Ju lutem kontaktoni ne per rregullim. Faleminderit!`);
-        const waLink = phone ? `<a href="https://wa.me/${phone}?text=${msg}" target="_blank" style="background:var(--success);color:white;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;text-decoration:none;font-size:0.8rem;">WhatsApp</a>` : '<span style="color:#aaa;font-size:0.8rem;">Pa nr.</span>';
+        const waLink = phone ? `<a href="https://wa.me/${phone}?text=${msg}" target="_blank" rel="noopener noreferrer" style="background:var(--success);color:white;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;text-decoration:none;font-size:0.8rem;">WhatsApp</a>` : '<span style="color:#aaa;font-size:0.8rem;">Pa nr.</span>';
         return `<tr>
             <td style="padding:8px;font-weight:600;">${client.name}</td>
             <td style="padding:8px;color:var(--danger);font-weight:700;">${client.debt} den</td>
@@ -16961,7 +16997,7 @@ function sendBackupToEmail() {
         <div style="text-align:center; padding:10px;">
             <p style="margin-bottom:12px;">Hap klientin e emailit dhe paste te dhenat manualisht.</p>
             <p style="color:#888; font-size:13px; margin-bottom:16px;">Madhesia e backup: <strong>${sizeKB} KB</strong></p>
-            <a href="${mailtoLink}" target="_blank"
+            <a href="${mailtoLink}" target="_blank" rel="noopener noreferrer"
                style="display:inline-block; background:#2196F3; color:#fff; padding:12px 24px; border-radius:8px; text-decoration:none; font-size:15px; margin-bottom:16px;">
                Hap Email Klientin
             </a>
@@ -22687,7 +22723,7 @@ function openDistShop360(shopId) {
     h += '<h2><i class="fas fa-store" aria-hidden="true"></i> ' + shop.name + '</h2>';
     h += '<div class="dist-shop-360-info">';
     if (shop.address) h += '<p><i class="fas fa-map-marker-alt" aria-hidden="true"></i> ' + shop.address + '</p>';
-    if (shop.phone) h += '<p><i class="fas fa-phone" aria-hidden="true"></i> ' + shop.phone + ' <a href="tel:' + shop.phone + '" class="dist-contact-icon"><i class="fas fa-phone-alt" aria-hidden="true"></i></a> <a href="https://wa.me/' + shop.phone.replace(/[^0-9]/g, '') + '" target="_blank" class="dist-contact-icon" style="color:#25d366;"><i class="fab fa-whatsapp" aria-hidden="true"></i></a></p>';
+    if (shop.phone) h += '<p><i class="fas fa-phone" aria-hidden="true"></i> ' + shop.phone + ' <a href="tel:' + shop.phone + '" class="dist-contact-icon"><i class="fas fa-phone-alt" aria-hidden="true"></i></a> <a href="https://wa.me/' + shop.phone.replace(/[^0-9]/g, '') + '" target="_blank" rel="noopener noreferrer" class="dist-contact-icon" style="color:#25d366;"><i class="fab fa-whatsapp" aria-hidden="true"></i></a></p>';
     if (shop.contact) h += '<p><i class="fas fa-user" aria-hidden="true"></i> ' + shop.contact + '</p>';
     if (shop.category) h += '<p><i class="fas fa-tag" aria-hidden="true"></i> ' + shop.category + '</p>';
     h += '</div></div>';
@@ -22816,7 +22852,7 @@ function openDistDailyRoute() {
             h += '<div class="dist-route-actions">';
             if (shop.phone) {
                 h += '<a href="tel:' + shop.phone + '" class="btn btn-sm"><i class="fas fa-phone" aria-hidden="true"></i></a> ';
-                h += '<a href="https://wa.me/' + shop.phone.replace(/[^0-9]/g, '') + '" target="_blank" class="btn btn-sm" style="background:#25d366;color:white;"><i class="fab fa-whatsapp" aria-hidden="true"></i></a>';
+                h += '<a href="https://wa.me/' + shop.phone.replace(/[^0-9]/g, '') + '" target="_blank" rel="noopener noreferrer" class="btn btn-sm" style="background:#25d366;color:white;"><i class="fab fa-whatsapp" aria-hidden="true"></i></a>';
             }
             h += '</div>';
             h += '</div>';
@@ -24040,7 +24076,7 @@ function openDistPODGallery(deliveryId) {
     h += '<div><strong>Faturë:</strong> ' + (del.invoiceNum || '-') + '</div>';
     h += '<div><strong>Data:</strong> ' + del.date + ' | <strong>Dyqani:</strong> ' + shop.name + '</div>';
     if (pod.gps && typeof pod.gps.lat === 'number') {
-        h += '<div style="margin-top:4px;"><strong>📍 GPS:</strong> <a href="' + distGPSMapsURL(pod.gps) + '" target="_blank" style="color:#2980b9;">' +
+        h += '<div style="margin-top:4px;"><strong>📍 GPS:</strong> <a href="' + distGPSMapsURL(pod.gps) + '" target="_blank" rel="noopener noreferrer" style="color:#2980b9;">' +
              pod.gps.lat.toFixed(5) + ', ' + pod.gps.lng.toFixed(5) + '</a>';
         if (pod.gps.accuracy) h += ' <small style="color:#888;">(±' + Math.round(pod.gps.accuracy) + 'm)</small>';
         h += '</div>';
