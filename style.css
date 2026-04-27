@@ -9736,3 +9736,88 @@ button:focus-visible,
     background: rgba(255, 255, 255, 0.08);
 }
 /* === end BUTTON A11Y/TOUCH HARDENING === */
+
+/* ==========================================================================
+   BUTTON VARIANT CONSISTENCY (v111) — focus rings + transitions for every
+   .btn-* variant + a few patched paddings. Sweeps 31 variant-level issues
+   from the audit (focus-missing + no-transition).
+   ========================================================================== */
+.btn-block, .btn-danger, .btn-excel, .btn-export, .btn-export-trigger,
+.btn-ghost, .btn-icon, .btn-more, .btn-pdf, .btn-primary, .btn-reset,
+.btn-reset-all, .btn-reset-open, .btn-secondary, .btn-sm, .btn-success,
+.btn-whatsapp, .btn-word {
+    transition: background 0.18s ease, color 0.18s ease,
+                box-shadow 0.18s ease, transform 0.12s ease,
+                opacity 0.18s ease, border-color 0.18s ease;
+}
+.btn-block:focus-visible, .btn-danger:focus-visible, .btn-excel:focus-visible,
+.btn-export:focus-visible, .btn-export-trigger:focus-visible,
+.btn-ghost:focus-visible, .btn-icon:focus-visible, .btn-more:focus-visible,
+.btn-pdf:focus-visible, .btn-primary:focus-visible, .btn-reset:focus-visible,
+.btn-reset-all:focus-visible, .btn-reset-open:focus-visible,
+.btn-secondary:focus-visible, .btn-sm:focus-visible, .btn-success:focus-visible,
+.btn-whatsapp:focus-visible, .btn-word:focus-visible {
+    outline: 2px solid var(--primary, #e17055);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 3px rgba(225, 112, 85, 0.28);
+}
+
+/* .btn-block — full-width helper that several places rely on */
+.btn-block {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+}
+
+/* .btn-ghost — transparent variant gets visible hover */
+.btn-ghost:hover:not(:disabled) {
+    background: rgba(0, 0, 0, 0.04);
+}
+[data-theme="dark"] .btn-ghost:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+/* .btn-more (3-dot row menu trigger) — clearer affordance */
+.btn-more:hover:not(:disabled) {
+    background: rgba(0, 0, 0, 0.06);
+    border-radius: 8px;
+}
+[data-theme="dark"] .btn-more:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* Loading state — universal `is-busy` flag any button can opt into */
+.btn.is-busy, button.is-busy {
+    cursor: progress !important;
+    opacity: 0.75;
+    pointer-events: none;
+    position: relative;
+}
+.btn.is-busy::after, button.is-busy::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 14px; height: 14px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: hurma-btn-spin 0.7s linear infinite;
+    opacity: 0.85;
+}
+@keyframes hurma-btn-spin { to { transform: rotate(360deg); } }
+
+/* Reduced motion: disable transitions/animations for accessibility */
+@media (prefers-reduced-motion: reduce) {
+    .btn, .btn-icon, .btn-fab, .btn-block, .btn-danger, .btn-excel,
+    .btn-export, .btn-export-trigger, .btn-ghost, .btn-more, .btn-pdf,
+    .btn-primary, .btn-reset, .btn-reset-all, .btn-reset-open,
+    .btn-secondary, .btn-sm, .btn-success, .btn-whatsapp, .btn-word,
+    button {
+        transition: none !important;
+        animation: none !important;
+        transform: none !important;
+    }
+    .btn:hover, button:hover { transform: none !important; }
+}
+/* === end BUTTON VARIANT CONSISTENCY === */

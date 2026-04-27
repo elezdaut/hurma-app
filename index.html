@@ -102,40 +102,40 @@
             </h2>
             <button type="button" class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Mbyll menynë"><i class="fas fa-times" aria-hidden="true"></i></button>
         </div>
-        <button type="button" class="sidebar-collapse-toggle" onclick="toggleSidebarCollapse()" aria-label="Kollapso sidebar" title="Kollapso/Hap sidebar"><i class="fas fa-chevron-left"></i></button>
+        <button type="button" class="sidebar-collapse-toggle" onclick="toggleSidebarCollapse()" aria-label="Kollapso sidebar" title="Kollapso/Hap sidebar"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
         <ul class="nav-menu">
             <li class="sidebar-divider"><span>Përmbledhje</span></li>
-            <li class="nav-item active" data-page="dashboard" data-label="Dashboard"><i class="fas fa-tachometer-alt"></i> <span data-i18n="dashboard">Dashboard</span></li>
+            <li class="nav-item active" data-page="dashboard" data-label="Dashboard"><i class="fas fa-tachometer-alt" aria-hidden="true"></i> <span data-i18n="dashboard">Dashboard</span></li>
 
             <li class="sidebar-divider"><span>Operacione</span></li>
-            <li class="nav-item" data-page="sales" data-label="Shitjet"><i class="fas fa-cash-register"></i> <span data-i18n="sales">Shitjet</span><span class="nav-badge hidden" id="badge-sales">0</span></li>
-            <li class="nav-item" data-page="stock" data-label="Stoku"><i class="fas fa-boxes-stacked"></i> <span data-i18n="stock">Stoku</span><span class="nav-badge hidden" id="badge-stock">0</span></li>
-            <li class="nav-item" data-page="clients" data-label="Klientët"><i class="fas fa-users"></i> <span data-i18n="clients">Klientët</span><span class="nav-badge hidden" id="badge-clients">0</span></li>
-            <li class="nav-item" data-page="orders" data-label="Porositë"><i class="fas fa-clipboard-list"></i> <span data-i18n="orders">Porositë</span><span class="nav-badge hidden" id="badge-orders">0</span></li>
-            <li class="nav-item" data-page="faton" data-label="Llogaria Fatoni"><i class="fas fa-handshake"></i> <span data-i18n="faton_account">Llogaria Fatoni</span><span class="nav-badge hidden" id="badge-faton">0</span></li>
-            <li class="nav-item" data-page="distribution" data-label="Shpërndarja"><i class="fas fa-truck"></i> <span>Shpërndarja</span><span class="nav-badge hidden" id="badge-distribution">0</span></li>
-            <li class="nav-item" data-page="returns" data-label="Kthimet"><i class="fas fa-undo"></i> <span data-i18n="returns">Kthimet</span><span class="nav-badge hidden" id="badge-returns">0</span></li>
+            <li class="nav-item" data-page="sales" data-label="Shitjet"><i class="fas fa-cash-register" aria-hidden="true"></i> <span data-i18n="sales">Shitjet</span><span class="nav-badge hidden" id="badge-sales">0</span></li>
+            <li class="nav-item" data-page="stock" data-label="Stoku"><i class="fas fa-boxes-stacked" aria-hidden="true"></i> <span data-i18n="stock">Stoku</span><span class="nav-badge hidden" id="badge-stock">0</span></li>
+            <li class="nav-item" data-page="clients" data-label="Klientët"><i class="fas fa-users" aria-hidden="true"></i> <span data-i18n="clients">Klientët</span><span class="nav-badge hidden" id="badge-clients">0</span></li>
+            <li class="nav-item" data-page="orders" data-label="Porositë"><i class="fas fa-clipboard-list" aria-hidden="true"></i> <span data-i18n="orders">Porositë</span><span class="nav-badge hidden" id="badge-orders">0</span></li>
+            <li class="nav-item" data-page="faton" data-label="Llogaria Fatoni"><i class="fas fa-handshake" aria-hidden="true"></i> <span data-i18n="faton_account">Llogaria Fatoni</span><span class="nav-badge hidden" id="badge-faton">0</span></li>
+            <li class="nav-item" data-page="distribution" data-label="Shpërndarja"><i class="fas fa-truck" aria-hidden="true"></i> <span>Shpërndarja</span><span class="nav-badge hidden" id="badge-distribution">0</span></li>
+            <li class="nav-item" data-page="returns" data-label="Kthimet"><i class="fas fa-undo" aria-hidden="true"></i> <span data-i18n="returns">Kthimet</span><span class="nav-badge hidden" id="badge-returns">0</span></li>
 
             <li class="sidebar-divider"><span>Financa</span></li>
-            <li class="nav-item" data-page="balance" data-label="Bilanci"><i class="fas fa-balance-scale"></i> <span data-i18n="balance">Bilanci</span></li>
-            <li class="nav-item" data-page="cashDrawer" data-label="Arka Ditore"><i class="fas fa-cash-register"></i> <span data-i18n="cash_drawer">Arka Ditore</span></li>
-            <li class="nav-item" data-page="invoices" data-label="Faturat"><i class="fas fa-file-invoice-dollar"></i> <span>Faturat</span><span class="nav-badge hidden" id="badge-invoices">0</span></li>
+            <li class="nav-item" data-page="balance" data-label="Bilanci"><i class="fas fa-balance-scale" aria-hidden="true"></i> <span data-i18n="balance">Bilanci</span></li>
+            <li class="nav-item" data-page="cashDrawer" data-label="Arka Ditore"><i class="fas fa-cash-register" aria-hidden="true"></i> <span data-i18n="cash_drawer">Arka Ditore</span></li>
+            <li class="nav-item" data-page="invoices" data-label="Faturat"><i class="fas fa-file-invoice-dollar" aria-hidden="true"></i> <span>Faturat</span><span class="nav-badge hidden" id="badge-invoices">0</span></li>
 
             <li class="sidebar-divider"><span>Analiza</span></li>
-            <li class="nav-item" data-page="reports" data-label="Raporte"><i class="fas fa-chart-bar"></i> <span data-i18n="reports">Raporte</span></li>
-            <li class="nav-item" data-page="trends" data-label="Trende"><i class="fas fa-chart-line"></i> <span data-i18n="trends">Trende</span></li>
-            <li class="nav-item" data-page="analytics" data-label="Analitika"><i class="fas fa-chart-area"></i> <span>Analitika</span><span class="nav-badge hidden" id="badge-analytics">0</span></li>
-            <li class="nav-item" data-page="targets" data-label="Qëllime"><i class="fas fa-bullseye"></i> <span data-i18n="targets">Qëllime</span></li>
+            <li class="nav-item" data-page="reports" data-label="Raporte"><i class="fas fa-chart-bar" aria-hidden="true"></i> <span data-i18n="reports">Raporte</span></li>
+            <li class="nav-item" data-page="trends" data-label="Trende"><i class="fas fa-chart-line" aria-hidden="true"></i> <span data-i18n="trends">Trende</span></li>
+            <li class="nav-item" data-page="analytics" data-label="Analitika"><i class="fas fa-chart-area" aria-hidden="true"></i> <span>Analitika</span><span class="nav-badge hidden" id="badge-analytics">0</span></li>
+            <li class="nav-item" data-page="targets" data-label="Qëllime"><i class="fas fa-bullseye" aria-hidden="true"></i> <span data-i18n="targets">Qëllime</span></li>
 
             <li class="sidebar-divider"><span>Vegla</span></li>
-            <li class="nav-item" data-page="contacts" data-label="Kontaktet"><i class="fas fa-address-book"></i> <span data-i18n="contacts">Kontaktet</span></li>
-            <li class="nav-item" data-page="notes" data-label="Shënime"><i class="fas fa-sticky-note"></i> <span data-i18n="notes">Shënime</span></li>
-            <li class="nav-item" data-page="calculator" data-label="Kalkulatori"><i class="fas fa-calculator"></i> <span data-i18n="calculator">Kalkulatori</span></li>
-            <li class="nav-item" data-page="activity" data-label="Log Aktivitetesh"><i class="fas fa-history"></i> <span data-i18n="activity_log">Log Aktivitetesh</span></li>
+            <li class="nav-item" data-page="contacts" data-label="Kontaktet"><i class="fas fa-address-book" aria-hidden="true"></i> <span data-i18n="contacts">Kontaktet</span></li>
+            <li class="nav-item" data-page="notes" data-label="Shënime"><i class="fas fa-sticky-note" aria-hidden="true"></i> <span data-i18n="notes">Shënime</span></li>
+            <li class="nav-item" data-page="calculator" data-label="Kalkulatori"><i class="fas fa-calculator" aria-hidden="true"></i> <span data-i18n="calculator">Kalkulatori</span></li>
+            <li class="nav-item" data-page="activity" data-label="Log Aktivitetesh"><i class="fas fa-history" aria-hidden="true"></i> <span data-i18n="activity_log">Log Aktivitetesh</span></li>
 
             <li class="sidebar-divider"><span>Asistent</span></li>
-            <li class="nav-item ai-nav-item" data-page="ai" data-label="Hurma AI"><i class="fas fa-wand-magic-sparkles"></i> <span>Hurma AI</span><span class="ai-badge-new">NEW</span></li>
-            <li class="nav-item" data-page="settings" data-label="Cilësimet"><i class="fas fa-cog"></i> <span data-i18n="settings">Cilësimet</span></li>
+            <li class="nav-item ai-nav-item" data-page="ai" data-label="Hurma AI"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i> <span>Hurma AI</span><span class="ai-badge-new">NEW</span></li>
+            <li class="nav-item" data-page="settings" data-label="Cilësimet"><i class="fas fa-cog" aria-hidden="true"></i> <span data-i18n="settings">Cilësimet</span></li>
         </ul>
     </nav>
 
@@ -177,10 +177,10 @@
             </div>
             <!-- Sync Status Bar -->
             <div class="sync-status-bar" id="sync-status-bar">
-                <span class="sync-item" title="Të dhënat"><i class="fas fa-database"></i> <span id="sync-data-status">OK ✓</span></span>
-                <span class="sync-item" title="Backup"><i class="fas fa-cloud"></i> <span id="sync-backup-status">--</span></span>
-                <span class="sync-item" title="Stoku"><i class="fas fa-boxes-stacked"></i> <span id="sync-stock-count">0</span></span>
-                <span class="sync-item" title="Borxhe"><i class="fas fa-exclamation-triangle"></i> <span id="sync-debt-count">0</span></span>
+                <span class="sync-item" title="Të dhënat"><i class="fas fa-database" aria-hidden="true"></i> <span id="sync-data-status">OK ✓</span></span>
+                <span class="sync-item" title="Backup"><i class="fas fa-cloud" aria-hidden="true"></i> <span id="sync-backup-status">--</span></span>
+                <span class="sync-item" title="Stoku"><i class="fas fa-boxes-stacked" aria-hidden="true"></i> <span id="sync-stock-count">0</span></span>
+                <span class="sync-item" title="Borxhe"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i> <span id="sync-debt-count">0</span></span>
             </div>
         </header>
 
@@ -194,34 +194,34 @@
         <!-- Dashboard Page -->
         <section id="page-dashboard" class="page active">
             <div class="export-buttons">
-                <button type="button" class="btn btn-export btn-excel" onclick="exportDashboard('excel')"><i class="fas fa-file-excel"></i> Excel</button>
-                <button type="button" class="btn btn-export btn-pdf" onclick="exportDashboard('pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
-                <button type="button" class="btn btn-export btn-word" onclick="exportDashboard('word')"><i class="fas fa-file-word"></i> Word</button>
+                <button type="button" class="btn btn-export btn-excel" onclick="exportDashboard('excel')"><i class="fas fa-file-excel" aria-hidden="true"></i> Excel</button>
+                <button type="button" class="btn btn-export btn-pdf" onclick="exportDashboard('pdf')"><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</button>
+                <button type="button" class="btn btn-export btn-word" onclick="exportDashboard('word')"><i class="fas fa-file-word" aria-hidden="true"></i> Word</button>
             </div>
             <div class="stats-grid">
                 <div class="stat-card">
-                    <i class="fas fa-money-bill-wave"></i>
+                    <i class="fas fa-money-bill-wave" aria-hidden="true"></i>
                     <div>
                         <h3 data-i18n="today_profit">Fitimi i sotëm</h3>
                         <p id="today-profit">0 ден</p>
                     </div>
                 </div>
                 <div class="stat-card">
-                    <i class="fas fa-shopping-cart"></i>
+                    <i class="fas fa-shopping-cart" aria-hidden="true"></i>
                     <div>
                         <h3 data-i18n="today_sales">Shitjet e sotme</h3>
                         <p id="today-sales">0</p>
                     </div>
                 </div>
                 <div class="stat-card">
-                    <i class="fas fa-user"></i>
+                    <i class="fas fa-user" aria-hidden="true"></i>
                     <div>
                         <h3 data-i18n="your_share">Pjesa jote</h3>
                         <p id="your-share">0 ден</p>
                     </div>
                 </div>
                 <div class="stat-card">
-                    <i class="fas fa-user-friends"></i>
+                    <i class="fas fa-user-friends" aria-hidden="true"></i>
                     <div>
                         <h3 data-i18n="orhan_share">Pjesa e Orhanit</h3>
                         <p id="orhan-share">0 ден</p>
@@ -231,72 +231,72 @@
             <div id="quick-actions" class="quick-actions" style="margin-bottom:20px;display:flex;flex-wrap:wrap;gap:10px;">
             </div>
             <div class="faton-btn-row" style="margin-top:10px;">
-                <button type="button" class="btn btn-warning" onclick="showClientOfDay()"><i class="fas fa-crown"></i> Klienti i Ditës</button>
-                <button type="button" class="btn btn-info" onclick="showComparisonChart()"><i class="fas fa-chart-bar"></i> Grafik Krahasues</button>
-                <button type="button" class="btn btn-secondary" onclick="openGlobalTimeline()"><i class="fas fa-stream"></i> Timeline</button>
-                <button type="button" class="btn btn-secondary" onclick="generateDailyReport()"><i class="fas fa-file-alt"></i> Raport Ditor</button>
+                <button type="button" class="btn btn-warning" onclick="showClientOfDay()"><i class="fas fa-crown" aria-hidden="true"></i> Klienti i Ditës</button>
+                <button type="button" class="btn btn-info" onclick="showComparisonChart()"><i class="fas fa-chart-bar" aria-hidden="true"></i> Grafik Krahasues</button>
+                <button type="button" class="btn btn-secondary" onclick="openGlobalTimeline()"><i class="fas fa-stream" aria-hidden="true"></i> Timeline</button>
+                <button type="button" class="btn btn-secondary" onclick="generateDailyReport()"><i class="fas fa-file-alt" aria-hidden="true"></i> Raport Ditor</button>
             </div>
             <div class="faton-btn-row" style="margin-top:8px;">
-                <button type="button" class="btn btn-success" onclick="showTopWeekProducts()"><i class="fas fa-fire"></i> Top 5 Javes</button>
-                <button type="button" class="btn btn-primary" onclick="showPartnerProfitChart()"><i class="fas fa-chart-pie"></i> Elez vs Orhan</button>
-                <button type="button" class="btn btn-danger" onclick="showSleepingClients()"><i class="fas fa-bed"></i> Kliente te Fjetur</button>
-                <button type="button" class="btn btn-info" onclick="showTodayPaymentsSummary()"><i class="fas fa-cash-register"></i> Pagesat Sot</button>
+                <button type="button" class="btn btn-success" onclick="showTopWeekProducts()"><i class="fas fa-fire" aria-hidden="true"></i> Top 5 Javes</button>
+                <button type="button" class="btn btn-primary" onclick="showPartnerProfitChart()"><i class="fas fa-chart-pie" aria-hidden="true"></i> Elez vs Orhan</button>
+                <button type="button" class="btn btn-danger" onclick="showSleepingClients()"><i class="fas fa-bed" aria-hidden="true"></i> Kliente te Fjetur</button>
+                <button type="button" class="btn btn-info" onclick="showTodayPaymentsSummary()"><i class="fas fa-cash-register" aria-hidden="true"></i> Pagesat Sot</button>
             </div>
             <div class="faton-btn-row" style="margin-top:8px;">
-                <button type="button" class="btn btn-warning" onclick="openDailyTargetModal()"><i class="fas fa-bullseye"></i> Target Ditor</button>
-                <button type="button" class="btn btn-info" onclick="showWeeklyComparison()"><i class="fas fa-exchange-alt"></i> Kjo vs Java Kaluar</button>
-                <button type="button" class="btn btn-success" onclick="showQuickPaymentDashboard()"><i class="fas fa-hand-holding-usd"></i> Merr Pagese</button>
-                <button type="button" class="btn btn-secondary" onclick="sendDailyReportToOrhan()"><i class="fab fa-whatsapp"></i> Raport per Orhan</button>
+                <button type="button" class="btn btn-warning" onclick="openDailyTargetModal()"><i class="fas fa-bullseye" aria-hidden="true"></i> Target Ditor</button>
+                <button type="button" class="btn btn-info" onclick="showWeeklyComparison()"><i class="fas fa-exchange-alt" aria-hidden="true"></i> Kjo vs Java Kaluar</button>
+                <button type="button" class="btn btn-success" onclick="showQuickPaymentDashboard()"><i class="fas fa-hand-holding-usd" aria-hidden="true"></i> Merr Pagese</button>
+                <button type="button" class="btn btn-secondary" onclick="sendDailyReportToOrhan()"><i class="fab fa-whatsapp" aria-hidden="true"></i> Raport per Orhan</button>
             </div>
             <div class="faton-btn-row" style="margin-top:8px;">
-                <button type="button" class="btn btn-primary" onclick="showPaymentCalendar()"><i class="fas fa-calendar-alt"></i> Kalendar Pagesash</button>
-                <button type="button" class="btn btn-warning" onclick="showMostProfitableProduct()"><i class="fas fa-gem"></i> Produkti Top</button>
-                <button type="button" class="btn btn-info" onclick="showWeeklyComparisonChart()"><i class="fas fa-chart-line"></i> Grafik Javor</button>
-                <button type="button" class="btn btn-danger" onclick="showDebtRemindersModal()"><i class="fas fa-bell"></i> Kujtesa Borxhit</button>
+                <button type="button" class="btn btn-primary" onclick="showPaymentCalendar()"><i class="fas fa-calendar-alt" aria-hidden="true"></i> Kalendar Pagesash</button>
+                <button type="button" class="btn btn-warning" onclick="showMostProfitableProduct()"><i class="fas fa-gem" aria-hidden="true"></i> Produkti Top</button>
+                <button type="button" class="btn btn-info" onclick="showWeeklyComparisonChart()"><i class="fas fa-chart-line" aria-hidden="true"></i> Grafik Javor</button>
+                <button type="button" class="btn btn-danger" onclick="showDebtRemindersModal()"><i class="fas fa-bell" aria-hidden="true"></i> Kujtesa Borxhit</button>
             </div>
             <div class="faton-btn-row" style="margin-top:8px;">
-                <button type="button" class="btn btn-success" onclick="showProductROI()"><i class="fas fa-percentage"></i> ROI Produktesh</button>
-                <button type="button" class="btn btn-primary" onclick="showProfitByHour()"><i class="fas fa-clock"></i> Fitimi per Ore</button>
-                <button type="button" class="btn btn-warning" onclick="showWeeklyForecast()"><i class="fas fa-crystal-ball"></i> Parashikim</button>
-                <button type="button" class="btn btn-info" onclick="showDebtByCity()"><i class="fas fa-map"></i> Borxhe Qytetesh</button>
+                <button type="button" class="btn btn-success" onclick="showProductROI()"><i class="fas fa-percentage" aria-hidden="true"></i> ROI Produktesh</button>
+                <button type="button" class="btn btn-primary" onclick="showProfitByHour()"><i class="fas fa-clock" aria-hidden="true"></i> Fitimi per Ore</button>
+                <button type="button" class="btn btn-warning" onclick="showWeeklyForecast()"><i class="fas fa-crystal-ball" aria-hidden="true"></i> Parashikim</button>
+                <button type="button" class="btn btn-info" onclick="showDebtByCity()"><i class="fas fa-map" aria-hidden="true"></i> Borxhe Qytetesh</button>
             </div>
             <div class="faton-btn-row" style="margin-top:8px;">
-                <button type="button" class="btn btn-success" onclick="sendGroupWhatsAppReport()"><i class="fab fa-whatsapp"></i> Raport Grup</button>
-                <button type="button" class="btn btn-primary" onclick="generateProductCatalog()"><i class="fas fa-book"></i> Katalog PDF</button>
-                <button type="button" class="btn btn-secondary" onclick="showFullAuditLog()"><i class="fas fa-clipboard-list"></i> Audit Log</button>
-                <button type="button" class="btn btn-warning" onclick="showCommissionReport()"><i class="fas fa-coins"></i> Komisione</button>
+                <button type="button" class="btn btn-success" onclick="sendGroupWhatsAppReport()"><i class="fab fa-whatsapp" aria-hidden="true"></i> Raport Grup</button>
+                <button type="button" class="btn btn-primary" onclick="generateProductCatalog()"><i class="fas fa-book" aria-hidden="true"></i> Katalog PDF</button>
+                <button type="button" class="btn btn-secondary" onclick="showFullAuditLog()"><i class="fas fa-clipboard-list" aria-hidden="true"></i> Audit Log</button>
+                <button type="button" class="btn btn-warning" onclick="showCommissionReport()"><i class="fas fa-coins" aria-hidden="true"></i> Komisione</button>
             </div>
             <div class="stats-grid">
                 <div class="stat-card">
-                    <i class="fas fa-box"></i>
+                    <i class="fas fa-box" aria-hidden="true"></i>
                     <div>
                         <h3 data-i18n="total_stock">Stoku total</h3>
                         <p id="total-stock">0</p>
                     </div>
                 </div>
                 <div class="stat-card">
-                    <i class="fas fa-hand-holding-usd"></i>
+                    <i class="fas fa-hand-holding-usd" aria-hidden="true"></i>
                     <div>
                         <h3 data-i18n="faton_cash_debt">Borxhi cash ndaj Fatonit</h3>
                         <p id="faton-debt">0 ден</p>
                     </div>
                 </div>
                 <div class="stat-card">
-                    <i class="fas fa-coins" style="color:var(--warning)"></i>
+                    <i class="fas fa-coins" style="color:var(--warning)" aria-hidden="true"></i>
                     <div>
                         <h3 data-i18n="profit_to_collect">Fitim për tu mbledhur</h3>
                         <p id="faton-profit-to-collect">0 ден</p>
                     </div>
                 </div>
                 <div class="stat-card">
-                    <i class="fas fa-chart-line"></i>
+                    <i class="fas fa-chart-line" aria-hidden="true"></i>
                     <div>
                         <h3 data-i18n="monthly_profit">Fitimi mujor</h3>
                         <p id="monthly-profit">0 ден</p>
                     </div>
                 </div>
                 <div class="stat-card">
-                    <i class="fas fa-trophy"></i>
+                    <i class="fas fa-trophy" aria-hidden="true"></i>
                     <div>
                         <h3 data-i18n="best_seller">Më e shitura</h3>
                         <p id="best-seller">-</p>
@@ -305,14 +305,14 @@
             </div>
             <div class="stats-grid">
                 <div class="stat-card">
-                    <i class="fas fa-money-bill-wave" style="color:var(--success)"></i>
+                    <i class="fas fa-money-bill-wave" style="color:var(--success)" aria-hidden="true"></i>
                     <div>
                         <h3 data-i18n="real_profit">Fitimi real</h3>
                         <p id="real-profit">0 ден</p>
                     </div>
                 </div>
                 <div class="stat-card">
-                    <i class="fas fa-file-alt" style="color:var(--warning)"></i>
+                    <i class="fas fa-file-alt" style="color:var(--warning)" aria-hidden="true"></i>
                     <div>
                         <h3 data-i18n="paper_profit">Fitimi në letër</h3>
                         <p id="paper-profit">0 ден</p>
@@ -322,28 +322,28 @@
             <div id="week-stats" class="stats-grid" style="margin-bottom:20px;"></div>
             <div class="stats-grid">
                 <div class="stat-card">
-                    <i class="fas fa-money-bill"></i>
+                    <i class="fas fa-money-bill" aria-hidden="true"></i>
                     <div>
                         <h3 data-i18n="total_cash">Totali cash (sot)</h3>
                         <p id="today-cash">0 ден</p>
                     </div>
                 </div>
                 <div class="stat-card">
-                    <i class="fas fa-file-invoice-dollar"></i>
+                    <i class="fas fa-file-invoice-dollar" aria-hidden="true"></i>
                     <div>
                         <h3 data-i18n="invoice_60">Faturë 60 ditë (sot)</h3>
                         <p id="today-invoice">0 ден</p>
                     </div>
                 </div>
                 <div class="stat-card">
-                    <i class="fas fa-clock"></i>
+                    <i class="fas fa-clock" aria-hidden="true"></i>
                     <div>
                         <h3 data-i18n="open_invoices">Fatura të hapura</h3>
                         <p id="open-invoices">0</p>
                     </div>
                 </div>
                 <div class="stat-card">
-                    <i class="fas fa-exclamation-circle" style="color:var(--danger)"></i>
+                    <i class="fas fa-exclamation-circle" style="color:var(--danger)" aria-hidden="true"></i>
                     <div>
                         <h3 data-i18n="overdue_invoices">Fatura të vonuara</h3>
                         <p id="overdue-invoices">0</p>
@@ -374,14 +374,14 @@
             <!-- Buton i vetëm Eksport me dropdown -->
             <div class="export-dropdown-wrap">
                 <button type="button" class="btn-export-trigger" onclick="_exportMenu(event, 'sales')">
-                    <i class="fas fa-download"></i> <span>Eksport</span> <i class="fas fa-chevron-down"></i>
+                    <i class="fas fa-download" aria-hidden="true"></i> <span>Eksport</span> <i class="fas fa-chevron-down" aria-hidden="true"></i>
                 </button>
             </div>
             <div id="sales-month-tabs" style="margin-bottom:15px;display:flex;flex-wrap:wrap;gap:8px;"></div>
             <!-- Mini-stat strip në vend të banner-it të madh portokalli -->
             <div class="page-stat-strip">
                 <div class="pss-item">
-                    <i class="fas fa-shopping-cart pss-icon"></i>
+                    <i class="fas fa-shopping-cart pss-icon" aria-hidden="true"></i>
                     <span class="pss-label">Shitje</span>
                     <span class="pss-value" id="sales-count-badge">0</span>
                 </div>
@@ -407,11 +407,11 @@
                 </div>
             </div>
             <div class="page-actions">
-                <button type="button" class="btn btn-primary" onclick="openSaleModal()"><i class="fas fa-plus"></i> <span data-i18n="new_sale">Shitje e re</span></button>
+                <button type="button" class="btn btn-primary" onclick="openSaleModal()"><i class="fas fa-plus" aria-hidden="true"></i> <span data-i18n="new_sale">Shitje e re</span></button>
                 <div class="search-box" id="sales-search-box">
-                    <i class="fas fa-search"></i>
+                    <i class="fas fa-search" aria-hidden="true"></i>
                     <input type="text" id="sales-search" placeholder="Kërko shitje..." data-i18n-placeholder="search_sales" oninput="filterSales();_sbToggle(this)">
-                    <button type="button" class="sb-clear" onclick="_sbClear('sales-search')" title="Pastro"><i class="fas fa-times"></i></button>
+                    <button type="button" class="sb-clear" onclick="_sbClear('sales-search')" title="Pastro" aria-label="Pastro"><i class="fas fa-times" aria-hidden="true"></i></button>
                 </div>
                 <div class="filter-group">
                     <input type="date" id="sales-date-from" onchange="filterSales()">
@@ -464,19 +464,19 @@
         <!-- Stock Page -->
         <section id="page-stock" class="page">
             <div class="export-buttons">
-                <button type="button" class="btn btn-export btn-excel" onclick="exportStock('excel')"><i class="fas fa-file-excel"></i> Excel</button>
-                <button type="button" class="btn btn-export btn-pdf" onclick="exportStock('pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
-                <button type="button" class="btn btn-export btn-word" onclick="exportStock('word')"><i class="fas fa-file-word"></i> Word</button>
+                <button type="button" class="btn btn-export btn-excel" onclick="exportStock('excel')"><i class="fas fa-file-excel" aria-hidden="true"></i> Excel</button>
+                <button type="button" class="btn btn-export btn-pdf" onclick="exportStock('pdf')"><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</button>
+                <button type="button" class="btn btn-export btn-word" onclick="exportStock('word')"><i class="fas fa-file-word" aria-hidden="true"></i> Word</button>
             </div>
             <div class="faton-button-rows" style="margin-bottom:10px;">
                 <div class="faton-btn-row">
-                    <button type="button" class="btn btn-info" onclick="openStockCountModal()"><i class="fas fa-clipboard-check"></i> Inventar Fizik</button>
-                    <button type="button" class="btn btn-warning" onclick="checkAutoOrders()"><i class="fas fa-magic"></i> Porosi Automatike</button>
-                    <button type="button" class="btn btn-success" onclick="openBarcodeScanner()"><i class="fas fa-barcode"></i> Skaner</button>
+                    <button type="button" class="btn btn-info" onclick="openStockCountModal()"><i class="fas fa-clipboard-check" aria-hidden="true"></i> Inventar Fizik</button>
+                    <button type="button" class="btn btn-warning" onclick="checkAutoOrders()"><i class="fas fa-magic" aria-hidden="true"></i> Porosi Automatike</button>
+                    <button type="button" class="btn btn-success" onclick="openBarcodeScanner()"><i class="fas fa-barcode" aria-hidden="true"></i> Skaner</button>
                 </div>
             </div>
             <div class="page-actions">
-                <button type="button" class="btn btn-primary" onclick="openStockModal()"><i class="fas fa-plus"></i> <span data-i18n="add_stock">Shto stok</span></button>
+                <button type="button" class="btn btn-primary" onclick="openStockModal()"><i class="fas fa-plus" aria-hidden="true"></i> <span data-i18n="add_stock">Shto stok</span></button>
             </div>
             <div class="stock-cards" id="stock-cards"></div>
             <h3 data-i18n="expiry_tracking" style="margin-top:20px;">Gjurmimi i skadencave</h3>
@@ -500,16 +500,16 @@
         <!-- Clients Page -->
         <section id="page-clients" class="page">
             <div class="export-buttons">
-                <button type="button" class="btn btn-export btn-excel" onclick="exportClients('excel')"><i class="fas fa-file-excel"></i> Excel</button>
-                <button type="button" class="btn btn-export btn-pdf" onclick="exportClients('pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
-                <button type="button" class="btn btn-export btn-word" onclick="exportClients('word')"><i class="fas fa-file-word"></i> Word</button>
+                <button type="button" class="btn btn-export btn-excel" onclick="exportClients('excel')"><i class="fas fa-file-excel" aria-hidden="true"></i> Excel</button>
+                <button type="button" class="btn btn-export btn-pdf" onclick="exportClients('pdf')"><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</button>
+                <button type="button" class="btn btn-export btn-word" onclick="exportClients('word')"><i class="fas fa-file-word" aria-hidden="true"></i> Word</button>
             </div>
             <div class="page-actions">
-                <button type="button" class="btn btn-primary" onclick="openClientModal()"><i class="fas fa-plus"></i> <span data-i18n="add_client">Shto klient</span></button>
+                <button type="button" class="btn btn-primary" onclick="openClientModal()"><i class="fas fa-plus" aria-hidden="true"></i> <span data-i18n="add_client">Shto klient</span></button>
                 <div class="search-box" id="clients-search-box">
-                    <i class="fas fa-search"></i>
+                    <i class="fas fa-search" aria-hidden="true"></i>
                     <input type="text" id="clients-search" placeholder="Kërko klient..." data-i18n-placeholder="search_client" oninput="filterClients();_sbToggle(this)">
-                    <button type="button" class="sb-clear" onclick="_sbClear('clients-search')" title="Pastro"><i class="fas fa-times"></i></button>
+                    <button type="button" class="sb-clear" onclick="_sbClear('clients-search')" title="Pastro" aria-label="Pastro"><i class="fas fa-times" aria-hidden="true"></i></button>
                 </div>
                 <select id="clients-category-filter" onchange="refreshClients()" style="padding:8px; border-radius:5px; border:1px solid #ddd;">
                     <option value="">All Categories</option>
@@ -521,27 +521,27 @@
             <!-- Client Payment Management Buttons -->
             <div class="faton-button-rows" style="margin-bottom:15px;">
                 <div class="faton-btn-row">
-                    <button type="button" class="btn btn-primary" onclick="openClientPaymentDashboard()"><i class="fas fa-tachometer-alt"></i> Dashboard Pagesave</button>
-                    <button type="button" class="btn btn-success" onclick="showClientRanking()"><i class="fas fa-trophy"></i> Renditja</button>
-                    <button type="button" class="btn btn-info" onclick="showClientComparison()"><i class="fas fa-chart-bar"></i> Krahasimi</button>
-                    <button type="button" class="btn btn-warning" onclick="showWeeklyPaymentReport()"><i class="fas fa-calendar-week"></i> Raporti Javor</button>
+                    <button type="button" class="btn btn-primary" onclick="openClientPaymentDashboard()"><i class="fas fa-tachometer-alt" aria-hidden="true"></i> Dashboard Pagesave</button>
+                    <button type="button" class="btn btn-success" onclick="showClientRanking()"><i class="fas fa-trophy" aria-hidden="true"></i> Renditja</button>
+                    <button type="button" class="btn btn-info" onclick="showClientComparison()"><i class="fas fa-chart-bar" aria-hidden="true"></i> Krahasimi</button>
+                    <button type="button" class="btn btn-warning" onclick="showWeeklyPaymentReport()"><i class="fas fa-calendar-week" aria-hidden="true"></i> Raporti Javor</button>
                 </div>
                 <div class="faton-btn-row">
-                    <button type="button" class="btn btn-info" onclick="showPaymentsByPeriod()"><i class="fas fa-calendar-alt"></i> Sipas Periudhës</button>
-                    <button type="button" class="btn btn-success" onclick="exportClientPaymentsCSV()"><i class="fas fa-file-csv"></i> Eksporto CSV</button>
-                    <button type="button" class="btn btn-secondary" onclick="checkClientDebtReminders()"><i class="fas fa-bell"></i> Kujtesa Borxheve</button>
+                    <button type="button" class="btn btn-info" onclick="showPaymentsByPeriod()"><i class="fas fa-calendar-alt" aria-hidden="true"></i> Sipas Periudhës</button>
+                    <button type="button" class="btn btn-success" onclick="exportClientPaymentsCSV()"><i class="fas fa-file-csv" aria-hidden="true"></i> Eksporto CSV</button>
+                    <button type="button" class="btn btn-secondary" onclick="checkClientDebtReminders()"><i class="fas fa-bell" aria-hidden="true"></i> Kujtesa Borxheve</button>
                 </div>
                 <div class="faton-btn-row">
-                    <button type="button" class="btn btn-danger" onclick="showSleepingClients()"><i class="fas fa-bed"></i> Kliente te Fjetur</button>
-                    <button type="button" class="btn btn-warning" onclick="showDebtRemindersModal()"><i class="fas fa-bell"></i> Borxhe +30 Dite</button>
-                    <button type="button" class="btn btn-primary" onclick="showPaymentCalendar()"><i class="fas fa-calendar-alt"></i> Kalendar Pagesash</button>
-                    <button type="button" class="btn btn-info" onclick="showClientDebtChart()"><i class="fas fa-chart-area"></i> Grafik Borxhesh</button>
+                    <button type="button" class="btn btn-danger" onclick="showSleepingClients()"><i class="fas fa-bed" aria-hidden="true"></i> Kliente te Fjetur</button>
+                    <button type="button" class="btn btn-warning" onclick="showDebtRemindersModal()"><i class="fas fa-bell" aria-hidden="true"></i> Borxhe +30 Dite</button>
+                    <button type="button" class="btn btn-primary" onclick="showPaymentCalendar()"><i class="fas fa-calendar-alt" aria-hidden="true"></i> Kalendar Pagesash</button>
+                    <button type="button" class="btn btn-info" onclick="showClientDebtChart()"><i class="fas fa-chart-area" aria-hidden="true"></i> Grafik Borxhesh</button>
                 </div>
                 <div class="faton-btn-row">
-                    <button type="button" class="btn btn-secondary" onclick="showExecutiveDashboard()"><i class="fas fa-briefcase"></i> Dashboard Ekzekutiv</button>
-                    <button type="button" class="btn btn-primary" onclick="showTaskBoard()"><i class="fas fa-list-check"></i> Task Board</button>
-                    <button type="button" class="btn btn-success" onclick="showVisitsBoard()"><i class="fas fa-route"></i> Vizita</button>
-                    <button type="button" class="btn btn-warning" onclick="showReminderCalendar()"><i class="fas fa-calendar-check"></i> Reminder Calendar</button>
+                    <button type="button" class="btn btn-secondary" onclick="showExecutiveDashboard()"><i class="fas fa-briefcase" aria-hidden="true"></i> Dashboard Ekzekutiv</button>
+                    <button type="button" class="btn btn-primary" onclick="showTaskBoard()"><i class="fas fa-list-check" aria-hidden="true"></i> Task Board</button>
+                    <button type="button" class="btn btn-success" onclick="showVisitsBoard()"><i class="fas fa-route" aria-hidden="true"></i> Vizita</button>
+                    <button type="button" class="btn btn-warning" onclick="showReminderCalendar()"><i class="fas fa-calendar-check" aria-hidden="true"></i> Reminder Calendar</button>
                 </div>
             </div>
             <div class="table-container">
@@ -568,12 +568,12 @@
         <!-- Orders Page -->
         <section id="page-orders" class="page">
             <div class="export-buttons">
-                <button type="button" class="btn btn-export btn-excel" onclick="exportOrders('excel')"><i class="fas fa-file-excel"></i> Excel</button>
-                <button type="button" class="btn btn-export btn-pdf" onclick="exportOrders('pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
-                <button type="button" class="btn btn-export btn-word" onclick="exportOrders('word')"><i class="fas fa-file-word"></i> Word</button>
+                <button type="button" class="btn btn-export btn-excel" onclick="exportOrders('excel')"><i class="fas fa-file-excel" aria-hidden="true"></i> Excel</button>
+                <button type="button" class="btn btn-export btn-pdf" onclick="exportOrders('pdf')"><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</button>
+                <button type="button" class="btn btn-export btn-word" onclick="exportOrders('word')"><i class="fas fa-file-word" aria-hidden="true"></i> Word</button>
             </div>
             <div class="page-actions">
-                <button type="button" class="btn btn-primary" onclick="openOrderModal()"><i class="fas fa-plus"></i> <span data-i18n="new_order">Porosi e re</span></button>
+                <button type="button" class="btn btn-primary" onclick="openOrderModal()"><i class="fas fa-plus" aria-hidden="true"></i> <span data-i18n="new_order">Porosi e re</span></button>
             </div>
             <div class="table-container">
                 <table id="orders-table">
@@ -595,13 +595,13 @@
         <!-- Faton Account Page -->
         <section id="page-faton" class="page">
             <div class="export-buttons">
-                <button type="button" class="btn btn-export btn-excel" onclick="exportFaton('excel')"><i class="fas fa-file-excel"></i> Excel</button>
-                <button type="button" class="btn btn-export btn-pdf" onclick="exportFaton('pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
-                <button type="button" class="btn btn-export btn-word" onclick="exportFaton('word')"><i class="fas fa-file-word"></i> Word</button>
+                <button type="button" class="btn btn-export btn-excel" onclick="exportFaton('excel')"><i class="fas fa-file-excel" aria-hidden="true"></i> Excel</button>
+                <button type="button" class="btn btn-export btn-pdf" onclick="exportFaton('pdf')"><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</button>
+                <button type="button" class="btn btn-export btn-word" onclick="exportFaton('word')"><i class="fas fa-file-word" aria-hidden="true"></i> Word</button>
             </div>
             <!-- TOTAL NET BALANCE - Feature 1 -->
             <div id="faton-net-balance" class="faton-net-balance">
-                <i class="fas fa-balance-scale"></i>
+                <i class="fas fa-balance-scale" aria-hidden="true"></i>
                 <div>
                     <h3>Borxhi TOTAL ndaj Fatonit</h3>
                     <p id="faton-net-total">0 den</p>
@@ -617,21 +617,21 @@
             <h3 style="margin-bottom:15px;" data-i18n="cash_sales_debt">Borxhi nga shitjet cash</h3>
             <div class="stats-grid">
                 <div class="stat-card" id="faton-card-purchased">
-                    <i class="fas fa-file-invoice-dollar"></i>
+                    <i class="fas fa-file-invoice-dollar" aria-hidden="true"></i>
                     <div>
                         <h3 data-i18n="total_purchased">Totali i blerjeve</h3>
                         <p id="faton-total-purchased">0 den</p>
                     </div>
                 </div>
                 <div class="stat-card" id="faton-card-paid">
-                    <i class="fas fa-money-check-alt"></i>
+                    <i class="fas fa-money-check-alt" aria-hidden="true"></i>
                     <div>
                         <h3 data-i18n="total_paid">Totali i paguar</h3>
                         <p id="faton-total-paid">0 den</p>
                     </div>
                 </div>
                 <div class="stat-card" id="faton-card-debt">
-                    <i class="fas fa-exclamation-triangle"></i>
+                    <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
                     <div>
                         <h3 data-i18n="faton_cash_debt">Borxhi cash ndaj Fatonit</h3>
                         <p id="faton-remaining">0 den</p>
@@ -643,21 +643,21 @@
             <h3 style="margin-top:25px;margin-bottom:15px;" data-i18n="faton_profit_summary">Permbledhja e fitimit nga Fatoni</h3>
             <div class="stats-grid">
                 <div class="stat-card">
-                    <i class="fas fa-hand-holding-usd"></i>
+                    <i class="fas fa-hand-holding-usd" aria-hidden="true"></i>
                     <div>
                         <h3 data-i18n="invoice_sales_profit">Fitimi nga shitjet me fature</h3>
                         <p id="faton-invoice-profit-total">0 den</p>
                     </div>
                 </div>
                 <div class="stat-card">
-                    <i class="fas fa-check-circle" style="color:var(--success)"></i>
+                    <i class="fas fa-check-circle" style="color:var(--success)" aria-hidden="true"></i>
                     <div>
                         <h3 data-i18n="faton_profit_collected">Fitimi i mbledhur nga Fatoni</h3>
                         <p id="faton-profit-collected">0 den</p>
                     </div>
                 </div>
                 <div class="stat-card" id="faton-card-profit-remaining">
-                    <i class="fas fa-hourglass-half" style="color:var(--warning)"></i>
+                    <i class="fas fa-hourglass-half" style="color:var(--warning)" aria-hidden="true"></i>
                     <div>
                         <h3 data-i18n="faton_profit_remaining">Fitimi i mbetur per tu mbledhur</h3>
                         <p id="faton-profit-remaining">0 den</p>
@@ -671,47 +671,47 @@
             <!-- Action buttons - Row 1: Main actions -->
             <!-- Action buttons - Row 1: Main actions -->
             <div class="page-actions" style="margin-top:15px;">
-                <button type="button" class="btn btn-primary" onclick="openFatonPaymentModal()"><i class="fas fa-plus"></i> Shto pagese</button>
-                <button type="button" class="btn btn-success" onclick="openProfitCollectionModal()"><i class="fas fa-hand-holding-usd"></i> Mblidh fitimin</button>
+                <button type="button" class="btn btn-primary" onclick="openFatonPaymentModal()"><i class="fas fa-plus" aria-hidden="true"></i> Shto pagese</button>
+                <button type="button" class="btn btn-success" onclick="openProfitCollectionModal()"><i class="fas fa-hand-holding-usd" aria-hidden="true"></i> Mblidh fitimin</button>
             </div>
             <!-- Action buttons - Row 2: Payment types -->
             <div class="page-actions" style="margin-top:8px;">
-                <button type="button" class="btn btn-secondary" onclick="openSplitPaymentModal()"><i class="fas fa-divide"></i> Pagese split</button>
-                <button type="button" class="btn btn-secondary" onclick="openDiscountPaymentModal()"><i class="fas fa-percentage"></i> Me zbritje</button>
-                <button type="button" class="btn btn-secondary" onclick="openReferencePaymentModal()"><i class="fas fa-link"></i> Me reference</button>
-                <button type="button" class="btn btn-secondary" onclick="quickPayLastAmount()"><i class="fas fa-bolt"></i> 1-klik</button>
-                <button type="button" class="btn btn-secondary" onclick="openScheduledPaymentModal()"><i class="fas fa-clock"></i> Programo</button>
+                <button type="button" class="btn btn-secondary" onclick="openSplitPaymentModal()"><i class="fas fa-divide" aria-hidden="true"></i> Pagese split</button>
+                <button type="button" class="btn btn-secondary" onclick="openDiscountPaymentModal()"><i class="fas fa-percentage" aria-hidden="true"></i> Me zbritje</button>
+                <button type="button" class="btn btn-secondary" onclick="openReferencePaymentModal()"><i class="fas fa-link" aria-hidden="true"></i> Me reference</button>
+                <button type="button" class="btn btn-secondary" onclick="quickPayLastAmount()"><i class="fas fa-bolt" aria-hidden="true"></i> 1-klik</button>
+                <button type="button" class="btn btn-secondary" onclick="openScheduledPaymentModal()"><i class="fas fa-clock" aria-hidden="true"></i> Programo</button>
             </div>
             <!-- Action buttons - Row 3: Reports & tools -->
             <div class="page-actions" style="margin-top:8px;">
-                <button type="button" class="btn btn-secondary" onclick="showReceiptHistory()"><i class="fas fa-receipt"></i> Faturat</button>
-                <button type="button" class="btn btn-secondary" onclick="openFatonMonthlyReport()"><i class="fas fa-chart-pie"></i> Raport mujor</button>
-                <button type="button" class="btn btn-secondary" onclick="showFatonComparison()"><i class="fas fa-balance-scale-left"></i> Krahasim</button>
-                <button type="button" class="btn btn-secondary" onclick="showBalancePerProduct()"><i class="fas fa-box"></i> Sipas produktit</button>
-                <button type="button" class="btn btn-secondary" onclick="showPaymentMethodChart()"><i class="fas fa-chart-pie"></i> Metoda</button>
+                <button type="button" class="btn btn-secondary" onclick="showReceiptHistory()"><i class="fas fa-receipt" aria-hidden="true"></i> Faturat</button>
+                <button type="button" class="btn btn-secondary" onclick="openFatonMonthlyReport()"><i class="fas fa-chart-pie" aria-hidden="true"></i> Raport mujor</button>
+                <button type="button" class="btn btn-secondary" onclick="showFatonComparison()"><i class="fas fa-balance-scale-left" aria-hidden="true"></i> Krahasim</button>
+                <button type="button" class="btn btn-secondary" onclick="showBalancePerProduct()"><i class="fas fa-box" aria-hidden="true"></i> Sipas produktit</button>
+                <button type="button" class="btn btn-secondary" onclick="showPaymentMethodChart()"><i class="fas fa-chart-pie" aria-hidden="true"></i> Metoda</button>
             </div>
             <!-- Action buttons - Row 4: Planning & analytics -->
             <div class="page-actions" style="margin-top:8px;">
-                <button type="button" class="btn btn-secondary" onclick="openFatonInstallmentModal()"><i class="fas fa-calendar-alt"></i> Keste</button>
-                <button type="button" class="btn btn-secondary" onclick="openPaymentCalendar()"><i class="fas fa-calendar"></i> Kalendar</button>
-                <button type="button" class="btn btn-secondary" onclick="showProfitPerPersonChart()"><i class="fas fa-chart-line"></i> Fitimi E vs O</button>
-                <button type="button" class="btn btn-secondary" onclick="showPaymentStats()"><i class="fas fa-chart-bar"></i> Statistika</button>
-                <button type="button" class="btn btn-secondary" onclick="openFatonDebtLimitModal()"><i class="fas fa-bell"></i> Limit</button>
+                <button type="button" class="btn btn-secondary" onclick="openFatonInstallmentModal()"><i class="fas fa-calendar-alt" aria-hidden="true"></i> Keste</button>
+                <button type="button" class="btn btn-secondary" onclick="openPaymentCalendar()"><i class="fas fa-calendar" aria-hidden="true"></i> Kalendar</button>
+                <button type="button" class="btn btn-secondary" onclick="showProfitPerPersonChart()"><i class="fas fa-chart-line" aria-hidden="true"></i> Fitimi E vs O</button>
+                <button type="button" class="btn btn-secondary" onclick="showPaymentStats()"><i class="fas fa-chart-bar" aria-hidden="true"></i> Statistika</button>
+                <button type="button" class="btn btn-secondary" onclick="openFatonDebtLimitModal()"><i class="fas fa-bell" aria-hidden="true"></i> Limit</button>
             </div>
             <!-- Action buttons - Row 5: Documents & export -->
             <div class="page-actions" style="margin-top:8px;">
-                <button type="button" class="btn btn-secondary" onclick="generatePaymentContract()"><i class="fas fa-file-contract"></i> Kontrate</button>
-                <button type="button" class="btn btn-secondary" onclick="exportFatonCSV()"><i class="fas fa-file-csv"></i> CSV</button>
-                <button type="button" class="btn btn-secondary" onclick="showPaymentAuditTrail()"><i class="fas fa-history"></i> Audit</button>
-                <button type="button" class="btn btn-secondary" onclick="openPaymentTemplateModal()"><i class="fas fa-copy"></i> Shabllone</button>
-                <button type="button" class="btn btn-secondary" onclick="openCurrencyModal()"><i class="fas fa-coins"></i> Valuta</button>
+                <button type="button" class="btn btn-secondary" onclick="generatePaymentContract()"><i class="fas fa-file-contract" aria-hidden="true"></i> Kontrate</button>
+                <button type="button" class="btn btn-secondary" onclick="exportFatonCSV()"><i class="fas fa-file-csv" aria-hidden="true"></i> CSV</button>
+                <button type="button" class="btn btn-secondary" onclick="showPaymentAuditTrail()"><i class="fas fa-history" aria-hidden="true"></i> Audit</button>
+                <button type="button" class="btn btn-secondary" onclick="openPaymentTemplateModal()"><i class="fas fa-copy" aria-hidden="true"></i> Shabllone</button>
+                <button type="button" class="btn btn-secondary" onclick="openCurrencyModal()"><i class="fas fa-coins" aria-hidden="true"></i> Valuta</button>
             </div>
 
             <!-- Installment plan display -->
             <div id="faton-installment-plan" style="margin-top:15px;"></div>
 
             <!-- Unified Timeline - Feature 6 -->
-            <h3 style="margin-top:25px;margin-bottom:10px;"><i class="fas fa-stream"></i> Historiku kronologjik</h3>
+            <h3 style="margin-top:25px;margin-bottom:10px;"><i class="fas fa-stream" aria-hidden="true"></i> Historiku kronologjik</h3>
             <div class="filter-group" style="margin-bottom:15px;">
                 <input type="date" id="faton-timeline-from" onchange="refreshFaton()">
                 <input type="date" id="faton-timeline-to" onchange="refreshFaton()">
@@ -721,7 +721,7 @@
                     <option value="payment">Pagesa</option>
                     <option value="profit_collection">Mbledhje fitimi</option>
                 </select>
-                <button type="button" class="btn btn-secondary" onclick="exportFatonReport()"><i class="fas fa-file-export"></i> Eksport per Fatonin</button>
+                <button type="button" class="btn btn-secondary" onclick="exportFatonReport()"><i class="fas fa-file-export" aria-hidden="true"></i> Eksport per Fatonin</button>
             </div>
             <div class="table-container">
                 <table id="faton-timeline-table">
@@ -758,31 +758,31 @@
         <!-- Reports Page -->
         <section id="page-reports" class="page">
             <div class="export-buttons">
-                <button type="button" class="btn btn-export btn-excel" onclick="exportReports('excel')"><i class="fas fa-file-excel"></i> Excel</button>
-                <button type="button" class="btn btn-export btn-pdf" onclick="exportReports('pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
-                <button type="button" class="btn btn-export btn-word" onclick="exportReports('word')"><i class="fas fa-file-word"></i> Word</button>
+                <button type="button" class="btn btn-export btn-excel" onclick="exportReports('excel')"><i class="fas fa-file-excel" aria-hidden="true"></i> Excel</button>
+                <button type="button" class="btn btn-export btn-pdf" onclick="exportReports('pdf')"><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</button>
+                <button type="button" class="btn btn-export btn-word" onclick="exportReports('word')"><i class="fas fa-file-word" aria-hidden="true"></i> Word</button>
             </div>
             <div class="faton-button-rows" style="margin-bottom:15px;">
                 <div class="faton-btn-row">
-                    <button type="button" class="btn btn-secondary" onclick="openMarketHistoryReportSelector()"><i class="fas fa-file-lines"></i> Historiku i Marketit</button>
-                    <button type="button" class="btn btn-primary" onclick="openReportsHub()"><i class="fas fa-th-large"></i> Qendra e Raporteve</button>
-                    <button type="button" class="btn btn-success" onclick="generateDailyReport()"><i class="fas fa-calendar-day"></i> Raport Ditor</button>
-                    <button type="button" class="btn btn-danger" onclick="generateMonthlyPDF()"><i class="fas fa-file-pdf"></i> Raport Mujor PDF</button>
+                    <button type="button" class="btn btn-secondary" onclick="openMarketHistoryReportSelector()"><i class="fas fa-file-lines" aria-hidden="true"></i> Historiku i Marketit</button>
+                    <button type="button" class="btn btn-primary" onclick="openReportsHub()"><i class="fas fa-th-large" aria-hidden="true"></i> Qendra e Raporteve</button>
+                    <button type="button" class="btn btn-success" onclick="generateDailyReport()"><i class="fas fa-calendar-day" aria-hidden="true"></i> Raport Ditor</button>
+                    <button type="button" class="btn btn-danger" onclick="generateMonthlyPDF()"><i class="fas fa-file-pdf" aria-hidden="true"></i> Raport Mujor PDF</button>
                 </div>
                 <div class="faton-btn-row">
-                    <button type="button" class="btn" style="background:#25D366;color:white;" onclick="generateWeeklyWhatsAppReport()"><i class="fab fa-whatsapp"></i> Raport WhatsApp</button>
-                    <button type="button" class="btn btn-info" onclick="showYearlyComparison()"><i class="fas fa-chart-line"></i> Krahasim Vjetor</button>
-                    <button type="button" class="btn btn-warning" onclick="showSalesPrediction()"><i class="fas fa-crystal-ball"></i> Parashikim</button>
+                    <button type="button" class="btn" style="background:#25D366;color:white;" onclick="generateWeeklyWhatsAppReport()"><i class="fab fa-whatsapp" aria-hidden="true"></i> Raport WhatsApp</button>
+                    <button type="button" class="btn btn-info" onclick="showYearlyComparison()"><i class="fas fa-chart-line" aria-hidden="true"></i> Krahasim Vjetor</button>
+                    <button type="button" class="btn btn-warning" onclick="showSalesPrediction()"><i class="fas fa-crystal-ball" aria-hidden="true"></i> Parashikim</button>
                 </div>
                 <div class="faton-btn-row">
-                    <button type="button" class="btn btn-success" onclick="showProfitableProducts()"><i class="fas fa-trophy"></i> Produkte Fitimprurëse</button>
-                    <button type="button" class="btn btn-info" onclick="showBestSalesHour()"><i class="fas fa-clock"></i> Ora e Shitjes</button>
-                    <button type="button" class="btn btn-secondary" onclick="showSalesSeason()"><i class="fas fa-calendar-alt"></i> Sezoni</button>
+                    <button type="button" class="btn btn-success" onclick="showProfitableProducts()"><i class="fas fa-trophy" aria-hidden="true"></i> Produkte Fitimprurëse</button>
+                    <button type="button" class="btn btn-info" onclick="showBestSalesHour()"><i class="fas fa-clock" aria-hidden="true"></i> Ora e Shitjes</button>
+                    <button type="button" class="btn btn-secondary" onclick="showSalesSeason()"><i class="fas fa-calendar-alt" aria-hidden="true"></i> Sezoni</button>
                 </div>
                 <div class="faton-btn-row">
-                    <button type="button" class="btn btn-danger" onclick="showClientMap()"><i class="fas fa-map-marker-alt"></i> Harta</button>
-                    <button type="button" class="btn btn-primary" onclick="showProfitByClient()"><i class="fas fa-users"></i> Fitimi/Klient</button>
-                    <button type="button" class="btn btn-secondary" onclick="masterExport()"><i class="fas fa-download"></i> Eksport Total</button>
+                    <button type="button" class="btn btn-danger" onclick="showClientMap()"><i class="fas fa-map-marker-alt" aria-hidden="true"></i> Harta</button>
+                    <button type="button" class="btn btn-primary" onclick="showProfitByClient()"><i class="fas fa-users" aria-hidden="true"></i> Fitimi/Klient</button>
+                    <button type="button" class="btn btn-secondary" onclick="masterExport()"><i class="fas fa-download" aria-hidden="true"></i> Eksport Total</button>
                 </div>
             </div>
             <div class="filter-group">
@@ -793,10 +793,10 @@
                 </select>
                 <input type="date" id="report-date-from" onchange="generateReport()">
                 <input type="date" id="report-date-to" onchange="generateReport()">
-                <button type="button" class="btn btn-secondary" onclick="exportCSV()"><i class="fas fa-file-csv"></i> CSV</button>
-                <button type="button" class="btn btn-secondary" onclick="exportPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
-                <button type="button" class="btn btn-secondary" onclick="printReport()"><i class="fas fa-print"></i> <span data-i18n="print">Printo</span></button>
-                <button type="button" class="btn btn-secondary" onclick="generateOrhanReport()"><i class="fas fa-user-friends"></i> <span data-i18n="orhan_report">Raport Orhani</span></button>
+                <button type="button" class="btn btn-secondary" onclick="exportCSV()"><i class="fas fa-file-csv" aria-hidden="true"></i> CSV</button>
+                <button type="button" class="btn btn-secondary" onclick="exportPDF()"><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</button>
+                <button type="button" class="btn btn-secondary" onclick="printReport()"><i class="fas fa-print" aria-hidden="true"></i> <span data-i18n="print">Printo</span></button>
+                <button type="button" class="btn btn-secondary" onclick="generateOrhanReport()"><i class="fas fa-user-friends" aria-hidden="true"></i> <span data-i18n="orhan_report">Raport Orhani</span></button>
             </div>
             <div class="stats-grid" id="report-stats"></div>
             <div class="charts-grid">
@@ -814,12 +814,12 @@
         <!-- Returns Page -->
         <section id="page-returns" class="page">
             <div class="export-buttons">
-                <button type="button" class="btn btn-export btn-excel" onclick="exportReturns('excel')"><i class="fas fa-file-excel"></i> Excel</button>
-                <button type="button" class="btn btn-export btn-pdf" onclick="exportReturns('pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
-                <button type="button" class="btn btn-export btn-word" onclick="exportReturns('word')"><i class="fas fa-file-word"></i> Word</button>
+                <button type="button" class="btn btn-export btn-excel" onclick="exportReturns('excel')"><i class="fas fa-file-excel" aria-hidden="true"></i> Excel</button>
+                <button type="button" class="btn btn-export btn-pdf" onclick="exportReturns('pdf')"><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</button>
+                <button type="button" class="btn btn-export btn-word" onclick="exportReturns('word')"><i class="fas fa-file-word" aria-hidden="true"></i> Word</button>
             </div>
             <div class="page-actions">
-                <button type="button" class="btn btn-primary" onclick="openReturnModal()"><i class="fas fa-plus"></i> <span data-i18n="new_return">Kthim i ri</span></button>
+                <button type="button" class="btn btn-primary" onclick="openReturnModal()"><i class="fas fa-plus" aria-hidden="true"></i> <span data-i18n="new_return">Kthim i ri</span></button>
             </div>
             <div class="table-container">
                 <table id="returns-table">
@@ -841,12 +841,12 @@
         <!-- Contacts Page -->
         <section id="page-contacts" class="page">
             <div class="export-buttons">
-                <button type="button" class="btn btn-export btn-excel" onclick="exportContacts('excel')"><i class="fas fa-file-excel"></i> Excel</button>
-                <button type="button" class="btn btn-export btn-pdf" onclick="exportContacts('pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
-                <button type="button" class="btn btn-export btn-word" onclick="exportContacts('word')"><i class="fas fa-file-word"></i> Word</button>
+                <button type="button" class="btn btn-export btn-excel" onclick="exportContacts('excel')"><i class="fas fa-file-excel" aria-hidden="true"></i> Excel</button>
+                <button type="button" class="btn btn-export btn-pdf" onclick="exportContacts('pdf')"><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</button>
+                <button type="button" class="btn btn-export btn-word" onclick="exportContacts('word')"><i class="fas fa-file-word" aria-hidden="true"></i> Word</button>
             </div>
             <div class="page-actions">
-                <button type="button" class="btn btn-primary" onclick="openContactModal()"><i class="fas fa-plus"></i> <span data-i18n="add_contact">Shto kontakt</span></button>
+                <button type="button" class="btn btn-primary" onclick="openContactModal()"><i class="fas fa-plus" aria-hidden="true"></i> <span data-i18n="add_contact">Shto kontakt</span></button>
             </div>
             <div class="contacts-grid" id="contacts-grid"></div>
         </section>
@@ -854,12 +854,12 @@
         <!-- Notes Page -->
         <section id="page-notes" class="page">
             <div class="export-buttons">
-                <button type="button" class="btn btn-export btn-excel" onclick="exportNotes('excel')"><i class="fas fa-file-excel"></i> Excel</button>
-                <button type="button" class="btn btn-export btn-pdf" onclick="exportNotes('pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
-                <button type="button" class="btn btn-export btn-word" onclick="exportNotes('word')"><i class="fas fa-file-word"></i> Word</button>
+                <button type="button" class="btn btn-export btn-excel" onclick="exportNotes('excel')"><i class="fas fa-file-excel" aria-hidden="true"></i> Excel</button>
+                <button type="button" class="btn btn-export btn-pdf" onclick="exportNotes('pdf')"><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</button>
+                <button type="button" class="btn btn-export btn-word" onclick="exportNotes('word')"><i class="fas fa-file-word" aria-hidden="true"></i> Word</button>
             </div>
             <div class="page-actions">
-                <button type="button" class="btn btn-primary" onclick="openNoteModal()"><i class="fas fa-plus"></i> <span data-i18n="add_note">Shto shënim</span></button>
+                <button type="button" class="btn btn-primary" onclick="openNoteModal()"><i class="fas fa-plus" aria-hidden="true"></i> <span data-i18n="add_note">Shto shënim</span></button>
             </div>
             <div class="notes-grid" id="notes-grid"></div>
         </section>
@@ -867,12 +867,12 @@
         <!-- Targets Page -->
         <section id="page-targets" class="page">
             <div class="export-buttons">
-                <button type="button" class="btn btn-export btn-excel" onclick="exportTargets('excel')"><i class="fas fa-file-excel"></i> Excel</button>
-                <button type="button" class="btn btn-export btn-pdf" onclick="exportTargets('pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
-                <button type="button" class="btn btn-export btn-word" onclick="exportTargets('word')"><i class="fas fa-file-word"></i> Word</button>
+                <button type="button" class="btn btn-export btn-excel" onclick="exportTargets('excel')"><i class="fas fa-file-excel" aria-hidden="true"></i> Excel</button>
+                <button type="button" class="btn btn-export btn-pdf" onclick="exportTargets('pdf')"><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</button>
+                <button type="button" class="btn btn-export btn-word" onclick="exportTargets('word')"><i class="fas fa-file-word" aria-hidden="true"></i> Word</button>
             </div>
             <div class="page-actions">
-                <button type="button" class="btn btn-primary" onclick="openTargetModal()"><i class="fas fa-plus"></i> <span data-i18n="add_target">Shto qëllim</span></button>
+                <button type="button" class="btn btn-primary" onclick="openTargetModal()"><i class="fas fa-plus" aria-hidden="true"></i> <span data-i18n="add_target">Shto qëllim</span></button>
             </div>
             <div class="targets-grid" id="targets-grid"></div>
         </section>
@@ -934,75 +934,75 @@
                 </div>
             <div class="faton-button-rows" style="margin:15px 0;">
                 <div class="faton-btn-row">
-                    <button type="button" class="btn btn-primary" onclick="autoBackupJSON()"><i class="fas fa-download"></i> Backup JSON</button>
-                    <button type="button" class="btn btn-warning" onclick="restoreFromBackup()"><i class="fas fa-upload"></i> Rikthe Backup</button>
-                    <button type="button" class="btn btn-info" onclick="openDashboardSettings()"><i class="fas fa-th-large"></i> Personalizo Dashboard</button>
-                    <button type="button" class="btn btn-success" onclick="openPWASettings()" title="Instalo si app, aktivizo njoftime"><i class="fas fa-mobile-alt"></i> PWA &amp; Njoftime</button>
+                    <button type="button" class="btn btn-primary" onclick="autoBackupJSON()"><i class="fas fa-download" aria-hidden="true"></i> Backup JSON</button>
+                    <button type="button" class="btn btn-warning" onclick="restoreFromBackup()"><i class="fas fa-upload" aria-hidden="true"></i> Rikthe Backup</button>
+                    <button type="button" class="btn btn-info" onclick="openDashboardSettings()"><i class="fas fa-th-large" aria-hidden="true"></i> Personalizo Dashboard</button>
+                    <button type="button" class="btn btn-success" onclick="openPWASettings()" title="Instalo si app, aktivizo njoftime"><i class="fas fa-mobile-alt" aria-hidden="true"></i> PWA &amp; Njoftime</button>
                 </div>
                 <div class="faton-btn-row">
-                    <button type="button" class="btn btn-secondary" onclick="undoLastAction()"><i class="fas fa-undo"></i> Kthe (Undo)</button>
-                    <button type="button" class="btn btn-secondary" onclick="redoLastAction()"><i class="fas fa-redo"></i> Ribëj (Redo)</button>
-                    <button type="button" class="btn btn-success" onclick="openSuppliersModal()"><i class="fas fa-truck"></i> Furnitorët</button>
-                    <button type="button" class="btn btn-warning" onclick="openPromotionsModal()"><i class="fas fa-tag"></i> Promocione</button>
+                    <button type="button" class="btn btn-secondary" onclick="undoLastAction()"><i class="fas fa-undo" aria-hidden="true"></i> Kthe (Undo)</button>
+                    <button type="button" class="btn btn-secondary" onclick="redoLastAction()"><i class="fas fa-redo" aria-hidden="true"></i> Ribëj (Redo)</button>
+                    <button type="button" class="btn btn-success" onclick="openSuppliersModal()"><i class="fas fa-truck" aria-hidden="true"></i> Furnitorët</button>
+                    <button type="button" class="btn btn-warning" onclick="openPromotionsModal()"><i class="fas fa-tag" aria-hidden="true"></i> Promocione</button>
                 </div>
                 <div class="faton-btn-row">
-                    <button type="button" class="btn btn-danger" onclick="openChangePinModal()"><i class="fas fa-lock"></i> Ndrysho PIN</button>
-                    <button type="button" class="btn btn-info" onclick="openCommissionSettings()"><i class="fas fa-coins"></i> Komisione</button>
-                    <button type="button" class="btn btn-success" onclick="openVolumeDiscountSettings()"><i class="fas fa-layer-group"></i> Zbritje Sasie</button>
-                    <button type="button" class="btn btn-warning" onclick="showWarrantyTracker()"><i class="fas fa-shield-alt"></i> Garanci</button>
+                    <button type="button" class="btn btn-danger" onclick="openChangePinModal()"><i class="fas fa-lock" aria-hidden="true"></i> Ndrysho PIN</button>
+                    <button type="button" class="btn btn-info" onclick="openCommissionSettings()"><i class="fas fa-coins" aria-hidden="true"></i> Komisione</button>
+                    <button type="button" class="btn btn-success" onclick="openVolumeDiscountSettings()"><i class="fas fa-layer-group" aria-hidden="true"></i> Zbritje Sasie</button>
+                    <button type="button" class="btn btn-warning" onclick="showWarrantyTracker()"><i class="fas fa-shield-alt" aria-hidden="true"></i> Garanci</button>
                 </div>
                 <div class="faton-btn-row">
-                    <button type="button" class="btn btn-primary" onclick="openInvoiceBrandingSettings()"><i class="fas fa-file-signature"></i> Invoice Branding</button>
+                    <button type="button" class="btn btn-primary" onclick="openInvoiceBrandingSettings()"><i class="fas fa-file-signature" aria-hidden="true"></i> Invoice Branding</button>
                 </div>
                 <!-- Payment Management -->
-                <h3 style="margin:20px 0 10px;"><i class="fas fa-credit-card"></i> Menaxhimi i Pagesave</h3>
+                <h3 style="margin:20px 0 10px;"><i class="fas fa-credit-card" aria-hidden="true"></i> Menaxhimi i Pagesave</h3>
                 <div class="faton-btn-row">
-                    <button type="button" class="btn btn-success" onclick="showPaymentReport()"><i class="fas fa-chart-pie"></i> Raporti Pagesave</button>
-                    <button type="button" class="btn btn-warning" onclick="checkPaymentReminders()"><i class="fas fa-bell"></i> Kontrollo Kujtesat</button>
+                    <button type="button" class="btn btn-success" onclick="showPaymentReport()"><i class="fas fa-chart-pie" aria-hidden="true"></i> Raporti Pagesave</button>
+                    <button type="button" class="btn btn-warning" onclick="checkPaymentReminders()"><i class="fas fa-bell" aria-hidden="true"></i> Kontrollo Kujtesat</button>
                 </div>
                 <!-- Data Storage & Backup -->
-                <h4 style="margin-top:15px;margin-bottom:8px;"><i class="fas fa-database"></i> Ruajtja e te Dhenave</h4>
+                <h4 style="margin-top:15px;margin-bottom:8px;"><i class="fas fa-database" aria-hidden="true"></i> Ruajtja e te Dhenave</h4>
                 <div class="faton-btn-row">
-                    <button type="button" class="btn btn-success" onclick="oneClickBackup()"><i class="fas fa-download"></i> Backup 1-Klik</button>
-                    <button type="button" class="btn btn-primary" onclick="downloadJSONBackup()"><i class="fas fa-file-code"></i> Shkarko JSON</button>
-                    <button type="button" class="btn btn-info" onclick="openImportModal()"><i class="fas fa-upload"></i> Importo JSON</button>
-                    <button type="button" class="btn btn-warning" onclick="openMergeModal()"><i class="fas fa-code-merge"></i> Bashko Backup</button>
+                    <button type="button" class="btn btn-success" onclick="oneClickBackup()"><i class="fas fa-download" aria-hidden="true"></i> Backup 1-Klik</button>
+                    <button type="button" class="btn btn-primary" onclick="downloadJSONBackup()"><i class="fas fa-file-code" aria-hidden="true"></i> Shkarko JSON</button>
+                    <button type="button" class="btn btn-info" onclick="openImportModal()"><i class="fas fa-upload" aria-hidden="true"></i> Importo JSON</button>
+                    <button type="button" class="btn btn-warning" onclick="openMergeModal()"><i class="fas fa-code-merge" aria-hidden="true"></i> Bashko Backup</button>
                 </div>
                 <div class="faton-btn-row">
-                    <button type="button" class="btn btn-primary" onclick="showVersionHistory()"><i class="fas fa-history"></i> Versionet (30)</button>
-                    <button type="button" class="btn btn-success" onclick="showStorageDashboard()"><i class="fas fa-hdd"></i> Hapesira</button>
-                    <button type="button" class="btn btn-info" onclick="showStorageAnalytics()"><i class="fas fa-chart-pie"></i> Analitika</button>
-                    <button type="button" class="btn btn-secondary" onclick="showExportOptions()"><i class="fas fa-file-export"></i> Eksporto Tab</button>
+                    <button type="button" class="btn btn-primary" onclick="showVersionHistory()"><i class="fas fa-history" aria-hidden="true"></i> Versionet (30)</button>
+                    <button type="button" class="btn btn-success" onclick="showStorageDashboard()"><i class="fas fa-hdd" aria-hidden="true"></i> Hapesira</button>
+                    <button type="button" class="btn btn-info" onclick="showStorageAnalytics()"><i class="fas fa-chart-pie" aria-hidden="true"></i> Analitika</button>
+                    <button type="button" class="btn btn-secondary" onclick="showExportOptions()"><i class="fas fa-file-export" aria-hidden="true"></i> Eksporto Tab</button>
                 </div>
                 <div class="faton-btn-row">
-                    <button type="button" class="btn btn-danger" onclick="openEncryptBackupModal()"><i class="fas fa-lock"></i> Backup Enkriptuar</button>
-                    <button type="button" class="btn btn-warning" onclick="openDecryptRestoreModal()"><i class="fas fa-unlock"></i> Rikthe Enkriptuar</button>
-                    <button type="button" class="btn btn-info" onclick="showSyncModal()"><i class="fas fa-sync"></i> Sinkronizo</button>
-                    <button type="button" class="btn btn-primary" onclick="sendBackupToEmail()"><i class="fas fa-envelope"></i> Backup Email</button>
+                    <button type="button" class="btn btn-danger" onclick="openEncryptBackupModal()"><i class="fas fa-lock" aria-hidden="true"></i> Backup Enkriptuar</button>
+                    <button type="button" class="btn btn-warning" onclick="openDecryptRestoreModal()"><i class="fas fa-unlock" aria-hidden="true"></i> Rikthe Enkriptuar</button>
+                    <button type="button" class="btn btn-info" onclick="showSyncModal()"><i class="fas fa-sync" aria-hidden="true"></i> Sinkronizo</button>
+                    <button type="button" class="btn btn-primary" onclick="sendBackupToEmail()"><i class="fas fa-envelope" aria-hidden="true"></i> Backup Email</button>
                 </div>
                 <div class="faton-btn-row">
-                    <button type="button" class="btn btn-warning" onclick="validateData()"><i class="fas fa-check-circle"></i> Valido Te Dhenat</button>
-                    <button type="button" class="btn btn-danger" onclick="findDuplicates()"><i class="fas fa-clone"></i> Gjej Duplikate</button>
-                    <button type="button" class="btn btn-secondary" onclick="archiveOldData()"><i class="fas fa-archive"></i> Arkivo te Vjetrat</button>
-                    <button type="button" class="btn btn-info" onclick="recoverFromIndexedDB()"><i class="fas fa-life-ring"></i> Rikthe IndexedDB</button>
+                    <button type="button" class="btn btn-warning" onclick="validateData()"><i class="fas fa-check-circle" aria-hidden="true"></i> Valido Te Dhenat</button>
+                    <button type="button" class="btn btn-danger" onclick="findDuplicates()"><i class="fas fa-clone" aria-hidden="true"></i> Gjej Duplikate</button>
+                    <button type="button" class="btn btn-secondary" onclick="archiveOldData()"><i class="fas fa-archive" aria-hidden="true"></i> Arkivo te Vjetrat</button>
+                    <button type="button" class="btn btn-info" onclick="recoverFromIndexedDB()"><i class="fas fa-life-ring" aria-hidden="true"></i> Rikthe IndexedDB</button>
                 </div>
                 <!-- Data Protection Suite -->
-                <h4 style="margin-top:15px;margin-bottom:8px;"><i class="fas fa-shield-alt"></i> Mbrojtja e te Dhenave</h4>
+                <h4 style="margin-top:15px;margin-bottom:8px;"><i class="fas fa-shield-alt" aria-hidden="true"></i> Mbrojtja e te Dhenave</h4>
                 <div class="faton-btn-row">
-                    <button type="button" class="btn btn-primary" onclick="showDataProtectionDashboard()"><i class="fas fa-shield-alt"></i> Paneli Mbrojtjes</button>
-                    <button type="button" class="btn btn-danger" onclick="showTrashBin()"><i class="fas fa-trash-restore"></i> Koshi i Plehrave</button>
-                    <button type="button" class="btn btn-info" onclick="showHourlySnapshots()"><i class="fas fa-clock"></i> Snapshots</button>
-                    <button type="button" class="btn btn-warning" onclick="showChangeTimeline()"><i class="fas fa-history"></i> Timeline</button>
+                    <button type="button" class="btn btn-primary" onclick="showDataProtectionDashboard()"><i class="fas fa-shield-alt" aria-hidden="true"></i> Paneli Mbrojtjes</button>
+                    <button type="button" class="btn btn-danger" onclick="showTrashBin()"><i class="fas fa-trash-restore" aria-hidden="true"></i> Koshi i Plehrave</button>
+                    <button type="button" class="btn btn-info" onclick="showHourlySnapshots()"><i class="fas fa-clock" aria-hidden="true"></i> Snapshots</button>
+                    <button type="button" class="btn btn-warning" onclick="showChangeTimeline()"><i class="fas fa-history" aria-hidden="true"></i> Timeline</button>
                 </div>
                 <div class="faton-btn-row">
-                    <button type="button" class="btn btn-success" onclick="openSelectiveRestoreModal()"><i class="fas fa-tasks"></i> Rikthim Selektiv</button>
-                    <button type="button" class="btn btn-primary" onclick="showCloudSyncOptions()"><i class="fas fa-cloud-upload-alt"></i> Cloud Sync</button>
-                    <button type="button" class="btn btn-info" onclick="downloadVerifiedBackup()"><i class="fas fa-fingerprint"></i> Backup+Hash</button>
-                    <button type="button" class="btn btn-warning" onclick="verifyBackupFile()"><i class="fas fa-search"></i> Verifiko Backup</button>
+                    <button type="button" class="btn btn-success" onclick="openSelectiveRestoreModal()"><i class="fas fa-tasks" aria-hidden="true"></i> Rikthim Selektiv</button>
+                    <button type="button" class="btn btn-primary" onclick="showCloudSyncOptions()"><i class="fas fa-cloud-upload-alt" aria-hidden="true"></i> Cloud Sync</button>
+                    <button type="button" class="btn btn-info" onclick="downloadVerifiedBackup()"><i class="fas fa-fingerprint" aria-hidden="true"></i> Backup+Hash</button>
+                    <button type="button" class="btn btn-warning" onclick="verifyBackupFile()"><i class="fas fa-search" aria-hidden="true"></i> Verifiko Backup</button>
                 </div>
                 <div class="faton-btn-row">
-                    <button type="button" class="btn btn-secondary" onclick="showRestoreLog()"><i class="fas fa-clipboard-list"></i> Ditari Restore</button>
-                    <button type="button" class="btn btn-success" onclick="restorePreRestoreBackup()"><i class="fas fa-undo"></i> Rikthe Para-Restore</button>
+                    <button type="button" class="btn btn-secondary" onclick="showRestoreLog()"><i class="fas fa-clipboard-list" aria-hidden="true"></i> Ditari Restore</button>
+                    <button type="button" class="btn btn-success" onclick="restorePreRestoreBackup()"><i class="fas fa-undo" aria-hidden="true"></i> Rikthe Para-Restore</button>
                 </div>
             </div>
                 <div class="setting-group">
@@ -1017,7 +1017,7 @@
                 <div class="setting-group">
                     <h3 data-i18n="expenses">Shpenzimet shtesë</h3>
                     <div class="page-actions">
-                        <button type="button" class="btn btn-primary" onclick="openExpenseModal()"><i class="fas fa-plus"></i> <span data-i18n="add_expense">Shto shpenzim</span></button>
+                        <button type="button" class="btn btn-primary" onclick="openExpenseModal()"><i class="fas fa-plus" aria-hidden="true"></i> <span data-i18n="add_expense">Shto shpenzim</span></button>
                     </div>
                     <div class="table-container">
                         <table id="expenses-table">
@@ -1036,15 +1036,15 @@
                 <div class="setting-group">
                     <h3 data-i18n="backup">Backup</h3>
                     <div class="setting-row">
-                        <button type="button" class="btn btn-secondary" onclick="exportBackup()"><i class="fas fa-download"></i> <span data-i18n="export_backup">Eksporto backup</span></button>
-                        <button type="button" class="btn btn-secondary" onclick="document.getElementById('import-backup').click()"><i class="fas fa-upload"></i> <span data-i18n="import_backup">Importo backup</span></button>
+                        <button type="button" class="btn btn-secondary" onclick="exportBackup()"><i class="fas fa-download" aria-hidden="true"></i> <span data-i18n="export_backup">Eksporto backup</span></button>
+                        <button type="button" class="btn btn-secondary" onclick="document.getElementById('import-backup').click()"><i class="fas fa-upload" aria-hidden="true"></i> <span data-i18n="import_backup">Importo backup</span></button>
                         <input type="file" id="import-backup" accept=".json,.txt,.bak,application/json" style="display:none" onchange="importBackup(event)">
                     </div>
                 </div>
                 <div class="setting-group">
                     <h3 data-i18n="locations">Lokacionet</h3>
                     <div class="page-actions">
-                        <button type="button" class="btn btn-primary" onclick="openLocationModal()"><i class="fas fa-plus"></i> <span data-i18n="add_location">Shto lokacion</span></button>
+                        <button type="button" class="btn btn-primary" onclick="openLocationModal()"><i class="fas fa-plus" aria-hidden="true"></i> <span data-i18n="add_location">Shto lokacion</span></button>
                     </div>
                     <div id="locations-list"></div>
                 </div>
@@ -1060,18 +1060,18 @@
         <!-- Balance Page -->
         <section id="page-balance" class="page">
             <div class="export-buttons">
-                <button type="button" class="btn btn-export btn-excel" onclick="exportBalance('excel')"><i class="fas fa-file-excel"></i> Excel</button>
-                <button type="button" class="btn btn-export btn-pdf" onclick="exportBalance('pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
-                <button type="button" class="btn btn-export btn-word" onclick="exportBalance('word')"><i class="fas fa-file-word"></i> Word</button>
+                <button type="button" class="btn btn-export btn-excel" onclick="exportBalance('excel')"><i class="fas fa-file-excel" aria-hidden="true"></i> Excel</button>
+                <button type="button" class="btn btn-export btn-pdf" onclick="exportBalance('pdf')"><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</button>
+                <button type="button" class="btn btn-export btn-word" onclick="exportBalance('word')"><i class="fas fa-file-word" aria-hidden="true"></i> Word</button>
             </div>
             <div id="balance-content"></div>
         </section>
         <!-- Activity Log Page -->
         <section id="page-activity" class="page">
             <div class="export-buttons">
-                <button type="button" class="btn btn-export btn-excel" onclick="exportActivityLog('excel')"><i class="fas fa-file-excel"></i> Excel</button>
-                <button type="button" class="btn btn-export btn-pdf" onclick="exportActivityLog('pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
-                <button type="button" class="btn btn-export btn-word" onclick="exportActivityLog('word')"><i class="fas fa-file-word"></i> Word</button>
+                <button type="button" class="btn btn-export btn-excel" onclick="exportActivityLog('excel')"><i class="fas fa-file-excel" aria-hidden="true"></i> Excel</button>
+                <button type="button" class="btn btn-export btn-pdf" onclick="exportActivityLog('pdf')"><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</button>
+                <button type="button" class="btn btn-export btn-word" onclick="exportActivityLog('word')"><i class="fas fa-file-word" aria-hidden="true"></i> Word</button>
             </div>
             <!-- Content will be filled by refreshActivityLog() -->
         </section>
@@ -1084,15 +1084,15 @@
                 <!-- Header -->
                 <div class="ai-header">
                     <div class="ai-header-left">
-                        <div class="ai-avatar"><i class="fas fa-wand-magic-sparkles"></i></div>
+                        <div class="ai-avatar"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i></div>
                         <div>
                             <div class="ai-title">Hurma AI <span class="ai-model-tag" id="ai-model-tag">Claude Opus</span></div>
                             <div class="ai-subtitle">Asistenti yt që njeh dyqanin tënd</div>
                         </div>
                     </div>
                     <div class="ai-header-right">
-                        <button type="button" class="ai-icon-btn" id="ai-clear-btn" title="Pastro bisedën"><i class="fas fa-broom"></i></button>
-                        <button type="button" class="ai-icon-btn" id="ai-settings-btn" title="Cilësimet AI"><i class="fas fa-cog"></i></button>
+                        <button type="button" class="ai-icon-btn" id="ai-clear-btn" title="Pastro bisedën" aria-label="Pastro bisedën"><i class="fas fa-broom" aria-hidden="true"></i></button>
+                        <button type="button" class="ai-icon-btn" id="ai-settings-btn" title="Cilësimet AI" aria-label="Cilësimet AI"><i class="fas fa-cog" aria-hidden="true"></i></button>
                     </div>
                 </div>
 
@@ -1119,29 +1119,29 @@
 
                 <!-- Context info bar -->
                 <div class="ai-context-info" id="ai-context-info">
-                    <i class="fas fa-database"></i>
+                    <i class="fas fa-database" aria-hidden="true"></i>
                     <span>Po ngarkohet…</span>
                 </div>
 
                 <!-- Quick prompts -->
                 <div class="ai-quick-prompts" id="ai-quick-prompts">
                     <button type="button" class="ai-qp-btn" data-prompt="Çfarë ndodhi sot? Më jep një përmbledhje të shitjeve, fitimit dhe veprimeve më të rëndësishme.">
-                        <i class="fas fa-calendar-day"></i> Përmbledhja e ditës
+                        <i class="fas fa-calendar-day" aria-hidden="true"></i> Përmbledhja e ditës
                     </button>
                     <button type="button" class="ai-qp-btn" data-prompt="Cilët klientë duhet të kontaktoj sot? Më jep listën me prioritetet (borxh i madh, s'kanë blerë shumë kohë, etj.) dhe propozim mesazhi WhatsApp për secilin.">
-                        <i class="fas fa-phone"></i> Kë të kontaktoj?
+                        <i class="fas fa-phone" aria-hidden="true"></i> Kë të kontaktoj?
                     </button>
                     <button type="button" class="ai-qp-btn" data-prompt="Bëj parashikim të shitjeve për javën e ardhshme bazuar në historikun. Cilët produkte do shitem më shumë? A duhet të porosis nga Fatoni dhe çfarë sasie?">
-                        <i class="fas fa-chart-line"></i> Parashikim javor
+                        <i class="fas fa-chart-line" aria-hidden="true"></i> Parashikim javor
                     </button>
                     <button type="button" class="ai-qp-btn" data-prompt="Cili produkt ka margjinën më të mirë dhe cili më të keqen? A ka ndonjë produkt që duhet ta hedh ose t'i rrit çmimin?">
-                        <i class="fas fa-percent"></i> Analizë çmimesh
+                        <i class="fas fa-percent" aria-hidden="true"></i> Analizë çmimesh
                     </button>
                     <button type="button" class="ai-qp-btn" data-prompt="Cilët klientë janë më të vlefshmit (top 5) dhe cilët e kanë rrezikun më të madh që të mos paguajnë?">
-                        <i class="fas fa-trophy"></i> Top klientët
+                        <i class="fas fa-trophy" aria-hidden="true"></i> Top klientët
                     </button>
                     <button type="button" class="ai-qp-btn" data-prompt="Më jep 3 sugjerime praktike për të rritur fitimin javës së ardhshme bazuar në të dhënat e mia.">
-                        <i class="fas fa-lightbulb"></i> Si të rrit fitimin?
+                        <i class="fas fa-lightbulb" aria-hidden="true"></i> Si të rrit fitimin?
                     </button>
                 </div>
 
@@ -1149,7 +1149,7 @@
                 <div class="ai-messages" id="ai-messages">
                     <!-- Welcome message -->
                     <div class="ai-msg ai-msg-bot">
-                        <div class="ai-msg-avatar"><i class="fas fa-wand-magic-sparkles"></i></div>
+                        <div class="ai-msg-avatar"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i></div>
                         <div class="ai-msg-bubble">
                             <p>Mirë se erdhe! Unë jam <strong>Hurma AI</strong> 🌴 — asistenti yt personal për dyqanin.</p>
                             <p>Unë e <strong>njoh dyqanin tënd</strong>: shitjet, klientët, stokun, borxhet, fitimin. Mund të më pyesësh çdo gjë në shqip, p.sh.:</p>
@@ -1171,11 +1171,9 @@
                 <div class="ai-input-wrap" id="ai-input-wrap">
                     <textarea id="ai-input" rows="1" placeholder="Pyet diçka për dyqanin tënd... (/ për komanda, 🎤 shtyp & mbaj për zë)"></textarea>
                     <button type="button" class="ai-mic-btn" id="ai-mic-btn" title="Shtyp dhe mbaj për të folur" aria-label="Shtyp dhe mbaj për të folur">
-                        <i class="fas fa-microphone"></i>
+                        <i class="fas fa-microphone" aria-hidden="true"></i>
                     </button>
-                    <button type="button" class="ai-send-btn" id="ai-send-btn" title="Dërgo (Enter)">
-                        <i class="fas fa-paper-plane"></i>
-                    </button>
+                    <button type="button" class="ai-send-btn" id="ai-send-btn" title="Dërgo (Enter)" aria-label="Dërgo (Enter)"><i class="fas fa-paper-plane" aria-hidden="true"></i></button>
                 </div>
                 <div class="ai-status" id="ai-status"></div>
             </div>
@@ -1183,9 +1181,9 @@
         <!-- Cash Drawer Page -->
         <section id="page-cashDrawer" class="page">
             <div class="export-buttons">
-                <button type="button" class="btn btn-export btn-excel" onclick="exportCashDrawer('excel')"><i class="fas fa-file-excel"></i> Excel</button>
-                <button type="button" class="btn btn-export btn-pdf" onclick="exportCashDrawer('pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
-                <button type="button" class="btn btn-export btn-word" onclick="exportCashDrawer('word')"><i class="fas fa-file-word"></i> Word</button>
+                <button type="button" class="btn btn-export btn-excel" onclick="exportCashDrawer('excel')"><i class="fas fa-file-excel" aria-hidden="true"></i> Excel</button>
+                <button type="button" class="btn btn-export btn-pdf" onclick="exportCashDrawer('pdf')"><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</button>
+                <button type="button" class="btn btn-export btn-word" onclick="exportCashDrawer('word')"><i class="fas fa-file-word" aria-hidden="true"></i> Word</button>
             </div>
             <!-- Content will be filled by refreshCashDrawer() -->
         </section>
@@ -1193,7 +1191,7 @@
         <!-- Analytics Page -->
         <section id="page-analytics" class="page">
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding:14px 18px;background:linear-gradient(135deg,#667eea,#764ba2);border-radius:14px;box-shadow:0 3px 12px rgba(102,126,234,0.3);">
-                <i class="fas fa-chart-area" style="color:white;font-size:1.5em;"></i>
+                <i class="fas fa-chart-area" style="color:white;font-size:1.5em;" aria-hidden="true"></i>
                 <span style="color:white;font-size:1.2em;font-weight:700;">Dashboard Analitik</span>
                 <span style="color:rgba(255,255,255,0.8);font-size:0.85em;margin-left:auto;" id="analytics-period-label">30 ditët e fundit</span>
             </div>
@@ -1211,7 +1209,7 @@
 
             <!-- Sales & Profit Trend Line Chart -->
             <div style="background:white;border-radius:14px;padding:16px;margin-bottom:18px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-                <h3 style="margin:0 0 12px 0;font-size:1.05em;color:#333;"><i class="fas fa-chart-line" style="color:#667eea;"></i> Trendi i Shitjeve & Fitimit</h3>
+                <h3 style="margin:0 0 12px 0;font-size:1.05em;color:#333;"><i class="fas fa-chart-line" style="color:#667eea;" aria-hidden="true"></i> Trendi i Shitjeve & Fitimit</h3>
                 <canvas id="analytics-trend-chart" height="200"></canvas>
             </div>
 
@@ -1219,34 +1217,34 @@
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;">
                 <!-- Product Breakdown Donut -->
                 <div style="background:white;border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-                    <h3 style="margin:0 0 12px 0;font-size:1.05em;color:#333;"><i class="fas fa-chart-pie" style="color:#f093fb;"></i> Shitjet sipas Produktit</h3>
+                    <h3 style="margin:0 0 12px 0;font-size:1.05em;color:#333;"><i class="fas fa-chart-pie" style="color:#f093fb;" aria-hidden="true"></i> Shitjet sipas Produktit</h3>
                     <canvas id="analytics-product-chart" height="220"></canvas>
                 </div>
                 <!-- Week over Week Bar -->
                 <div style="background:white;border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-                    <h3 style="margin:0 0 12px 0;font-size:1.05em;color:#333;"><i class="fas fa-chart-bar" style="color:#4facfe;"></i> Javë me Javë</h3>
+                    <h3 style="margin:0 0 12px 0;font-size:1.05em;color:#333;"><i class="fas fa-chart-bar" style="color:#4facfe;" aria-hidden="true"></i> Javë me Javë</h3>
                     <canvas id="analytics-weekly-chart" height="220"></canvas>
                 </div>
             </div>
 
             <!-- Top 5 Clients -->
             <div style="background:white;border-radius:14px;padding:16px;margin-bottom:18px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-                <h3 style="margin:0 0 12px 0;font-size:1.05em;color:#333;"><i class="fas fa-trophy" style="color:#f5af19;"></i> Top 5 Klientët</h3>
+                <h3 style="margin:0 0 12px 0;font-size:1.05em;color:#333;"><i class="fas fa-trophy" style="color:#f5af19;" aria-hidden="true"></i> Top 5 Klientët</h3>
                 <div id="analytics-top-clients"></div>
             </div>
 
             <!-- Forecast -->
             <div style="background:linear-gradient(135deg,#e0c3fc,#8ec5fc);border-radius:14px;padding:18px;margin-bottom:18px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-                <h3 style="margin:0 0 12px 0;font-size:1.05em;color:#333;"><i class="fas fa-magic" style="color:#764ba2;"></i> Parashikimi i Javës së Ardhshme</h3>
+                <h3 style="margin:0 0 12px 0;font-size:1.05em;color:#333;"><i class="fas fa-magic" style="color:#764ba2;" aria-hidden="true"></i> Parashikimi i Javës së Ardhshme</h3>
                 <div id="analytics-forecast"></div>
             </div>
         </section>
 
         <section id="page-trends" class="page">
             <div class="export-buttons">
-                <button type="button" class="btn btn-export btn-excel" onclick="exportTrends('excel')"><i class="fas fa-file-excel"></i> Excel</button>
-                <button type="button" class="btn btn-export btn-pdf" onclick="exportTrends('pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
-                <button type="button" class="btn btn-export btn-word" onclick="exportTrends('word')"><i class="fas fa-file-word"></i> Word</button>
+                <button type="button" class="btn btn-export btn-excel" onclick="exportTrends('excel')"><i class="fas fa-file-excel" aria-hidden="true"></i> Excel</button>
+                <button type="button" class="btn btn-export btn-pdf" onclick="exportTrends('pdf')"><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</button>
+                <button type="button" class="btn btn-export btn-word" onclick="exportTrends('word')"><i class="fas fa-file-word" aria-hidden="true"></i> Word</button>
             </div>
             <!-- Content will be filled by refreshTrends() -->
         </section>
@@ -1254,11 +1252,11 @@
         <!-- Invoices Page -->
         <section id="page-invoices" class="page">
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding:14px 18px;background:linear-gradient(135deg,#2c3e50,#3498db);border-radius:14px;box-shadow:0 3px 12px rgba(44,62,80,0.3);">
-                <i class="fas fa-file-invoice-dollar" style="color:white;font-size:1.5em;"></i>
+                <i class="fas fa-file-invoice-dollar" style="color:white;font-size:1.5em;" aria-hidden="true"></i>
                 <span style="color:white;font-size:1.2em;font-weight:700;">Regjistri i Faturave</span>
                 <span id="invoices-count-label" style="background:white;color:#2c3e50;padding:3px 12px;border-radius:15px;font-size:0.9em;font-weight:700;">0</span>
                 <button type="button" class="btn btn-sm" onclick="createNewInvoice()" style="margin-left:auto;background:white;color:#2c3e50;font-weight:700;border:none;padding:8px 14px;border-radius:10px;">
-                    <i class="fas fa-plus"></i> Faturë e Re
+                    <i class="fas fa-plus" aria-hidden="true"></i> Faturë e Re
                 </button>
             </div>
 
@@ -1281,9 +1279,9 @@
                 <input type="date" id="inv-filter-from" onchange="refreshInvoicesPage()" style="padding:8px 12px;border-radius:8px;border:1px solid #ddd;font-size:0.9em;">
                 <input type="date" id="inv-filter-to" onchange="refreshInvoicesPage()" style="padding:8px 12px;border-radius:8px;border:1px solid #ddd;font-size:0.9em;">
                 <div class="search-box" id="inv-search-box" style="flex:1;min-width:160px;">
-                    <i class="fas fa-search"></i>
+                    <i class="fas fa-search" aria-hidden="true"></i>
                     <input type="text" id="inv-filter-search" oninput="refreshInvoicesPage();_sbToggle(this)" placeholder="Kërko faturë...">
-                    <button type="button" class="sb-clear" onclick="_sbClear('inv-filter-search', refreshInvoicesPage)" title="Pastro"><i class="fas fa-times"></i></button>
+                    <button type="button" class="sb-clear" onclick="_sbClear('inv-filter-search', refreshInvoicesPage)" title="Pastro" aria-label="Pastro"><i class="fas fa-times" aria-hidden="true"></i></button>
                 </div>
             </div>
 
@@ -1368,7 +1366,7 @@
 
     <!-- Offline Banner -->
     <div id="offline-banner" class="offline-banner hidden" style="position:fixed;bottom:0;left:0;right:0;background:var(--danger);color:#fff;text-align:center;padding:10px;z-index:9999;font-weight:bold;">
-        <i class="fas fa-wifi-slash"></i> <span data-i18n="offline_mode">Jeni offline - të dhënat ruhen vetëm lokalisht</span>
+        <i class="fas fa-wifi-slash" aria-hidden="true"></i> <span data-i18n="offline_mode">Jeni offline - të dhënat ruhen vetëm lokalisht</span>
     </div>
 
     <!-- PWA: Butoni "Instalo App" (shfaqet vetëm kur është e mundur) -->
@@ -1386,7 +1384,7 @@
         <small style="display:block;margin-bottom:14px;">Hapet menjëherë, punon edhe offline</small>
         <div style="display:flex;gap:8px;justify-content:center;">
             <button type="button" id="pwa-install-btn" onclick="pwaTriggerInstall()" style="border:none;font-size:0.95em;cursor:pointer;">
-                <i class="fas fa-arrow-down"></i> Instalo
+                <i class="fas fa-arrow-down" aria-hidden="true"></i> Instalo
             </button>
             <button type="button" onclick="pwaDismissInstall()" style="background:transparent;color:var(--text-secondary, #5A4A38);border:1px solid var(--border, rgba(58,36,16,0.12));border-radius:12px;padding:10px 16px;font-size:0.95em;cursor:pointer;font-weight:600;">
                 Jo tani
@@ -1396,7 +1394,7 @@
 
     <!-- PWA: Banner update disponibël -->
     <div id="pwa-update-banner" class="hurma-update" style="display:none;position:fixed;top:calc(16px + env(safe-area-inset-top, 0px));left:50%;transform:translateX(-50%);color:#fff;z-index:9998;min-width:260px;text-align:center;">
-        <i class="fas fa-sync-alt"></i> <strong>Update i ri disponibël!</strong>
+        <i class="fas fa-sync-alt" aria-hidden="true"></i> <strong>Update i ri disponibël!</strong>
         <button type="button" onclick="pwaApplyUpdate()" style="background:#fff;border:none;margin-left:10px;cursor:pointer;">Ringarko</button>
         <button type="button" onclick="document.getElementById('pwa-update-banner').style.display='none'" style="background:transparent;border:none;color:#fff;cursor:pointer;margin-left:6px;opacity:0.8;font-size:15px;">✕</button>
     </div>
@@ -1404,19 +1402,19 @@
     <!-- iOS-style floating tab bar (mobile only, ≤768px) -->
     <nav id="hurma-tab-bar" class="hurma-tab-bar" aria-label="Navigim i shpejtë">
         <button type="button" class="hurma-tab-bar__btn" data-hurma-tab="dashboard" aria-label="Sot">
-            <i class="fas fa-house"></i><span>Sot</span>
+            <i class="fas fa-house" aria-hidden="true"></i><span>Sot</span>
         </button>
         <button type="button" class="hurma-tab-bar__btn" data-hurma-tab="sales" aria-label="Shitjet">
-            <i class="fas fa-cash-register"></i><span>Shitje</span>
+            <i class="fas fa-cash-register" aria-hidden="true"></i><span>Shitje</span>
         </button>
         <button type="button" class="hurma-tab-bar__fab" data-hurma-tab="sales" data-hurma-action="new-sale" aria-label="Shto shitje të re">
-            <i class="fas fa-plus"></i>
+            <i class="fas fa-plus" aria-hidden="true"></i>
         </button>
         <button type="button" class="hurma-tab-bar__btn" data-hurma-tab="clients" aria-label="Klientët">
-            <i class="fas fa-users"></i><span>Klientë</span>
+            <i class="fas fa-users" aria-hidden="true"></i><span>Klientë</span>
         </button>
         <button type="button" class="hurma-tab-bar__btn" data-hurma-tab="__more" aria-label="Më shumë">
-            <i class="fas fa-ellipsis"></i><span>Më shumë</span>
+            <i class="fas fa-ellipsis" aria-hidden="true"></i><span>Më shumë</span>
         </button>
     </nav>
 

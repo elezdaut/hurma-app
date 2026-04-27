@@ -804,10 +804,10 @@ function refreshDashboard() {
         const weekChange = lastWeekProfit > 0 ? Math.round(((thisWeekProfit - lastWeekProfit) / lastWeekProfit) * 100) : 0;
         const monthChange = lastMonthProfit > 0 ? Math.round(((monthlyProfit - lastMonthProfit) / lastMonthProfit) * 100) : 0;
         weekStatsEl.innerHTML = `
-            <div class="stat-card"><i class="fas fa-calendar-week"></i><div><h3>Kjo jave</h3><p>${thisWeekProfit} den (${thisWeekSales.length} shitje)</p></div></div>
-            <div class="stat-card"><i class="fas fa-exchange-alt"></i><div><h3>vs Java e kaluar</h3><p style="color:${weekChange >= 0 ? 'var(--success)' : 'var(--danger)'}">${weekChange >= 0 ? '+' : ''}${weekChange}% (${lastWeekProfit} den)</p></div></div>
-            <div class="stat-card"><i class="fas fa-calendar-alt"></i><div><h3>Ky muaj</h3><p>${monthlyProfit} den (${monthSales.length} shitje)</p></div></div>
-            <div class="stat-card"><i class="fas fa-exchange-alt"></i><div><h3>vs Muaji i kaluar</h3><p style="color:${monthChange >= 0 ? 'var(--success)' : 'var(--danger)'}">${monthChange >= 0 ? '+' : ''}${monthChange}% (${lastMonthProfit} den)</p></div></div>
+            <div class="stat-card"><i class="fas fa-calendar-week" aria-hidden="true"></i><div><h3>Kjo jave</h3><p>${thisWeekProfit} den (${thisWeekSales.length} shitje)</p></div></div>
+            <div class="stat-card"><i class="fas fa-exchange-alt" aria-hidden="true"></i><div><h3>vs Java e kaluar</h3><p style="color:${weekChange >= 0 ? 'var(--success)' : 'var(--danger)'}">${weekChange >= 0 ? '+' : ''}${weekChange}% (${lastWeekProfit} den)</p></div></div>
+            <div class="stat-card"><i class="fas fa-calendar-alt" aria-hidden="true"></i><div><h3>Ky muaj</h3><p>${monthlyProfit} den (${monthSales.length} shitje)</p></div></div>
+            <div class="stat-card"><i class="fas fa-exchange-alt" aria-hidden="true"></i><div><h3>vs Muaji i kaluar</h3><p style="color:${monthChange >= 0 ? 'var(--success)' : 'var(--danger)'}">${monthChange >= 0 ? '+' : ''}${monthChange}% (${lastMonthProfit} den)</p></div></div>
         `;
     }
 
@@ -815,9 +815,9 @@ function refreshDashboard() {
     const quickActionsEl = document.getElementById('quick-actions');
     if (quickActionsEl) {
         quickActionsEl.innerHTML = `
-            <button class="btn btn-success" onclick="openQuickCashSale()"><i class="fas fa-money-bill"></i> Shto shitje cash</button>
-            <button class="btn btn-primary" onclick="openQuickInvoiceSale()"><i class="fas fa-file-invoice"></i> Shto shitje fature</button>
-            <button class="btn btn-secondary" onclick="openFatonPaymentModal()"><i class="fas fa-hand-holding-usd"></i> Paguaj Fatonin</button>
+            <button type="button" class="btn btn-success" onclick="openQuickCashSale()"><i class="fas fa-money-bill" aria-hidden="true"></i> Shto shitje cash</button>
+            <button type="button" class="btn btn-primary" onclick="openQuickInvoiceSale()"><i class="fas fa-file-invoice" aria-hidden="true"></i> Shto shitje fature</button>
+            <button type="button" class="btn btn-secondary" onclick="openFatonPaymentModal()"><i class="fas fa-hand-holding-usd" aria-hidden="true"></i> Paguaj Fatonin</button>
         `;
     }
 
@@ -840,8 +840,8 @@ function refreshDashboard() {
             (state.salePresets || []).forEach(preset => {
                 const product = getProduct(preset.productId);
                 html += `
-                    <button class="btn btn-primary" onclick="executePreset(${preset.id})" style="min-width:150px;">
-                        <i class="fas fa-bolt"></i> ${preset.name}<br>
+                    <button type="button" class="btn btn-primary" onclick="executePreset(${preset.id})" style="min-width:150px;">
+                        <i class="fas fa-bolt" aria-hidden="true"></i> ${preset.name}<br>
                         <small>${preset.quantity}x ${product.name}</small>
                     </button>
                 `;
@@ -875,17 +875,17 @@ function renderExecutiveDashboardWidget() {
 
     container.innerHTML = `
         <div style="margin:18px 0 8px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
-            <h3 style="margin:0;"><i class="fas fa-briefcase"></i> Dashboard Ekzekutiv</h3>
+            <h3 style="margin:0;"><i class="fas fa-briefcase" aria-hidden="true"></i> Dashboard Ekzekutiv</h3>
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                <button class="btn btn-secondary" onclick="showExecutiveDashboard()"><i class="fas fa-chart-line"></i> Hape</button>
-                <button class="btn btn-primary" onclick="generateAllMarketMonthlyReports()"><i class="fas fa-file-pdf"></i> Raporte Mujore</button>
+                <button type="button" class="btn btn-secondary" onclick="showExecutiveDashboard()"><i class="fas fa-chart-line" aria-hidden="true"></i> Hape</button>
+                <button type="button" class="btn btn-primary" onclick="generateAllMarketMonthlyReports()"><i class="fas fa-file-pdf" aria-hidden="true"></i> Raporte Mujore</button>
             </div>
         </div>
         <div class="stats-grid">
-            <div class="stat-card"><i class="fas fa-user-shield"></i><div><h3>Klientë premium</h3><p>${premiumClients}</p></div></div>
-            <div class="stat-card"><i class="fas fa-bell"></i><div><h3>Task-e aktive</h3><p>${activeTasks}</p></div></div>
-            <div class="stat-card"><i class="fas fa-route"></i><div><h3>Vizita në plan</h3><p>${upcomingVisits}</p></div></div>
-            <div class="stat-card"><i class="fas fa-triangle-exclamation"></i><div><h3>Borxh klientësh</h3><p>${totalDebt} ден</p></div></div>
+            <div class="stat-card"><i class="fas fa-user-shield" aria-hidden="true"></i><div><h3>Klientë premium</h3><p>${premiumClients}</p></div></div>
+            <div class="stat-card"><i class="fas fa-bell" aria-hidden="true"></i><div><h3>Task-e aktive</h3><p>${activeTasks}</p></div></div>
+            <div class="stat-card"><i class="fas fa-route" aria-hidden="true"></i><div><h3>Vizita në plan</h3><p>${upcomingVisits}</p></div></div>
+            <div class="stat-card"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i><div><h3>Borxh klientësh</h3><p>${totalDebt} ден</p></div></div>
         </div>
     `;
 }
@@ -927,10 +927,10 @@ function showExecutiveDashboard() {
 
     openModal('Dashboard Ekzekutiv', `
         <div class="stats-grid" style="margin-bottom:16px;">
-            <div class="stat-card"><i class="fas fa-users"></i><div><h3>Klientë gjithsej</h3><p>${(state.clients || []).length}</p></div></div>
-            <div class="stat-card"><i class="fas fa-user-tie"></i><div><h3>Premium</h3><p>${rankedClients.filter(r => r.score >= 75).length}</p></div></div>
-            <div class="stat-card"><i class="fas fa-list-check"></i><div><h3>Task-e aktive</h3><p>${(state.clientTasks || []).filter(t => t.status !== 'done').length}</p></div></div>
-            <div class="stat-card"><i class="fas fa-calendar-check"></i><div><h3>Vizita të ardhshme</h3><p>${(state.clientVisits || []).filter(v => v.nextVisitDate && v.nextVisitDate >= new Date().toISOString().split('T')[0]).length}</p></div></div>
+            <div class="stat-card"><i class="fas fa-users" aria-hidden="true"></i><div><h3>Klientë gjithsej</h3><p>${(state.clients || []).length}</p></div></div>
+            <div class="stat-card"><i class="fas fa-user-tie" aria-hidden="true"></i><div><h3>Premium</h3><p>${rankedClients.filter(r => r.score >= 75).length}</p></div></div>
+            <div class="stat-card"><i class="fas fa-list-check" aria-hidden="true"></i><div><h3>Task-e aktive</h3><p>${(state.clientTasks || []).filter(t => t.status !== 'done').length}</p></div></div>
+            <div class="stat-card"><i class="fas fa-calendar-check" aria-hidden="true"></i><div><h3>Vizita të ardhshme</h3><p>${(state.clientVisits || []).filter(v => v.nextVisitDate && v.nextVisitDate >= new Date().toISOString().split('T')[0]).length}</p></div></div>
         </div>
         <div class="table-container" style="margin-bottom:16px;">
             <table class="data-table">
@@ -939,8 +939,8 @@ function showExecutiveDashboard() {
             </table>
         </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;">
-            <div class="target-card"><h4><i class="fas fa-bell"></i> Task-e prioritare</h4><ul style="padding-left:18px;line-height:1.7;">${pendingTasks}</ul></div>
-            <div class="target-card"><h4><i class="fas fa-route"></i> Vizita në terren</h4><ul style="padding-left:18px;line-height:1.7;">${upcomingVisits}</ul></div>
+            <div class="target-card"><h4><i class="fas fa-bell" aria-hidden="true"></i> Task-e prioritare</h4><ul style="padding-left:18px;line-height:1.7;">${pendingTasks}</ul></div>
+            <div class="target-card"><h4><i class="fas fa-route" aria-hidden="true"></i> Vizita në terren</h4><ul style="padding-left:18px;line-height:1.7;">${upcomingVisits}</ul></div>
         </div>
     `);
 }
@@ -1012,15 +1012,15 @@ function openSaleModal(editId) {
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
                 <label style="display:flex;align-items:center;gap:5px;padding:8px 12px;border-radius:8px;cursor:pointer;border:2px solid ${sale.invoicePaid ? 'var(--success)' : 'var(--bg-tertiary)'};background:${sale.invoicePaid ? '#e8f5e9' : 'transparent'};">
                     <input type="radio" name="sale-pay-status" value="paid" ${sale.invoicePaid ? 'checked' : ''} onchange="togglePartialPayment()">
-                    <i class="fas fa-check-circle" style="color:var(--success);"></i> E paguar
+                    <i class="fas fa-check-circle" style="color:var(--success);" aria-hidden="true"></i> E paguar
                 </label>
                 <label style="display:flex;align-items:center;gap:5px;padding:8px 12px;border-radius:8px;cursor:pointer;border:2px solid ${!sale.invoicePaid && !sale.paidAmount ? 'var(--danger)' : 'var(--bg-tertiary)'};background:${!sale.invoicePaid && !sale.paidAmount ? '#ffebee' : 'transparent'};">
                     <input type="radio" name="sale-pay-status" value="unpaid" ${!sale.invoicePaid && !sale.paidAmount ? 'checked' : ''} onchange="togglePartialPayment()">
-                    <i class="fas fa-times-circle" style="color:var(--danger);"></i> E papaguar
+                    <i class="fas fa-times-circle" style="color:var(--danger);" aria-hidden="true"></i> E papaguar
                 </label>
                 <label style="display:flex;align-items:center;gap:5px;padding:8px 12px;border-radius:8px;cursor:pointer;border:2px solid ${sale.paidAmount && sale.paidAmount > 0 && !sale.invoicePaid ? 'var(--warning)' : 'var(--bg-tertiary)'};background:${sale.paidAmount && sale.paidAmount > 0 && !sale.invoicePaid ? '#fff3e0' : 'transparent'};">
                     <input type="radio" name="sale-pay-status" value="partial" ${sale.paidAmount && sale.paidAmount > 0 && !sale.invoicePaid ? 'checked' : ''} onchange="togglePartialPayment()">
-                    <i class="fas fa-adjust" style="color:var(--warning);"></i> Pjesërisht
+                    <i class="fas fa-adjust" style="color:var(--warning);" aria-hidden="true"></i> Pjesërisht
                 </label>
             </div>
             <div id="partial-payment-fields" style="display:${sale.paidAmount && sale.paidAmount > 0 && !sale.invoicePaid ? 'block' : 'none'};margin-top:10px;">
@@ -1046,7 +1046,7 @@ function openSaleModal(editId) {
             </div>
         </div>
         ` : ''}
-        <button class="btn btn-primary" id="sale-submit-btn" style="width:100%;margin-top:10px;">
+        <button type="button" class="btn btn-primary" id="sale-submit-btn" style="width:100%;margin-top:10px;">
             ${isEdit ? t('edit') : t('add_sale')}
         </button>
     `;
@@ -1487,11 +1487,11 @@ function refreshSales() {
         // Quick action buttons
         let quickPayBtns = '';
         if (pType === 'invoice_60' && !s.invoicePaid) {
-            quickPayBtns += `<button class="btn btn-sm btn-success" onclick="quickMarkPaid(${realIndex})" title="Shëno paguar"><i class="fas fa-check"></i></button>`;
-            quickPayBtns += `<button class="btn btn-sm" onclick="openPartialPaymentModal(${realIndex})" title="Pagesë e pjesshme" style="background:var(--warning);color:#fff;"><i class="fas fa-adjust"></i></button>`;
-            if (client) quickPayBtns += `<button class="btn btn-sm btn-secondary" onclick="sendPaymentReminder(${realIndex})" title="Kujtesë WhatsApp"><i class="fab fa-whatsapp"></i></button>`;
+            quickPayBtns += `<button type="button" class="btn btn-sm btn-success" onclick="quickMarkPaid(${realIndex})" title="Shëno paguar" aria-label="Shëno paguar"><i class="fas fa-check" aria-hidden="true"></i></button>`;
+            quickPayBtns += `<button type="button" class="btn btn-sm" onclick="openPartialPaymentModal(${realIndex})" title="Pagesë e pjesshme" style="background:var(--warning);color:#fff;" aria-label="Pagesë e pjesshme"><i class="fas fa-adjust" aria-hidden="true"></i></button>`;
+            if (client) quickPayBtns += `<button type="button" class="btn btn-sm btn-secondary" onclick="sendPaymentReminder(${realIndex})" title="Kujtesë WhatsApp" aria-label="Kujtesë WhatsApp"><i class="fab fa-whatsapp" aria-hidden="true"></i></button>`;
         } else if (s.invoicePaid && pType === 'invoice_60') {
-            quickPayBtns += `<button class="btn btn-sm" onclick="unmarkPaid(${realIndex})" title="Kthe si papaguar" style="background:#9E9E9E;color:#fff;"><i class="fas fa-undo"></i></button>`;
+            quickPayBtns += `<button type="button" class="btn btn-sm" onclick="unmarkPaid(${realIndex})" title="Kthe si papaguar" style="background:#9E9E9E;color:#fff;" aria-label="Kthe si papaguar"><i class="fas fa-undo" aria-hidden="true"></i></button>`;
         }
 
         // Klienti me borxh — chip i kuq elegant me shumën
@@ -1500,7 +1500,7 @@ function refreshSales() {
             const cDebt = (typeof calcClientDebt === 'function') ? (calcClientDebt(client.id) || 0) : 0;
             clientCellHtml = `<a class="client-link" onclick="openClient360('${client.id}')">${client.name}</a>`;
             if (cDebt > 0 || s.isDebt) {
-                clientCellHtml += `<span class="client-debt-chip" title="Borxh aktual"><i class="fas fa-circle-exclamation"></i>${cDebt > 0 ? cDebt.toLocaleString('sq-AL') + ' ден' : 'borxh'}</span>`;
+                clientCellHtml += `<span class="client-debt-chip" title="Borxh aktual"><i class="fas fa-circle-exclamation" aria-hidden="true"></i>${cDebt > 0 ? cDebt.toLocaleString('sq-AL') + ' ден' : 'borxh'}</span>`;
             }
         }
 
@@ -1539,9 +1539,9 @@ function refreshSales() {
                 <td class="cell-pay">${payCellHtml}</td>
                 <td class="cell-loc">${s.location || '-'}</td>
                 <td class="cell-actions">
-                    <button class="btn btn-sm btn-secondary" onclick="openSaleModal(${realIndex})" title="Modifiko"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteSale(${realIndex})" title="Fshi"><i class="fas fa-trash"></i></button>
-                    <button class="btn btn-sm btn-more" onclick="_openRowMenu(this, '${moreActionsJson}')" title="Më shumë"><i class="fas fa-ellipsis-vertical"></i></button>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="openSaleModal(${realIndex})" title="Modifiko" aria-label="Modifiko"><i class="fas fa-edit" aria-hidden="true"></i></button>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteSale(${realIndex})" title="Fshi" aria-label="Fshi"><i class="fas fa-trash" aria-hidden="true"></i></button>
+                    <button type="button" class="btn btn-sm btn-more" onclick="_openRowMenu(this, '${moreActionsJson}')" title="Më shumë" aria-label="Më shumë"><i class="fas fa-ellipsis-vertical" aria-hidden="true"></i></button>
                 </td>
             </tr>
         `;
@@ -1618,8 +1618,8 @@ function markInvoicePaid(index) {
             <label>Arsyeja/Shënim:</label>
             <input type="text" id="invoice-pay-note" placeholder="Opsionale" value="">
         </div>
-        <button class="btn btn-success" id="mark-paid-confirm-btn" style="width:100%;">
-            <i class="fas fa-check"></i> Shëno si të Paguar Plotësisht
+        <button type="button" class="btn btn-success" id="mark-paid-confirm-btn" style="width:100%;">
+            <i class="fas fa-check" aria-hidden="true"></i> Shëno si të Paguar Plotësisht
         </button>
     `;
     openModal('💳 Shëno si të Paguar', html);
@@ -1733,9 +1733,9 @@ function modalConfirm(message, onYes, onNo) {
             <div style="font-size:2.5em;margin-bottom:10px;">❓</div>
             <p style="font-size:1.05em;margin-bottom:20px;line-height:1.5;">${message}</p>
             <div style="display:flex;gap:10px;">
-                <button class="btn btn-secondary" id="mconfirm-no" style="flex:1;padding:12px;font-size:1em;">Anulo</button>
-                <button class="btn btn-danger" id="mconfirm-yes" style="flex:1;padding:12px;font-size:1em;font-weight:bold;">
-                    <i class="fas fa-check"></i> OK
+                <button type="button" class="btn btn-secondary" id="mconfirm-no" style="flex:1;padding:12px;font-size:1em;">Anulo</button>
+                <button type="button" class="btn btn-danger" id="mconfirm-yes" style="flex:1;padding:12px;font-size:1em;font-weight:bold;">
+                    <i class="fas fa-check" aria-hidden="true"></i> OK
                 </button>
             </div>
         </div>
@@ -1796,9 +1796,9 @@ function quickMarkPaid(index) {
             </div>
             <p style="color:var(--danger);font-size:0.85em;margin:10px 0;">⚠️ Kjo do ta shënojë faturën si plotësisht të paguar</p>
             <div style="display:flex;gap:10px;margin-top:15px;">
-                <button class="btn btn-secondary" id="qpay-cancel-btn" style="flex:1;">Anulo</button>
-                <button class="btn btn-success" id="qpay-confirm-btn" style="flex:1;">
-                    <i class="fas fa-check"></i> Konfirmo Pagesën
+                <button type="button" class="btn btn-secondary" id="qpay-cancel-btn" style="flex:1;">Anulo</button>
+                <button type="button" class="btn btn-success" id="qpay-confirm-btn" style="flex:1;">
+                    <i class="fas fa-check" aria-hidden="true"></i> Konfirmo Pagesën
                 </button>
             </div>
         </div>
@@ -1876,9 +1876,9 @@ function unmarkPaid(index) {
                 <input type="text" id="unmark-note" placeholder="Opsionale">
             </div>
             <div style="display:flex;gap:10px;margin-top:15px;">
-                <button class="btn btn-secondary" id="unmark-cancel-btn" style="flex:1;">Anulo</button>
-                <button class="btn btn-danger" id="unmark-confirm-btn" style="flex:1;">
-                    <i class="fas fa-undo"></i> Konfirmo Kthimin
+                <button type="button" class="btn btn-secondary" id="unmark-cancel-btn" style="flex:1;">Anulo</button>
+                <button type="button" class="btn btn-danger" id="unmark-confirm-btn" style="flex:1;">
+                    <i class="fas fa-undo" aria-hidden="true"></i> Konfirmo Kthimin
                 </button>
             </div>
         </div>
@@ -1985,8 +1985,8 @@ function openPartialPaymentModal(index) {
                 <label>Shënim:</label>
                 <input type="text" id="partial-pay-note" placeholder="Opsionale">
             </div>
-            <button class="btn btn-success" id="partial-confirm-btn" style="width:100%;">
-                <i class="fas fa-coins"></i> Regjistro Pagesën
+            <button type="button" class="btn btn-success" id="partial-confirm-btn" style="width:100%;">
+                <i class="fas fa-coins" aria-hidden="true"></i> Regjistro Pagesën
             </button>
         </div>
     `);
@@ -2127,11 +2127,11 @@ Ju faleminderit,
 Hurma App</textarea>
             </div>
             <div style="display:flex;gap:10px;">
-                <button class="btn btn-success" id="wa-send-btn" style="flex:1;">
-                    <i class="fab fa-whatsapp"></i> Dërgo WhatsApp
+                <button type="button" class="btn btn-success" id="wa-send-btn" style="flex:1;">
+                    <i class="fab fa-whatsapp" aria-hidden="true"></i> Dërgo WhatsApp
                 </button>
-                <button class="btn btn-secondary" id="wa-copy-btn" style="flex:1;">
-                    <i class="fas fa-copy"></i> Kopjo Mesazhin
+                <button type="button" class="btn btn-secondary" id="wa-copy-btn" style="flex:1;">
+                    <i class="fas fa-copy" aria-hidden="true"></i> Kopjo Mesazhin
                 </button>
             </div>
         </div>
@@ -2275,8 +2275,8 @@ function showPaymentReport() {
                                 <br><small style="color:var(--danger);">${days} ditë vonës | ${s.sellTotal} ден</small>
                             </div>
                             <div>
-                                ${cl ? `<button class="btn btn-sm btn-success" onclick="sendPaymentReminder(${ri})"><i class="fab fa-whatsapp"></i></button>` : ''}
-                                <button class="btn btn-sm btn-success" onclick="quickMarkPaid(${ri})"><i class="fas fa-check"></i></button>
+                                ${cl ? `<button type="button" class="btn btn-sm btn-success" onclick="sendPaymentReminder(${ri})" aria-label="Send payment reminder"><i class="fab fa-whatsapp" aria-hidden="true"></i></button>` : ''}
+                                <button type="button" class="btn btn-sm btn-success" onclick="quickMarkPaid(${ri})" aria-label="Quick mark paid"><i class="fas fa-check" aria-hidden="true"></i></button>
                             </div>
                         </div>
                     `;
@@ -2408,7 +2408,7 @@ function openStockModal() {
             <label>${t('date')}:</label>
             <input type="date" id="stock-date" value="${new Date().toISOString().split('T')[0]}">
         </div>
-        <button class="btn btn-primary" onclick="addStock()" style="width:100%;">${t('add_stock')}</button>
+        <button type="button" class="btn btn-primary" onclick="addStock()" style="width:100%;">${t('add_stock')}</button>
     `;
     openModal(t('add_stock'), html);
 }
@@ -2588,19 +2588,19 @@ function refreshStock() {
         const isLow = count < 10;
         // Feature 14: Smart stock depletion
         const depletionDays = calcStockDepletionDays(p.id);
-        const depletionHtml = depletionDays !== null ? `<div style="color:${depletionDays < 7 ? 'var(--danger)' : 'var(--warning)'};margin-top:5px;font-size:0.85em;"><i class="fas fa-hourglass-half"></i> Do te mbaroje per ~${depletionDays} dite</div>` : '';
+        const depletionHtml = depletionDays !== null ? `<div style="color:${depletionDays < 7 ? 'var(--danger)' : 'var(--warning)'};margin-top:5px;font-size:0.85em;"><i class="fas fa-hourglass-half" aria-hidden="true"></i> Do te mbaroje per ~${depletionDays} dite</div>` : '';
         container.innerHTML += `
             <div class="stock-card" style="cursor:pointer;" onclick="showProductHistory('${p.id}')">
                 <h4>${p.name}</h4>
                 <div class="stock-count ${isLow ? 'stock-low' : ''}">${count}</div>
                 <div class="stock-info">${t('pieces')}</div>
                 <div class="stock-info">${t('buy_price')}: ${p.buyPrice} ден | ${t('sell_price')}: ${p.sellPrice} ден</div>
-                ${isLow ? `<div style="color:var(--danger);margin-top:5px;font-size:0.85em;"><i class="fas fa-exclamation-triangle"></i> ${t('low_stock')}</div>` : ''}
+                ${isLow ? `<div style="color:var(--danger);margin-top:5px;font-size:0.85em;"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i> ${t('low_stock')}</div>` : ''}
                 ${depletionHtml}
                 <div style="margin-top:10px;" id="qr-${p.id}"></div>
                 <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
-                    <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();showQR('${p.id}')"><i class="fas fa-qrcode"></i> ${t('qr_code')}</button>
-                    ${count > 0 ? `<button class="btn btn-sm btn-danger" onclick="event.stopPropagation();resetProductStock('${p.id}')" title="Zero stokun"><i class="fas fa-trash"></i> Fshi</button>` : ''}
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="event.stopPropagation();showQR('${p.id}')"><i class="fas fa-qrcode" aria-hidden="true"></i> ${t('qr_code')}</button>
+                    ${count > 0 ? `<button type="button" class="btn btn-sm btn-danger" onclick="event.stopPropagation();resetProductStock('${p.id}')" title="Zero stokun"><i class="fas fa-trash" aria-hidden="true"></i> Fshi</button>` : ''}
                 </div>
             </div>
         `;
@@ -2627,7 +2627,7 @@ function refreshStock() {
                 <td>${batch.expiry || '-'}</td>
                 <td>${daysLeft}</td>
                 <td style="${statusClass}">${status}</td>
-                <td><button class="btn btn-sm btn-danger" onclick="deleteStockBatch(${batch.id})" title="Fshi ngarkesën"><i class="fas fa-trash"></i></button></td>
+                <td><button type="button" class="btn btn-sm btn-danger" onclick="deleteStockBatch(${batch.id})" title="Fshi ngarkesën" aria-label="Fshi ngarkesën"><i class="fas fa-trash" aria-hidden="true"></i></button></td>
             </tr>
         `;
     });
@@ -2676,7 +2676,7 @@ function openClientModal(editId) {
                 ${(state.clientCategories || []).map(cat => `<option value="${cat}" ${client && client.category === cat ? 'selected' : ''}>${cat}</option>`).join('')}
             </select>
         </div>
-        <button class="btn btn-primary" onclick="${isEdit ? `updateClient('${editId}')` : 'addClient()'}" style="width:100%;">
+        <button type="button" class="btn btn-primary" onclick="${isEdit ? `updateClient('${editId}')` : 'addClient()'}" style="width:100%;">
             ${isEdit ? t('edit') : t('add_client')}
         </button>
     `;
@@ -2755,7 +2755,7 @@ function openClientTaskModal(clientId, editId) {
         <div class="form-group"><label>Prioriteti:</label><select id="client-task-priority"><option value="low" ${task && task.priority === 'low' ? 'selected' : ''}>I ulët</option><option value="medium" ${!task || task.priority === 'medium' ? 'selected' : ''}>Mesatar</option><option value="high" ${task && task.priority === 'high' ? 'selected' : ''}>I lartë</option></select></div>
         <div class="form-group"><label>Afati:</label><input type="date" id="client-task-due" value="${task ? task.dueDate || '' : ''}"></div>
         <div class="form-group"><label>Shënim:</label><textarea id="client-task-note">${task ? task.note || '' : ''}</textarea></div>
-        <button class="btn btn-primary" onclick="${task ? `saveClientTask('${task.id}')` : 'saveClientTask()'}" style="width:100%;">Ruaj Task-un</button>
+        <button type="button" class="btn btn-primary" onclick="${task ? `saveClientTask('${task.id}')` : 'saveClientTask()'}" style="width:100%;">Ruaj Task-un</button>
     `);
 }
 
@@ -2807,14 +2807,14 @@ function showTaskBoard(clientId) {
             <td>${task.dueDate || '-'}</td>
             <td>${task.status === 'done' ? 'Kryer' : 'Hapur'}</td>
             <td style="white-space:nowrap;">
-                <button class="btn btn-sm btn-success" onclick="toggleClientTaskDone('${task.id}')"><i class="fas ${task.status === 'done' ? 'fa-rotate-left' : 'fa-check'}"></i></button>
-                <button class="btn btn-sm btn-secondary" onclick="openClientTaskModal('${task.clientId}','${task.id}')"><i class="fas fa-edit"></i></button>
+                <button type="button" class="btn btn-sm btn-success" onclick="toggleClientTaskDone('${task.id}')" aria-label="Toggle client task done"><i class="fas ${task.status === 'done' ? 'fa-rotate-left' : 'fa-check'}" aria-hidden="true"></i></button>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="openClientTaskModal('${task.clientId}','${task.id}')" aria-label="Open client task modal"><i class="fas fa-edit" aria-hidden="true"></i></button>
             </td>
         </tr>`;
     }).join('') || '<tr><td colspan="6">Nuk ka task-e.</td></tr>';
     openModal('Task Board', `
         <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
-            <button class="btn btn-primary" onclick="openClientTaskModal('${clientId || ''}')"><i class="fas fa-plus"></i> Shto Task</button>
+            <button type="button" class="btn btn-primary" onclick="openClientTaskModal('${clientId || ''}')"><i class="fas fa-plus" aria-hidden="true"></i> Shto Task</button>
         </div>
         <div class="table-container"><table class="data-table"><thead><tr><th>Titulli</th><th>Klienti</th><th>Prioriteti</th><th>Afati</th><th>Statusi</th><th>Veprime</th></tr></thead><tbody>${rows}</tbody></table></div>
     `);
@@ -2828,7 +2828,7 @@ function openClientVisitModal(clientId, editId) {
         <div class="form-group"><label>Qëllimi:</label><input type="text" id="client-visit-purpose" value="${visit ? visit.purpose || '' : ''}" placeholder="Kontroll, ofertë, pagesë..."></div>
         <div class="form-group"><label>Vizita e ardhshme:</label><input type="date" id="client-next-visit-date" value="${visit ? visit.nextVisitDate || '' : ''}"></div>
         <div class="form-group"><label>Shënime:</label><textarea id="client-visit-note">${visit ? visit.note || '' : ''}</textarea></div>
-        <button class="btn btn-primary" onclick="${visit ? `saveClientVisit('${visit.id}')` : 'saveClientVisit()'}" style="width:100%;">Ruaj Vizitën</button>
+        <button type="button" class="btn btn-primary" onclick="${visit ? `saveClientVisit('${visit.id}')` : 'saveClientVisit()'}" style="width:100%;">Ruaj Vizitën</button>
     `);
 }
 
@@ -2867,12 +2867,12 @@ function showVisitsBoard(clientId) {
             <td>${visit.purpose || '-'}</td>
             <td>${visit.nextVisitDate || '-'}</td>
             <td>${visit.note || '-'}</td>
-            <td><button class="btn btn-sm btn-secondary" onclick="openClientVisitModal('${visit.clientId}','${visit.id}')"><i class="fas fa-edit"></i></button></td>
+            <td><button type="button" class="btn btn-sm btn-secondary" onclick="openClientVisitModal('${visit.clientId}','${visit.id}')" aria-label="Open client visit modal"><i class="fas fa-edit" aria-hidden="true"></i></button></td>
         </tr>`;
     }).join('') || '<tr><td colspan="6">Nuk ka vizita.</td></tr>';
     openModal('Vizita në Terren', `
         <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
-            <button class="btn btn-primary" onclick="openClientVisitModal('${clientId || ''}')"><i class="fas fa-plus"></i> Shto Vizitë</button>
+            <button type="button" class="btn btn-primary" onclick="openClientVisitModal('${clientId || ''}')"><i class="fas fa-plus" aria-hidden="true"></i> Shto Vizitë</button>
         </div>
         <div class="table-container"><table class="data-table"><thead><tr><th>Klienti</th><th>Data</th><th>Qëllimi</th><th>Vizita tjetër</th><th>Shënime</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
     `);
@@ -2912,7 +2912,7 @@ function generateAllMarketMonthlyReports() {
             <td>${totalPayments} ден</td>
             <td>${client.debt || 0} ден</td>
             <td style="color:${status.color};font-weight:700;">${status.label}</td>
-            <td><button class="btn btn-sm btn-primary" onclick="openClientHistoryReport('${client.id}', { fromDate: '${month}-01', toDate: '${month}-${new Date(new Date().getFullYear(), new Date().getMonth()+1, 0).getDate().toString().padStart(2,'0')}' })"><i class="fas fa-eye"></i></button></td>
+            <td><button type="button" class="btn btn-sm btn-primary" onclick="openClientHistoryReport('${client.id}', { fromDate: '${month}-01', toDate: '${month}-${new Date(new Date().getFullYear(), new Date().getMonth()+1, 0).getDate().toString().padStart(2,'0')}' })" aria-label="Open client history report"><i class="fas fa-eye" aria-hidden="true"></i></button></td>
         </tr>`;
     }).join('');
     openModal('Raporte Mujore për Marketet', `<p style="margin-bottom:10px;color:var(--text-secondary);">Muaji: ${month}</p><div class="table-container"><table class="data-table"><thead><tr><th>Klienti</th><th>Blerje</th><th>Pagesa</th><th>Borxhi</th><th>Statusi</th><th>Raporti</th></tr></thead><tbody>${rows || '<tr><td colspan="6">Nuk ka klientë.</td></tr>'}</tbody></table></div>`);
@@ -2936,7 +2936,7 @@ function payClientDebt(id) {
             <label>${t('amount')} (${t('debt')}: ${client.debt} ден):</label>
             <input type="number" id="debt-amount" value="${client.debt}" min="0" max="${client.debt}">
         </div>
-        <button class="btn btn-primary" onclick="processDebtPayment('${id}')" style="width:100%;">${t('pay_debt')}</button>
+        <button type="button" class="btn btn-primary" onclick="processDebtPayment('${id}')" style="width:100%;">${t('pay_debt')}</button>
     `;
     openModal(t('pay_debt') + ' - ' + client.name, html);
 }
@@ -3015,7 +3015,7 @@ function refreshClients() {
 
         tbody.innerHTML += `
             <tr>
-                <td>${isPinned ? '<i class="fas fa-star" style="color:var(--warning);margin-right:4px;"></i>' : ''}<span style="cursor:pointer;color:var(--primary);text-decoration:underline;" onclick="openClient360('${c.id}')">${c.name}</span></td>
+                <td>${isPinned ? '<i class="fas fa-star" style="color:var(--warning);margin-right:4px;" aria-hidden="true"></i>' : ''}<span style="cursor:pointer;color:var(--primary);text-decoration:underline;" onclick="openClient360('${c.id}')">${c.name}</span></td>
                 <td>${c.phone || '-'}</td>
                 <td>${totalPurchases} ден</td>
                 <td>${clientCash} ден</td>
@@ -3025,24 +3025,24 @@ function refreshClients() {
                 <td>${clientStatusBadge(c.id)}</td>
                 <td><strong style="color:${statusInfo.color};">${score}</strong></td>
                 <td>
-                    <button class="btn btn-sm ${isPinned ? 'btn-warning' : 'btn-secondary'}" onclick="togglePinClient('${c.id}')" title="${isPinned ? 'Hiq pin' : 'Pin'}"><i class="fas fa-thumbtack"></i></button>
-                    <button class="btn btn-sm btn-secondary" onclick="openClientModal('${c.id}')"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteClient('${c.id}')"><i class="fas fa-trash"></i></button>
-                    ${c.debt > 0 ? `<button class="btn btn-sm btn-success" onclick="payClientDebt('${c.id}')"><i class="fas fa-money-bill"></i></button>` : ''}
-                    ${clientOpenInvoices.length > 0 ? `<button class="btn btn-sm btn-secondary" onclick="showClientInvoices('${c.id}')"><i class="fas fa-file-invoice"></i></button>` : ''}
-                    ${c.phone ? `<button class="btn btn-sm" style="background:#25D366; color:white;" onclick="sendWhatsApp('${c.phone}', 'Përshëndetje ${c.name}')" title="WhatsApp"><i class="fab fa-whatsapp"></i></button>` : ''}
-                    ${c.phone ? `<button class="btn btn-sm btn-secondary" onclick="showWhatsAppTemplates('${c.phone}', '${c.name}')" title="Shabllone WhatsApp"><i class="fas fa-comment-dots"></i></button>` : ''}
-                    <button class="btn btn-sm btn-secondary" onclick="showClientPaymentHistory('${c.id}')" title="Historia"><i class="fas fa-history"></i></button>
-                    <button class="btn btn-sm btn-success" onclick="openQuickCollectModal('${c.id}')" title="Mbledh Pagese"><i class="fas fa-hand-holding-usd"></i></button>
-                    <button class="btn btn-sm btn-primary" onclick="openClientTaskModal('${c.id}')" title="Task"><i class="fas fa-list-check"></i></button>
-                    <button class="btn btn-sm btn-info" onclick="openClientVisitModal('${c.id}')" title="Vizitë"><i class="fas fa-route"></i></button>
-                    <button class="btn btn-sm btn-info" onclick="showClientQR('${c.id}')" title="QR Kod"><i class="fas fa-qrcode"></i></button>
-                    <button class="btn btn-sm btn-secondary" onclick="generateClientStatement('${c.id}')" title="Pasqyrë"><i class="fas fa-file-alt"></i></button>
-                    ${c.debt > 0 ? `<button class="btn btn-sm btn-warning" onclick="sendClientDebtWhatsApp('${c.id}')" title="Kujto Borxhin"><i class="fas fa-comment-dollar"></i></button>` : ''}
-                    ${c.debt > 0 ? `<button class="btn btn-sm btn-info" onclick="openClientInstallmentModal('${c.id}')" title="Këste"><i class="fas fa-calendar-check"></i></button>` : ''}
-                    ${c.debt > 0 ? `<button class="btn btn-sm btn-success" onclick="openEarlyPaymentModal('${c.id}')" title="Zbritje e Hershme"><i class="fas fa-percentage"></i></button>` : ''}
-                    <button class="btn btn-sm btn-secondary" onclick="showClientPaymentChart('${c.id}')" title="Grafiku"><i class="fas fa-chart-line"></i></button>
-                    <button class="btn btn-sm btn-secondary" onclick="printClientHistory('${c.id}')" title="Printo"><i class="fas fa-print"></i></button>
+                    <button type="button" class="btn btn-sm ${isPinned ? 'btn-warning' : 'btn-secondary'}" onclick="togglePinClient('${c.id}')" title="${isPinned ? 'Hiq pin' : 'Pin'}" aria-label="${isPinned ? 'Hiq pin' : 'Pin'}"><i class="fas fa-thumbtack" aria-hidden="true"></i></button>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="openClientModal('${c.id}')" aria-label="Open client modal"><i class="fas fa-edit" aria-hidden="true"></i></button>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteClient('${c.id}')" aria-label="Delete client"><i class="fas fa-trash" aria-hidden="true"></i></button>
+                    ${c.debt > 0 ? `<button type="button" class="btn btn-sm btn-success" onclick="payClientDebt('${c.id}')" aria-label="Pay client debt"><i class="fas fa-money-bill" aria-hidden="true"></i></button>` : ''}
+                    ${clientOpenInvoices.length > 0 ? `<button type="button" class="btn btn-sm btn-secondary" onclick="showClientInvoices('${c.id}')" aria-label="Show client invoices"><i class="fas fa-file-invoice" aria-hidden="true"></i></button>` : ''}
+                    ${c.phone ? `<button type="button" class="btn btn-sm" style="background:#25D366; color:white;" onclick="sendWhatsApp('${c.phone}', 'Përshëndetje ${c.name}')" title="WhatsApp" aria-label="WhatsApp"><i class="fab fa-whatsapp" aria-hidden="true"></i></button>` : ''}
+                    ${c.phone ? `<button type="button" class="btn btn-sm btn-secondary" onclick="showWhatsAppTemplates('${c.phone}', '${c.name}')" title="Shabllone WhatsApp" aria-label="Shabllone WhatsApp"><i class="fas fa-comment-dots" aria-hidden="true"></i></button>` : ''}
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="showClientPaymentHistory('${c.id}')" title="Historia" aria-label="Historia"><i class="fas fa-history" aria-hidden="true"></i></button>
+                    <button type="button" class="btn btn-sm btn-success" onclick="openQuickCollectModal('${c.id}')" title="Mbledh Pagese" aria-label="Mbledh Pagese"><i class="fas fa-hand-holding-usd" aria-hidden="true"></i></button>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="openClientTaskModal('${c.id}')" title="Task" aria-label="Task"><i class="fas fa-list-check" aria-hidden="true"></i></button>
+                    <button type="button" class="btn btn-sm btn-info" onclick="openClientVisitModal('${c.id}')" title="Vizitë" aria-label="Vizitë"><i class="fas fa-route" aria-hidden="true"></i></button>
+                    <button type="button" class="btn btn-sm btn-info" onclick="showClientQR('${c.id}')" title="QR Kod" aria-label="QR Kod"><i class="fas fa-qrcode" aria-hidden="true"></i></button>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="generateClientStatement('${c.id}')" title="Pasqyrë" aria-label="Pasqyrë"><i class="fas fa-file-alt" aria-hidden="true"></i></button>
+                    ${c.debt > 0 ? `<button type="button" class="btn btn-sm btn-warning" onclick="sendClientDebtWhatsApp('${c.id}')" title="Kujto Borxhin" aria-label="Kujto Borxhin"><i class="fas fa-comment-dollar" aria-hidden="true"></i></button>` : ''}
+                    ${c.debt > 0 ? `<button type="button" class="btn btn-sm btn-info" onclick="openClientInstallmentModal('${c.id}')" title="Këste" aria-label="Këste"><i class="fas fa-calendar-check" aria-hidden="true"></i></button>` : ''}
+                    ${c.debt > 0 ? `<button type="button" class="btn btn-sm btn-success" onclick="openEarlyPaymentModal('${c.id}')" title="Zbritje e Hershme" aria-label="Zbritje e Hershme"><i class="fas fa-percentage" aria-hidden="true"></i></button>` : ''}
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="showClientPaymentChart('${c.id}')" title="Grafiku" aria-label="Grafiku"><i class="fas fa-chart-line" aria-hidden="true"></i></button>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="printClientHistory('${c.id}')" title="Printo" aria-label="Printo"><i class="fas fa-print" aria-hidden="true"></i></button>
                 </td>
             </tr>
         `;
@@ -3079,7 +3079,7 @@ function showClientInvoices(clientId) {
             <td>${s.sellTotal} ден</td>
             <td>${s.dueDate || '-'}</td>
             <td>${statusHtml}</td>
-            <td>${!s.invoicePaid ? `<button class="btn btn-sm btn-success" onclick="markInvoicePaid(${realIndex});closeModal();"><i class="fas fa-check"></i> ${t('mark_paid')}</button>` : ''}</td>
+            <td>${!s.invoicePaid ? `<button type="button" class="btn btn-sm btn-success" onclick="markInvoicePaid(${realIndex});closeModal();"><i class="fas fa-check" aria-hidden="true"></i> ${t('mark_paid')}</button>` : ''}</td>
         </tr>`;
     });
 
@@ -3122,7 +3122,7 @@ function openOrderModal(editId) {
             <label>${t('note')} (${t('optional')}):</label>
             <textarea id="order-note">${order ? order.note || '' : ''}</textarea>
         </div>
-        <button class="btn btn-primary" onclick="${isEdit ? `updateOrder(${editId})` : 'addOrder()'}" style="width:100%;">
+        <button type="button" class="btn btn-primary" onclick="${isEdit ? `updateOrder(${editId})` : 'addOrder()'}" style="width:100%;">
             ${isEdit ? t('edit') : t('new_order')}
         </button>
     `;
@@ -3246,11 +3246,11 @@ function refreshOrders() {
                 <td style="color:${statusColors[o.status] || ''}">${t(o.status)}</td>
                 <td>
                     ${o.status === 'pending' ? `
-                        <button class="btn btn-sm btn-success" onclick="changeOrderStatus(${i},'completed')"><i class="fas fa-check"></i></button>
-                        <button class="btn btn-sm btn-danger" onclick="changeOrderStatus(${i},'cancelled')"><i class="fas fa-times"></i></button>
+                        <button type="button" class="btn btn-sm btn-success" onclick="changeOrderStatus(${i},'completed')" aria-label="Change order status"><i class="fas fa-check" aria-hidden="true"></i></button>
+                        <button type="button" class="btn btn-sm btn-danger" onclick="changeOrderStatus(${i},'cancelled')" aria-label="Change order status"><i class="fas fa-times" aria-hidden="true"></i></button>
                     ` : ''}
-                    <button class="btn btn-sm btn-secondary" onclick="openOrderModal(${i})"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteOrder(${i})"><i class="fas fa-trash"></i></button>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="openOrderModal(${i})" aria-label="Open order modal"><i class="fas fa-edit" aria-hidden="true"></i></button>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteOrder(${i})" aria-label="Delete order"><i class="fas fa-trash" aria-hidden="true"></i></button>
                 </td>
             </tr>
         `;
@@ -3338,7 +3338,7 @@ function openFatonPaymentModal(editIndex) {
             <label>${t('note')} (${t('optional')}):</label>
             <textarea id="faton-note">${isEdit ? (existing.note || '') : ''}</textarea>
         </div>
-        <button class="btn btn-primary" onclick="${isEdit ? 'updateFatonPayment(' + editIndex + ')' : 'addFatonPayment()'}" style="width:100%;">${isEdit ? 'Perditeso pagesen' : t('add_payment')}</button>
+        <button type="button" class="btn btn-primary" onclick="${isEdit ? 'updateFatonPayment(' + editIndex + ')' : 'addFatonPayment()'}" style="width:100%;">${isEdit ? 'Perditeso pagesen' : t('add_payment')}</button>
     `;
     openModal(isEdit ? 'Ndrysho pagesen' : t('add_payment'), html);
 }
@@ -3481,7 +3481,7 @@ function openProfitCollectionModal() {
             <label>${t('note')} (${t('optional')}):</label>
             <textarea id="profit-collection-note"></textarea>
         </div>
-        <button class="btn btn-success" onclick="addProfitCollection()" style="width:100%;">${t('collect_profit')}</button>
+        <button type="button" class="btn btn-success" onclick="addProfitCollection()" style="width:100%;">${t('collect_profit')}</button>
     `;
     openModal(t('collect_profit'), html);
 }
@@ -3582,7 +3582,7 @@ function openFatonInstallmentModal() {
             <input type="number" id="installment-interval" min="7" max="90" value="30" oninput="previewInstallments()">
         </div>
         <div id="installment-preview" style="margin:15px 0;"></div>
-        <button class="btn btn-primary" onclick="saveFatonInstallments()" style="width:100%;">Ruaj planin e kesteve</button>
+        <button type="button" class="btn btn-primary" onclick="saveFatonInstallments()" style="width:100%;">Ruaj planin e kesteve</button>
     `;
     openModal('Planifikimi i kesteve', html);
     setTimeout(previewInstallments, 100);
@@ -3661,7 +3661,7 @@ function openFatonDebtLimitModal() {
             <input type="number" id="faton-debt-limit" min="0" value="${currentLimit}" placeholder="P.sh. 50000">
             <small style="color:var(--text-secondary);">Kur borxhi kalon kete limit, do te merrni njoftim</small>
         </div>
-        <button class="btn btn-primary" onclick="saveFatonDebtLimit()" style="width:100%;margin-top:10px;">Ruaj limitin</button>
+        <button type="button" class="btn btn-primary" onclick="saveFatonDebtLimit()" style="width:100%;margin-top:10px;">Ruaj limitin</button>
     `;
     openModal('Limiti i borxhit ndaj Fatonit', html);
 }
@@ -3874,17 +3874,17 @@ function refreshFaton() {
             const bal = balances.get(i) || 0;
             let actions = '';
             if (e.type === 'payment' && e.editIndex !== undefined) {
-                actions = '<button class="btn btn-sm btn-secondary" onclick="openFatonPaymentModal(' + e.editIndex + ')"><i class="fas fa-edit"></i></button> ' +
-                          '<button class="btn btn-sm btn-danger" onclick="deleteFatonPayment(' + e.editIndex + ')"><i class="fas fa-trash"></i></button>';
+                actions = '<button type="button" class="btn btn-sm btn-secondary" onclick="openFatonPaymentModal(' + e.editIndex + ')" aria-label="Open faton payment modal"><i class="fas fa-edit" aria-hidden="true"></i></button> ' +
+                          '<button type="button" class="btn btn-sm btn-danger" onclick="deleteFatonPayment(' + e.editIndex + ')" aria-label="Delete faton payment"><i class="fas fa-trash" aria-hidden="true"></i></button>';
             } else if (e.type === 'profit_collection' && e.collectionIndex !== undefined) {
-                actions = '<button class="btn btn-sm btn-danger" onclick="deleteProfitCollection(' + e.collectionIndex + ')"><i class="fas fa-trash"></i></button>';
+                actions = '<button type="button" class="btn btn-sm btn-danger" onclick="deleteProfitCollection(' + e.collectionIndex + ')" aria-label="Delete profit collection"><i class="fas fa-trash" aria-hidden="true"></i></button>';
             } else if (e.type === 'purchase' && e.raw && e.raw.id !== undefined) {
-                actions = '<button class="btn btn-sm btn-danger" onclick="deleteFatonPurchase(' + e.raw.id + ')" title="Fshi blerjen"><i class="fas fa-trash"></i></button>';
+                actions = '<button type="button" class="btn btn-sm btn-danger" onclick="deleteFatonPurchase(' + e.raw.id + ')" title="Fshi blerjen" aria-label="Fshi blerjen"><i class="fas fa-trash" aria-hidden="true"></i></button>';
             }
 
             timelineBody.innerHTML += '<tr>' +
                 '<td>' + e.date + '</td>' +
-                '<td><span style="color:' + e.color + ';"><i class="fas ' + e.icon + '"></i> ' + e.label + '</span></td>' +
+                '<td><span style="color:' + e.color + ';"><i class="fas ' + e.icon + '" aria-hidden="true"></i> ' + e.label + '</span></td>' +
                 '<td>' + e.desc + '</td>' +
                 '<td style="color:' + (e.type === 'purchase' ? 'var(--danger)' : 'var(--success)') + ';font-weight:bold;">' + (e.type === 'purchase' ? '' : '+') + (e.type === 'purchase' ? e.amount : e.amount) + ' den</td>' +
                 '<td style="font-weight:bold;color:' + (bal > 0 ? 'var(--danger)' : 'var(--success)') + ';">' + bal + ' den</td>' +
@@ -3896,7 +3896,7 @@ function refreshFaton() {
     // Feature 7: Installment plan display
     const installmentDiv = document.getElementById('faton-installment-plan');
     if (installmentDiv && state.fatonInstallments && (state.fatonInstallments || []).length > 0) {
-        let html = '<div style="background:var(--bg-secondary);padding:15px;border-radius:10px;"><h4 style="margin-bottom:10px;"><i class="fas fa-calendar-check"></i> Plani i kesteve</h4>';
+        let html = '<div style="background:var(--bg-secondary);padding:15px;border-radius:10px;"><h4 style="margin-bottom:10px;"><i class="fas fa-calendar-check" aria-hidden="true"></i> Plani i kesteve</h4>';
         html += '<div style="display:flex;flex-wrap:wrap;gap:10px;">';
         (state.fatonInstallments || []).forEach((inst, i) => {
             const isOverdue = !inst.paid && inst.date < new Date().toISOString().split('T')[0];
@@ -3906,8 +3906,8 @@ function refreshFaton() {
             html += '<div style="font-size:0.8em;opacity:0.8;">Kesti ' + (i + 1) + '</div>';
             html += '<div style="font-weight:bold;font-size:1.1em;">' + inst.amount + ' den</div>';
             html += '<div style="font-size:0.85em;">' + inst.date + '</div>';
-            if (!inst.paid) html += '<button class="btn btn-sm" style="margin-top:5px;background:white;color:#333;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;" onclick="markInstallmentPaid(' + i + ')">Paguaj</button>';
-            else html += '<div style="margin-top:5px;font-size:0.8em;"><i class="fas fa-check"></i> Paguar</div>';
+            if (!inst.paid) html += '<button type="button" class="btn btn-sm" style="margin-top:5px;background:white;color:#333;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;" onclick="markInstallmentPaid(' + i + ')">Paguaj</button>';
+            else html += '<div style="margin-top:5px;font-size:0.8em;"><i class="fas fa-check" aria-hidden="true"></i> Paguar</div>';
             html += '</div>';
         });
         html += '</div></div>';
@@ -4078,11 +4078,11 @@ function viewReceipt(receiptIndex) {
 
     // Action buttons
     html += '<div style="display:flex;gap:8px;margin-top:15px;flex-wrap:wrap;">';
-    html += '<button class="btn btn-primary" onclick="downloadReceiptPDF(' + receiptIndex + ')"><i class="fas fa-file-pdf"></i> Shkarko PDF</button>';
-    html += '<button class="btn btn-success" onclick="shareReceiptWhatsApp(' + receiptIndex + ')"><i class="fab fa-whatsapp"></i> WhatsApp</button>';
-    if (!receipt.signature) html += '<button class="btn btn-secondary" onclick="openSignatureModal(' + receiptIndex + ')"><i class="fas fa-signature"></i> Nenshkruaj</button>';
-    if (!receipt.proofImage) html += '<button class="btn btn-secondary" onclick="uploadProofImage(' + receiptIndex + ')"><i class="fas fa-camera"></i> Shto deshmi</button>';
-    if (receipt.status === 'confirmed') html += '<button class="btn btn-accent" onclick="verifyReceipt(' + receiptIndex + ')"><i class="fas fa-check-double"></i> Verifiko</button>';
+    html += '<button type="button" class="btn btn-primary" onclick="downloadReceiptPDF(' + receiptIndex + ')"><i class="fas fa-file-pdf" aria-hidden="true"></i> Shkarko PDF</button>';
+    html += '<button type="button" class="btn btn-success" onclick="shareReceiptWhatsApp(' + receiptIndex + ')"><i class="fab fa-whatsapp" aria-hidden="true"></i> WhatsApp</button>';
+    if (!receipt.signature) html += '<button type="button" class="btn btn-secondary" onclick="openSignatureModal(' + receiptIndex + ')"><i class="fas fa-signature" aria-hidden="true"></i> Nenshkruaj</button>';
+    if (!receipt.proofImage) html += '<button type="button" class="btn btn-secondary" onclick="uploadProofImage(' + receiptIndex + ')"><i class="fas fa-camera" aria-hidden="true"></i> Shto deshmi</button>';
+    if (receipt.status === 'confirmed') html += '<button type="button" class="btn btn-accent" onclick="verifyReceipt(' + receiptIndex + ')"><i class="fas fa-check-double" aria-hidden="true"></i> Verifiko</button>';
     html += '</div>';
 
     openModal('Fatura #' + receipt.receiptNumber, html);
@@ -4279,8 +4279,8 @@ function openSignatureModal(receiptIndex) {
     html += '<p style="margin-bottom:10px;color:var(--text-secondary);">Nenshkruani me gisht ose mouse brenda zones:</p>';
     html += '<canvas id="signature-canvas" width="350" height="150" style="border:2px solid var(--border);border-radius:8px;background:white;cursor:crosshair;touch-action:none;"></canvas>';
     html += '<div style="display:flex;gap:8px;margin-top:12px;justify-content:center;">';
-    html += '<button class="btn btn-secondary" onclick="clearSignature()"><i class="fas fa-eraser"></i> Pastro</button>';
-    html += '<button class="btn btn-primary" onclick="saveSignature(' + receiptIndex + ')"><i class="fas fa-check"></i> Ruaj nenshkrimin</button>';
+    html += '<button type="button" class="btn btn-secondary" onclick="clearSignature()"><i class="fas fa-eraser" aria-hidden="true"></i> Pastro</button>';
+    html += '<button type="button" class="btn btn-primary" onclick="saveSignature(' + receiptIndex + ')"><i class="fas fa-check" aria-hidden="true"></i> Ruaj nenshkrimin</button>';
     html += '</div></div>';
 
     openModal('Nenshkrimi dixhital', html);
@@ -4363,7 +4363,7 @@ function showReceiptHistory() {
     }
 
     let html = '<div style="margin-bottom:10px;">';
-    html += '<button class="btn btn-primary" onclick="exportAllReceiptsPDF()"><i class="fas fa-file-pdf"></i> Eksporto te gjitha ne PDF</button>';
+    html += '<button type="button" class="btn btn-primary" onclick="exportAllReceiptsPDF()"><i class="fas fa-file-pdf" aria-hidden="true"></i> Eksporto te gjitha ne PDF</button>';
     html += '</div>';
     html += '<table class="data-table"><thead><tr><th>#</th><th>Data</th><th>Shuma</th><th>Metoda</th><th>Statusi</th><th>Veprime</th></tr></thead><tbody>';
 
@@ -4376,9 +4376,9 @@ function showReceiptHistory() {
         html += '<td>' + getCategoryLabel(r.category) + '</td>';
         html += '<td><span style="color:' + getStatusColor(r.status) + ';font-weight:600;">' + getStatusLabel(r.status) + '</span></td>';
         html += '<td>';
-        html += '<button class="btn btn-sm btn-primary" onclick="viewReceipt(' + realIndex + ')"><i class="fas fa-eye"></i></button> ';
-        html += '<button class="btn btn-sm btn-secondary" onclick="downloadReceiptPDF(' + realIndex + ')"><i class="fas fa-file-pdf"></i></button> ';
-        html += '<button class="btn btn-sm btn-success" onclick="shareReceiptWhatsApp(' + realIndex + ')"><i class="fab fa-whatsapp"></i></button>';
+        html += '<button type="button" class="btn btn-sm btn-primary" onclick="viewReceipt(' + realIndex + ')" aria-label="View receipt"><i class="fas fa-eye" aria-hidden="true"></i></button> ';
+        html += '<button type="button" class="btn btn-sm btn-secondary" onclick="downloadReceiptPDF(' + realIndex + ')" aria-label="Download receipt pdf"><i class="fas fa-file-pdf" aria-hidden="true"></i></button> ';
+        html += '<button type="button" class="btn btn-sm btn-success" onclick="shareReceiptWhatsApp(' + realIndex + ')" aria-label="Share receipt whats app"><i class="fab fa-whatsapp" aria-hidden="true"></i></button>';
         html += '</td></tr>';
     });
     html += '</tbody></table>';
@@ -4450,7 +4450,7 @@ function showPaymentConfirmation(payment, receipt) {
     const netProfit = totalProfit - totalExpenses;
 
     let html = '<div style="text-align:center;padding:10px;">';
-    html += '<div style="font-size:3em;color:var(--success);margin-bottom:10px;"><i class="fas fa-check-circle"></i></div>';
+    html += '<div style="font-size:3em;color:var(--success);margin-bottom:10px;"><i class="fas fa-check-circle" aria-hidden="true"></i></div>';
     html += '<h3 style="color:var(--success);margin-bottom:15px;">Pagesa u regjistrua me sukses!</h3>';
     html += '<div class="receipt-number" style="margin-bottom:15px;">' + receipt.receiptNumber + '</div>';
 
@@ -4464,10 +4464,10 @@ function showPaymentConfirmation(payment, receipt) {
     html += '</div>';
 
     html += '<div style="display:flex;gap:8px;margin-top:20px;justify-content:center;flex-wrap:wrap;">';
-    html += '<button class="btn btn-primary" onclick="viewReceipt(' + ((state.paymentReceipts || []).length - 1) + ')"><i class="fas fa-receipt"></i> Shiko faturen</button>';
-    html += '<button class="btn btn-success" onclick="shareReceiptWhatsApp(' + ((state.paymentReceipts || []).length - 1) + ')"><i class="fab fa-whatsapp"></i> Dergo WhatsApp</button>';
-    html += '<button class="btn btn-secondary" onclick="downloadReceiptPDF(' + ((state.paymentReceipts || []).length - 1) + ')"><i class="fas fa-file-pdf"></i> Shkarko PDF</button>';
-    html += '<button class="btn btn-secondary" onclick="closeModal()"><i class="fas fa-times"></i> Mbyll</button>';
+    html += '<button type="button" class="btn btn-primary" onclick="viewReceipt(' + ((state.paymentReceipts || []).length - 1) + ')"><i class="fas fa-receipt" aria-hidden="true"></i> Shiko faturen</button>';
+    html += '<button type="button" class="btn btn-success" onclick="shareReceiptWhatsApp(' + ((state.paymentReceipts || []).length - 1) + ')"><i class="fab fa-whatsapp" aria-hidden="true"></i> Dergo WhatsApp</button>';
+    html += '<button type="button" class="btn btn-secondary" onclick="downloadReceiptPDF(' + ((state.paymentReceipts || []).length - 1) + ')"><i class="fas fa-file-pdf" aria-hidden="true"></i> Shkarko PDF</button>';
+    html += '<button type="button" class="btn btn-secondary" onclick="closeModal()"><i class="fas fa-times" aria-hidden="true"></i> Mbyll</button>';
     html += '</div></div>';
 
     openModal('Pagesa u konfirmua', html);
@@ -4481,10 +4481,10 @@ function verifyPinForPayment(callback) {
         return;
     }
     let html = '<div style="text-align:center;">';
-    html += '<p style="margin-bottom:15px;"><i class="fas fa-lock" style="font-size:2em;color:var(--warning);"></i></p>';
+    html += '<p style="margin-bottom:15px;"><i class="fas fa-lock" style="font-size:2em;color:var(--warning);" aria-hidden="true"></i></p>';
     html += '<p>Vendosni PIN per te konfirmuar pagesen:</p>';
     html += '<input type="password" id="payment-pin-input" maxlength="4" style="text-align:center;font-size:1.5em;letter-spacing:10px;width:150px;margin:15px auto;display:block;padding:10px;border:2px solid var(--border);border-radius:8px;">';
-    html += '<button class="btn btn-primary" onclick="checkPaymentPin()" style="width:100%;margin-top:10px;">Konfirmo</button>';
+    html += '<button type="button" class="btn btn-primary" onclick="checkPaymentPin()" style="width:100%;margin-top:10px;">Konfirmo</button>';
     html += '</div>';
     openModal('Verifikimi PIN', html);
     window._paymentPinCallback = callback;
@@ -4537,7 +4537,7 @@ function openPaymentTemplateModal() {
     if (templates.length > 0) {
         html += '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:15px;">';
         templates.forEach((tmpl, i) => {
-            html += '<button class="btn btn-secondary" onclick="usePaymentTemplate(' + i + ')" style="padding:10px 15px;">';
+            html += '<button type="button" class="btn btn-secondary" onclick="usePaymentTemplate(' + i + ')" style="padding:10px 15px;">';
             html += '<strong>' + tmpl.name + '</strong><br>';
             html += '<small>' + tmpl.amount + ' den - ' + getCategoryLabel(tmpl.category) + '</small>';
             html += '</button>';
@@ -4553,7 +4553,7 @@ function openPaymentTemplateModal() {
     html += '<div class="form-group"><label>Shuma:</label><input type="number" id="template-amount" min="1"></div>';
     html += '<div class="form-group"><label>Kategoria:</label><select id="template-category"><option value="cash">Cash dorezim</option><option value="bank_transfer">Transfer bankar</option><option value="deduction">Zbritje</option><option value="goods">Mall/Produkte</option><option value="other">Tjeter</option></select></div>';
     html += '<div class="form-group"><label>Shenim:</label><input type="text" id="template-note" placeholder="Opsionale"></div>';
-    html += '<button class="btn btn-primary" onclick="savePaymentTemplate()" style="width:100%;"><i class="fas fa-save"></i> Ruaj shabllonen</button>';
+    html += '<button type="button" class="btn btn-primary" onclick="savePaymentTemplate()" style="width:100%;"><i class="fas fa-save" aria-hidden="true"></i> Ruaj shabllonen</button>';
 
     openModal('Shabllonet e pagesave', html);
 }
@@ -4604,7 +4604,7 @@ function openCurrencyModal() {
     html += '<div class="form-group"><label>Nga:</label><select id="convert-from" onchange="convertCurrency()"><option value="MKD">MKD (den)</option><option value="EUR">EUR</option><option value="USD">USD</option></select></div>';
     html += '<div id="convert-result" style="padding:10px;background:var(--bg-secondary);border-radius:8px;margin-top:10px;"></div>';
     html += '<div class="receipt-divider"></div>';
-    html += '<button class="btn btn-primary" onclick="saveCurrencyRates()" style="width:100%;"><i class="fas fa-save"></i> Ruaj kurset</button>';
+    html += '<button type="button" class="btn btn-primary" onclick="saveCurrencyRates()" style="width:100%;"><i class="fas fa-save" aria-hidden="true"></i> Ruaj kurset</button>';
 
     openModal('Multi-valute', html);
 }
@@ -4865,11 +4865,11 @@ function openSplitPaymentModal() {
     html += '<input type="number" class="split-amount" placeholder="Shuma" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;">';
     html += '<select class="split-category" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;"><option value="cash">Cash</option><option value="bank_transfer">Transfer</option><option value="deduction">Zbritje</option><option value="goods">Mall</option></select>';
     html += '</div></div>';
-    html += '<button type="button" class="btn btn-secondary btn-sm" onclick="addSplitPart()" style="margin-bottom:12px;"><i class="fas fa-plus"></i> Shto pjese</button>';
+    html += '<button type="button" class="btn btn-secondary btn-sm" onclick="addSplitPart()" style="margin-bottom:12px;"><i class="fas fa-plus" aria-hidden="true"></i> Shto pjese</button>';
     html += '<div id="split-total" style="padding:10px;background:var(--bg-primary);border-radius:8px;margin-bottom:12px;font-weight:bold;"></div>';
     html += '<div class="form-group"><label>Data:</label><input type="date" id="split-date" value="' + new Date().toISOString().split('T')[0] + '"></div>';
     html += '<div class="form-group"><label>Shenim:</label><textarea id="split-note"></textarea></div>';
-    html += '<button class="btn btn-primary" onclick="processSplitPayment()" style="width:100%;"><i class="fas fa-check"></i> Regjistro pagesen e ndare</button>';
+    html += '<button type="button" class="btn btn-primary" onclick="processSplitPayment()" style="width:100%;"><i class="fas fa-check" aria-hidden="true"></i> Regjistro pagesen e ndare</button>';
     openModal('Pagese e ndare (Split)', html);
     updateSplitTotal();
 }
@@ -4881,7 +4881,7 @@ function addSplitPart() {
     part.style.cssText = 'display:flex;gap:8px;margin-bottom:8px;align-items:center;';
     part.innerHTML = '<input type="number" class="split-amount" placeholder="Shuma" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;" oninput="updateSplitTotal()">' +
         '<select class="split-category" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;"><option value="cash">Cash</option><option value="bank_transfer">Transfer</option><option value="deduction">Zbritje</option><option value="goods">Mall</option></select>' +
-        '<button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.remove();updateSplitTotal()"><i class="fas fa-times"></i></button>';
+        '<button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.remove();updateSplitTotal()" aria-label="This"><i class="fas fa-times" aria-hidden="true"></i></button>';
     container.appendChild(part);
 }
 
@@ -4926,7 +4926,7 @@ function openDiscountPaymentModal() {
     html += '<div class="form-group"><label>Zbritja (%):</label><input type="number" id="discount-pct" min="0" max="50" value="5" oninput="calcPaymentDiscount()"></div>';
     html += '<div id="discount-preview" style="padding:12px;background:var(--bg-primary);border-radius:8px;margin-bottom:12px;"></div>';
     html += '<div class="form-group"><label>Data:</label><input type="date" id="discount-date" value="' + new Date().toISOString().split('T')[0] + '"></div>';
-    html += '<button class="btn btn-primary" onclick="processDiscountPayment()" style="width:100%;"><i class="fas fa-percentage"></i> Paguaj me zbritje</button>';
+    html += '<button type="button" class="btn btn-primary" onclick="processDiscountPayment()" style="width:100%;"><i class="fas fa-percentage" aria-hidden="true"></i> Paguaj me zbritje</button>';
     openModal('Pagese me zbritje', html);
 }
 
@@ -5024,7 +5024,7 @@ function openReferencePaymentModal() {
     html += '</div>';
     html += '<div id="ref-total" style="padding:10px;background:var(--bg-secondary);border-radius:8px;margin:12px 0;font-weight:bold;">Totali: 0 den</div>';
     html += '<div class="form-group"><label>Data:</label><input type="date" id="ref-date" value="' + new Date().toISOString().split('T')[0] + '"></div>';
-    html += '<button class="btn btn-primary" onclick="processReferencePayment()" style="width:100%;"><i class="fas fa-link"></i> Paguaj blerjet e zgjedhura</button>';
+    html += '<button type="button" class="btn btn-primary" onclick="processReferencePayment()" style="width:100%;"><i class="fas fa-link" aria-hidden="true"></i> Paguaj blerjet e zgjedhura</button>';
     openModal('Pagese me reference', html);
 }
 
@@ -5128,7 +5128,7 @@ function generatePaymentContract() {
 function showBalanceAlert(type, message) {
     const alertDiv = document.createElement('div');
     alertDiv.className = 'balance-alert balance-alert-' + type;
-    alertDiv.innerHTML = '<i class="fas fa-' + (type === 'danger' ? 'exclamation-circle' : type === 'success' ? 'check-circle' : 'info-circle') + '"></i> ' + message;
+    alertDiv.innerHTML = '<i class="fas fa-' + (type === 'danger' ? 'exclamation-circle' : type === 'success' ? 'check-circle' : 'info-circle') + '" aria-hidden="true"></i> ' + message;
     alertDiv.style.cssText = 'position:fixed;top:20px;right:20px;z-index:10000;padding:15px 20px;border-radius:10px;color:white;font-weight:600;box-shadow:0 4px 15px rgba(0,0,0,0.2);animation:slideInRight 0.4s ease;max-width:350px;';
     alertDiv.style.background = type === 'danger' ? '#e74c3c' : type === 'success' ? '#27ae60' : '#3498db';
     document.body.appendChild(alertDiv);
@@ -5181,14 +5181,14 @@ function quickPayLastAmount() {
     if (debt <= 0) { showToast('Nuk ka borxh', 'success'); return; }
     const amount = Math.min(lastPayment.amount, debt);
     let html = '<div style="text-align:center;padding:15px;">';
-    html += '<div style="font-size:2.5em;color:var(--accent);margin-bottom:15px;"><i class="fas fa-bolt"></i></div>';
+    html += '<div style="font-size:2.5em;color:var(--accent);margin-bottom:15px;"><i class="fas fa-bolt" aria-hidden="true"></i></div>';
     html += '<h3>Pagese e shpejte</h3>';
     html += '<p style="margin:10px 0;">Shuma: <strong style="font-size:1.4em;color:var(--success);">' + amount + ' den</strong></p>';
     html += '<p style="color:var(--text-secondary);">Njejte si pagesa e fundit (' + lastPayment.date + ')</p>';
     html += '<p style="margin:10px 0;">Borxhi aktual: <strong>' + debt + ' den</strong> → <strong style="color:var(--success);">' + (debt - amount) + ' den</strong></p>';
     html += '<div style="display:flex;gap:10px;margin-top:20px;justify-content:center;">';
-    html += '<button class="btn btn-primary" onclick="executeQuickPay(' + amount + ')"><i class="fas fa-check"></i> Konfirmo</button>';
-    html += '<button class="btn btn-secondary" onclick="closeModal()"><i class="fas fa-times"></i> Anulo</button>';
+    html += '<button type="button" class="btn btn-primary" onclick="executeQuickPay(' + amount + ')"><i class="fas fa-check" aria-hidden="true"></i> Konfirmo</button>';
+    html += '<button type="button" class="btn btn-secondary" onclick="closeModal()"><i class="fas fa-times" aria-hidden="true"></i> Anulo</button>';
     html += '</div></div>';
     openModal('Pagese 1-klik', html);
 }
@@ -5258,7 +5258,7 @@ function openScheduledPaymentModal() {
     html += '<div class="form-group"><label>Persertit cdo:</label><select id="sched-interval"><option value="7">Jave</option><option value="14">2 Jave</option><option value="30" selected>Muaj</option></select></div>';
     html += '<div class="form-group"><label>Numri i perserijteve:</label><input type="number" id="sched-count" min="1" max="24" value="3"></div>';
     html += '<div class="form-group"><label>Shenim:</label><input type="text" id="sched-note" value="Pagese e programuar"></div>';
-    html += '<button class="btn btn-primary" onclick="saveScheduledPayment()" style="width:100%;"><i class="fas fa-clock"></i> Programo pagesen</button>';
+    html += '<button type="button" class="btn btn-primary" onclick="saveScheduledPayment()" style="width:100%;"><i class="fas fa-clock" aria-hidden="true"></i> Programo pagesen</button>';
     openModal('Pagese e programuar', html);
 }
 
@@ -5299,14 +5299,14 @@ function checkScheduledPayments() {
 function requirePaymentGuarantee(amount, callback) {
     if (amount < 50000) { callback(); return; }
     let html = '<div style="text-align:center;padding:10px;">';
-    html += '<div style="font-size:2em;color:var(--warning);margin-bottom:10px;"><i class="fas fa-shield-alt"></i></div>';
+    html += '<div style="font-size:2em;color:var(--warning);margin-bottom:10px;"><i class="fas fa-shield-alt" aria-hidden="true"></i></div>';
     html += '<h3>Garanci per pagese te madhe</h3>';
     html += '<p style="margin:10px 0;">Pagesa <strong>' + amount + ' den</strong> kerkon deshmi te dyfishte:</p>';
     html += '<div style="text-align:left;margin:15px 0;">';
     html += '<label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><input type="checkbox" id="guarantee-photo"> <span>Foto/deshmi e pageses</span></label>';
     html += '<label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="guarantee-confirm"> <span>Konfirmoj qe kjo pagese eshte e sakte</span></label>';
     html += '</div>';
-    html += '<button class="btn btn-primary" onclick="verifyGuarantee()" style="width:100%;"><i class="fas fa-check-double"></i> Vazhdo me pagesen</button>';
+    html += '<button type="button" class="btn btn-primary" onclick="verifyGuarantee()" style="width:100%;"><i class="fas fa-check-double" aria-hidden="true"></i> Vazhdo me pagesen</button>';
     html += '</div>';
     openModal('Garanci Pagese', html);
     window._guaranteeCallback = callback;
@@ -5441,7 +5441,7 @@ function openReturnModal() {
             <label>${t('date')}:</label>
             <input type="date" id="return-date" value="${new Date().toISOString().split('T')[0]}">
         </div>
-        <button class="btn btn-primary" onclick="addReturn()" style="width:100%;">${t('new_return')}</button>
+        <button type="button" class="btn btn-primary" onclick="addReturn()" style="width:100%;">${t('new_return')}</button>
     `;
     openModal(t('new_return'), html);
 }
@@ -5511,7 +5511,7 @@ function refreshReturns() {
                 <td>${r.quantity || 0}</td>
                 <td>${r.reason || '-'}</td>
                 <td>
-                    <button class="btn btn-sm btn-danger" onclick="deleteReturn(${realIndex})"><i class="fas fa-trash"></i></button>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteReturn(${realIndex})" aria-label="Delete return"><i class="fas fa-trash" aria-hidden="true"></i></button>
                 </td>
             </tr>
         `;
@@ -5548,7 +5548,7 @@ function openContactModal(editId) {
             <label>${t('note')} (${t('optional')}):</label>
             <textarea id="contact-note">${contact ? contact.note || '' : ''}</textarea>
         </div>
-        <button class="btn btn-primary" onclick="${isEdit ? `updateContact('${editId}')` : 'addContact()'}" style="width:100%;">
+        <button type="button" class="btn btn-primary" onclick="${isEdit ? `updateContact('${editId}')` : 'addContact()'}" style="width:100%;">
             ${isEdit ? t('edit') : t('add_contact')}
         </button>
     `;
@@ -5613,15 +5613,15 @@ function refreshContacts() {
                 <div class="contact-avatar">${initials}</div>
                 <div class="contact-info">
                     <h4>${c.name}</h4>
-                    <p><i class="fas fa-phone"></i> ${c.phone || '-'}</p>
-                    <p><i class="fas fa-envelope"></i> ${c.email || '-'}</p>
-                    <p><i class="fas fa-tag"></i> ${t(c.role === 'client' ? 'client_role' : c.role)}</p>
+                    <p><i class="fas fa-phone" aria-hidden="true"></i> ${c.phone || '-'}</p>
+                    <p><i class="fas fa-envelope" aria-hidden="true"></i> ${c.email || '-'}</p>
+                    <p><i class="fas fa-tag" aria-hidden="true"></i> ${t(c.role === 'client' ? 'client_role' : c.role)}</p>
                 </div>
                 <div class="contact-actions">
-                    ${c.phone ? `<a href="tel:${c.phone}" class="btn btn-sm btn-success"><i class="fas fa-phone"></i></a>` : ''}
-                    ${c.phone ? `<a href="sms:${c.phone}" class="btn btn-sm btn-secondary"><i class="fas fa-sms"></i></a>` : ''}
-                    <button class="btn btn-sm btn-secondary" onclick="openContactModal('${c.id}')"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteContact('${c.id}')"><i class="fas fa-trash"></i></button>
+                    ${c.phone ? `<a href="tel:${c.phone}" class="btn btn-sm btn-success"><i class="fas fa-phone" aria-hidden="true"></i></a>` : ''}
+                    ${c.phone ? `<a href="sms:${c.phone}" class="btn btn-sm btn-secondary"><i class="fas fa-sms" aria-hidden="true"></i></a>` : ''}
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="openContactModal('${c.id}')" aria-label="Open contact modal"><i class="fas fa-edit" aria-hidden="true"></i></button>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteContact('${c.id}')" aria-label="Delete contact"><i class="fas fa-trash" aria-hidden="true"></i></button>
                 </div>
             </div>
         `;
@@ -5642,7 +5642,7 @@ function openNoteModal(editId) {
             <label>${t('enter_note')}:</label>
             <textarea id="note-content">${note ? note.content : ''}</textarea>
         </div>
-        <button class="btn btn-primary" onclick="${isEdit ? `updateNote('${editId}')` : 'addNote()'}" style="width:100%;">
+        <button type="button" class="btn btn-primary" onclick="${isEdit ? `updateNote('${editId}')` : 'addNote()'}" style="width:100%;">
             ${isEdit ? t('edit') : t('add_note')}
         </button>
     `;
@@ -5702,8 +5702,8 @@ function refreshNotes() {
                 <p>${n.content}</p>
                 <div class="note-date">${n.date}</div>
                 <div class="note-actions">
-                    <button class="btn btn-sm btn-secondary" onclick="openNoteModal('${n.id}')"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteNote('${n.id}')"><i class="fas fa-trash"></i></button>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="openNoteModal('${n.id}')" aria-label="Open note modal"><i class="fas fa-edit" aria-hidden="true"></i></button>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteNote('${n.id}')" aria-label="Delete note"><i class="fas fa-trash" aria-hidden="true"></i></button>
                 </div>
             </div>
         `;
@@ -5736,7 +5736,7 @@ function openTargetModal(editId) {
             <label>${t('enter_description')} (${t('optional')}):</label>
             <textarea id="target-desc">${target ? target.description || '' : ''}</textarea>
         </div>
-        <button class="btn btn-primary" onclick="${isEdit ? `updateTarget('${editId}')` : 'addTarget()'}" style="width:100%;">
+        <button type="button" class="btn btn-primary" onclick="${isEdit ? `updateTarget('${editId}')` : 'addTarget()'}" style="width:100%;">
             ${isEdit ? t('edit') : t('add_target')}
         </button>
     `;
@@ -5815,8 +5815,8 @@ function refreshTargets() {
                     <span>${pct >= 100 ? '&#10003; ' + t('completed') : ''}</span>
                 </div>
                 <div style="margin-top:10px;display:flex;gap:8px;">
-                    <button class="btn btn-sm btn-secondary" onclick="openTargetModal('${tg.id}')"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteTarget('${tg.id}')"><i class="fas fa-trash"></i></button>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="openTargetModal('${tg.id}')" aria-label="Open target modal"><i class="fas fa-edit" aria-hidden="true"></i></button>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteTarget('${tg.id}')" aria-label="Delete target"><i class="fas fa-trash" aria-hidden="true"></i></button>
                 </div>
             </div>
         `;
@@ -5908,7 +5908,7 @@ function openExpenseModal() {
                 <input type="checkbox" id="expense-shared"> Shpenzim i perbashket (ndahet 50/50)
             </label>
         </div>
-        <button class="btn btn-primary" onclick="addExpense()" style="width:100%;">${t('add_expense')}</button>
+        <button type="button" class="btn btn-primary" onclick="addExpense()" style="width:100%;">${t('add_expense')}</button>
     `;
     openModal(t('add_expense'), html);
 }
@@ -5962,7 +5962,7 @@ function refreshExpenses() {
                 <td>${e.description}${sharedLabel}</td>
                 <td>${e.amount} ден${perPerson}</td>
                 <td>
-                    <button class="btn btn-sm btn-danger" onclick="deleteExpense(${i})"><i class="fas fa-trash"></i></button>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteExpense(${i})" aria-label="Delete expense"><i class="fas fa-trash" aria-hidden="true"></i></button>
                 </td>
             </tr>
         `;
@@ -5976,7 +5976,7 @@ function openLocationModal() {
             <label>${t('name')}:</label>
             <input type="text" id="location-name" placeholder="${t('enter_name')}">
         </div>
-        <button class="btn btn-primary" onclick="addLocation()" style="width:100%;">${t('add_location')}</button>
+        <button type="button" class="btn btn-primary" onclick="addLocation()" style="width:100%;">${t('add_location')}</button>
     `;
     openModal(t('add_location'), html);
 }
@@ -6010,7 +6010,7 @@ function refreshLocations() {
     container.innerHTML = '';
     (state.locations || []).forEach(l => {
         container.innerHTML += `
-            <span class="location-tag">${l} <button onclick="deleteLocation('${l}')">&times;</button></span>
+            <span class="location-tag">${l} <button type="button" onclick="deleteLocation('${l}')">&times;</button></span>
         `;
     });
 }
@@ -6063,59 +6063,59 @@ function generateReport() {
     const _partnerName = state.partnerName || 'Partneri';
     statsContainer.innerHTML = `
         <div class="stat-card">
-            <i class="fas fa-money-bill-wave"></i>
+            <i class="fas fa-money-bill-wave" aria-hidden="true"></i>
             <div><h3>${t('total_sales_amount')}</h3><p>${totalRevenue} ден</p></div>
         </div>
         <div class="stat-card">
-            <i class="fas fa-chart-line"></i>
+            <i class="fas fa-chart-line" aria-hidden="true"></i>
             <div><h3>${t('total_profit_amount')}</h3><p>${totalProfit} ден</p></div>
         </div>
         <div class="stat-card">
-            <i class="fas fa-receipt"></i>
+            <i class="fas fa-receipt" aria-hidden="true"></i>
             <div><h3>${t('total_expenses')}</h3><p>${totalExpenses} ден</p></div>
         </div>
         <div class="stat-card">
-            <i class="fas fa-coins"></i>
+            <i class="fas fa-coins" aria-hidden="true"></i>
             <div><h3>${t('net_profit')}</h3><p>${netProfit} ден</p></div>
         </div>
         <div class="stat-card">
-            <i class="fas fa-user"></i>
+            <i class="fas fa-user" aria-hidden="true"></i>
             <div><h3>${t('your_share')} (${_profitSplit.owner}%)</h3><p>${calcOwnerShare(netProfit)} ден</p></div>
         </div>
         <div class="stat-card">
-            <i class="fas fa-user-friends"></i>
+            <i class="fas fa-user-friends" aria-hidden="true"></i>
             <div><h3>${_partnerName} (${_profitSplit.partner}%)</h3><p>${calcPartnerShare(netProfit)} ден</p></div>
         </div>
         <div class="stat-card">
-            <i class="fas fa-money-bill"></i>
+            <i class="fas fa-money-bill" aria-hidden="true"></i>
             <div><h3>${t('total_cash')}</h3><p>${totalCashRevenue} ден</p></div>
         </div>
         <div class="stat-card">
-            <i class="fas fa-file-invoice-dollar"></i>
+            <i class="fas fa-file-invoice-dollar" aria-hidden="true"></i>
             <div><h3>${t('total_invoices')}</h3><p>${totalInvoiceRevenue} ден</p></div>
         </div>
         <div class="stat-card">
-            <i class="fas fa-clock"></i>
+            <i class="fas fa-clock" aria-hidden="true"></i>
             <div><h3>${t('open_invoices')}</h3><p>${unpaidInvoices.length} (${unpaidInvoiceTotal} ден)</p></div>
         </div>
         <div class="stat-card" style="${overdueInv.length > 0 ? 'border-left:4px solid var(--danger)' : ''}">
-            <i class="fas fa-exclamation-circle"></i>
+            <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
             <div><h3>${t('overdue_invoices')}</h3><p>${overdueInv.length} (${overdueInvTotal} ден)</p></div>
         </div>
         <div class="stat-card">
-            <i class="fas fa-hand-holding-usd"></i>
+            <i class="fas fa-hand-holding-usd" aria-hidden="true"></i>
             <div><h3>${t('faton_cash_debt')}</h3><p>${calcFatonDebt()} ден</p></div>
         </div>
         <div class="stat-card">
-            <i class="fas fa-coins"></i>
+            <i class="fas fa-coins" aria-hidden="true"></i>
             <div><h3>${t('profit_to_collect')}</h3><p>${calcFatonProfitOwed() - calcFatonProfitCollected()} ден</p></div>
         </div>
         <div class="stat-card" style="border-left:4px solid var(--success)">
-            <i class="fas fa-check-circle"></i>
+            <i class="fas fa-check-circle" aria-hidden="true"></i>
             <div><h3>Fitimi real</h3><p>${cashSales.reduce((s, x) => s + (x.profit || 0), 0) + (calcFatonProfitCollected() || 0)} ден</p></div>
         </div>
         <div class="stat-card" style="border-left:4px solid var(--warning)">
-            <i class="fas fa-file-alt"></i>
+            <i class="fas fa-file-alt" aria-hidden="true"></i>
             <div><h3>Fitimi ne leter</h3><p>${totalProfit} ден</p></div>
         </div>
     `;
@@ -6346,7 +6346,7 @@ function importBackup(event) {
             // Show a modal with the detailed error so user can see what's wrong
             openModal('Skedari nuk është JSON valid', `
                 <div style="padding:10px;">
-                    <div style="color:#c0392b;margin-bottom:10px;"><i class="fas fa-exclamation-triangle"></i> <strong>Gabim gjatë leximit:</strong></div>
+                    <div style="color:#c0392b;margin-bottom:10px;"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i> <strong>Gabim gjatë leximit:</strong></div>
                     <pre style="background:#fee;padding:10px;border-radius:6px;border-left:3px solid #c0392b;white-space:pre-wrap;">${err.message}</pre>
                     <div style="margin-top:12px;color:#555;">Fillimi i skedarit (200 shkronja):</div>
                     <pre style="background:#f5f5f5;padding:10px;border-radius:6px;max-height:200px;overflow:auto;">${raw.substring(0, 200).replace(/</g,'&lt;')}</pre>
@@ -6356,7 +6356,7 @@ function importBackup(event) {
                         • Nëse është nga version i vjetër, duhet të ketë prapashtesën <code>.json</code><br>
                         • Hapeni me editor teksti për të verifikuar që fillon me <code>{</code>
                     </div>
-                    <button class="btn btn-primary" style="width:100%;margin-top:12px;" onclick="closeModal()">Në rregull</button>
+                    <button type="button" class="btn btn-primary" style="width:100%;margin-top:12px;" onclick="closeModal()">Në rregull</button>
                 </div>
             `);
             return;
@@ -6383,14 +6383,14 @@ function importBackup(event) {
             const preview = Object.keys(data).slice(0, 10).join(', ');
             openModal('Backup-i duket i pazakontë', `
                 <div style="padding:10px;">
-                    <div style="color:#e67e22;margin-bottom:10px;"><i class="fas fa-exclamation-triangle"></i> <strong>Paralajmërim:</strong></div>
+                    <div style="color:#e67e22;margin-bottom:10px;"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i> <strong>Paralajmërim:</strong></div>
                     <p>Skedari u lexua si JSON, por nuk përmban asnjë nga fushat e njohura të backup-it (shitje, klientë, stok, etj.).</p>
                     <div style="margin-top:10px;color:#555;">Fushat që gjendën:</div>
                     <pre style="background:#f5f5f5;padding:10px;border-radius:6px;">${preview || '(asnjë)'}</pre>
                     <p style="margin-top:10px;">A dëshiron të vazhdosh gjithsesi? Kjo do t'i zëvendësojë të dhënat aktuale me përmbajtjen e skedarit.</p>
                     <div style="display:flex;gap:10px;margin-top:12px;">
-                        <button class="btn" onclick="closeModal()" style="flex:1;background:#95a5a6;color:white;">Anulo</button>
-                        <button class="btn btn-primary" onclick="_proceedImportAnyway()" style="flex:1;">Vazhdo gjithsesi</button>
+                        <button type="button" class="btn" onclick="closeModal()" style="flex:1;background:#95a5a6;color:white;">Anulo</button>
+                        <button type="button" class="btn btn-primary" onclick="_proceedImportAnyway()" style="flex:1;">Vazhdo gjithsesi</button>
                     </div>
                 </div>
             `);
@@ -6411,20 +6411,20 @@ function importBackup(event) {
                 <div style="font-size:3em;margin-bottom:10px;">📦</div>
                 <h3 style="margin-bottom:15px;">Skedari: ${file.name}</h3>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;text-align:left;background:var(--bg-secondary);padding:15px;border-radius:10px;">
-                    <div><i class="fas fa-shopping-cart"></i> Shitje: <strong>${salesCount}</strong></div>
-                    <div><i class="fas fa-users"></i> Klientë: <strong>${clientsCount}</strong></div>
-                    <div><i class="fas fa-boxes"></i> Produkte stok: <strong>${stockCount}</strong></div>
-                    <div><i class="fas fa-money-bill"></i> Pagesa: <strong>${paymentsCount}</strong></div>
+                    <div><i class="fas fa-shopping-cart" aria-hidden="true"></i> Shitje: <strong>${salesCount}</strong></div>
+                    <div><i class="fas fa-users" aria-hidden="true"></i> Klientë: <strong>${clientsCount}</strong></div>
+                    <div><i class="fas fa-boxes" aria-hidden="true"></i> Produkte stok: <strong>${stockCount}</strong></div>
+                    <div><i class="fas fa-money-bill" aria-hidden="true"></i> Pagesa: <strong>${paymentsCount}</strong></div>
                 </div>
                 <div style="background:#fff3e0;padding:12px;border-radius:8px;margin-bottom:15px;color:#e65100;">
-                    <i class="fas fa-exclamation-triangle"></i> <strong>KUJDES:</strong> Të dhënat aktuale do të zëvendësohen!
+                    <i class="fas fa-exclamation-triangle" aria-hidden="true"></i> <strong>KUJDES:</strong> Të dhënat aktuale do të zëvendësohen!
                 </div>
                 <div style="display:flex;gap:10px;">
-                    <button onclick="closeModal()" style="flex:1;padding:12px;border:2px solid var(--border);background:var(--bg);color:var(--text-primary);border-radius:8px;cursor:pointer;font-size:1em;">
-                        <i class="fas fa-times"></i> Anulo
+                    <button type="button" onclick="closeModal()" style="flex:1;padding:12px;border:2px solid var(--border);background:var(--bg);color:var(--text-primary);border-radius:8px;cursor:pointer;font-size:1em;">
+                        <i class="fas fa-times" aria-hidden="true"></i> Anulo
                     </button>
-                    <button onclick="_confirmRestore()" style="flex:1;padding:12px;border:none;background:var(--success);color:white;border-radius:8px;cursor:pointer;font-size:1em;font-weight:bold;">
-                        <i class="fas fa-check"></i> Konfirmo Rikthimin
+                    <button type="button" onclick="_confirmRestore()" style="flex:1;padding:12px;border:none;background:var(--success);color:white;border-radius:8px;cursor:pointer;font-size:1em;font-weight:bold;">
+                        <i class="fas fa-check" aria-hidden="true"></i> Konfirmo Rikthimin
                     </button>
                 </div>
             </div>
@@ -6861,7 +6861,7 @@ function openInvoiceBrandingSettings() {
         <div class="form-group"><label>Ngjyra kryesore:</label><input type="color" id="invoice-accent" value="${profile.accentColor || '#8b5a2b'}"></div>
         <div class="form-group"><label>Kushtet e pagesës:</label><textarea id="invoice-payment-terms">${profile.paymentTerms || ''}</textarea></div>
         <div class="form-group"><label>Footer note:</label><textarea id="invoice-footer-note">${profile.footerNote || ''}</textarea></div>
-        <button class="btn btn-primary" onclick="saveInvoiceBrandingSettings()" style="width:100%;"><i class="fas fa-save"></i> Ruaj Branding</button>
+        <button type="button" class="btn btn-primary" onclick="saveInvoiceBrandingSettings()" style="width:100%;"><i class="fas fa-save" aria-hidden="true"></i> Ruaj Branding</button>
     `);
 }
 
@@ -7167,7 +7167,7 @@ function duplicateSale(index) {
                 <input type="checkbox" id="sale-is-debt" ${sale.isDebt ? 'checked' : ''}> ${t('debt')} (${t('client')} ${t('pay_debt')})
             </label>
         </div>
-        <button class="btn btn-primary" onclick="addSale()" style="width:100%;">
+        <button type="button" class="btn btn-primary" onclick="addSale()" style="width:100%;">
             ${t('add_sale')} (Kopje)
         </button>
     `;
@@ -7185,12 +7185,12 @@ function renderSalesMonthTabs() {
     });
     const sortedMonths = [...months].sort().reverse();
 
-    let html = `<button class="btn btn-sm ${!state.salesMonthFilter ? 'btn-primary' : 'btn-secondary'}" onclick="setSalesMonthFilter('')" style="margin:2px;">Te gjitha</button>`;
+    let html = `<button type="button" class="btn btn-sm ${!state.salesMonthFilter ? 'btn-primary' : 'btn-secondary'}" onclick="setSalesMonthFilter('')" style="margin:2px;">Te gjitha</button>`;
     sortedMonths.forEach(m => {
         const [year, month] = m.split('-');
         const monthNames = ['Jan', 'Shk', 'Mar', 'Pri', 'Maj', 'Qer', 'Kor', 'Gus', 'Sht', 'Tet', 'Nen', 'Dhj'];
         const label = monthNames[parseInt(month) - 1] + ' ' + year;
-        html += `<button class="btn btn-sm ${state.salesMonthFilter === m ? 'btn-primary' : 'btn-secondary'}" onclick="setSalesMonthFilter('${m}')" style="margin:2px;">${label}</button>`;
+        html += `<button type="button" class="btn btn-sm ${state.salesMonthFilter === m ? 'btn-primary' : 'btn-secondary'}" onclick="setSalesMonthFilter('${m}')" style="margin:2px;">${label}</button>`;
     });
     tabsEl.innerHTML = html;
 }
@@ -7438,35 +7438,35 @@ function refreshBalance() {
     container.innerHTML = `
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px;">
             <div class="stat-card" style="border-left:4px solid var(--success)">
-                <i class="fas fa-wallet"></i>
+                <i class="fas fa-wallet" aria-hidden="true"></i>
                 <div><h3>Cash ne dore (aprox)</h3><p>${cashInHand} den</p></div>
             </div>
             <div class="stat-card" style="border-left:4px solid var(--danger)">
-                <i class="fas fa-hand-holding-usd"></i>
+                <i class="fas fa-hand-holding-usd" aria-hidden="true"></i>
                 <div><h3>Borxhi ndaj Fatonit</h3><p>${fatonDebt} den</p></div>
             </div>
             <div class="stat-card" style="border-left:4px solid var(--warning)">
-                <i class="fas fa-coins"></i>
+                <i class="fas fa-coins" aria-hidden="true"></i>
                 <div><h3>Fitimi per tu mbledhur</h3><p>${profitToCollect} den</p></div>
             </div>
             <div class="stat-card" style="border-left:4px solid var(--info, #0984e3)">
-                <i class="fas fa-users"></i>
+                <i class="fas fa-users" aria-hidden="true"></i>
                 <div><h3>Borxhet e klienteve</h3><p>${clientDebts} den</p></div>
             </div>
             <div class="stat-card" style="border-left:4px solid var(--accent)">
-                <i class="fas fa-boxes"></i>
+                <i class="fas fa-boxes" aria-hidden="true"></i>
                 <div><h3>Vlera e stokut (blerje)</h3><p>${stockValue} den</p></div>
             </div>
             <div class="stat-card" style="border-left:4px solid var(--accent)">
-                <i class="fas fa-store"></i>
+                <i class="fas fa-store" aria-hidden="true"></i>
                 <div><h3>Vlera e stokut (shitje)</h3><p>${stockSellValue} den</p></div>
             </div>
             <div class="stat-card" style="border-left:4px solid ${netBalance >= 0 ? 'var(--success)' : 'var(--danger)'}">
-                <i class="fas fa-balance-scale"></i>
+                <i class="fas fa-balance-scale" aria-hidden="true"></i>
                 <div><h3>Bilanci neto</h3><p style="font-size:1.3em;font-weight:bold;color:${netBalance >= 0 ? 'var(--success)' : 'var(--danger)'}">${netBalance} den</p></div>
             </div>
             <div class="stat-card">
-                <i class="fas fa-chart-pie"></i>
+                <i class="fas fa-chart-pie" aria-hidden="true"></i>
                 <div><h3>Totali aseteve</h3><p>${totalAssets} den</p></div>
             </div>
         </div>
@@ -7662,7 +7662,7 @@ function updateOnlineStatus() {
             banner = document.createElement('div');
             banner.id = 'offline-banner';
             banner.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#d63031;color:#fff;text-align:center;padding:10px;z-index:9999;font-weight:bold;';
-            banner.innerHTML = '<i class="fas fa-wifi-slash"></i> Jeni offline - Te dhenat ruhen lokalisht';
+            banner.innerHTML = '<i class="fas fa-wifi-slash" aria-hidden="true"></i> Jeni offline - Te dhenat ruhen lokalisht';
             document.body.appendChild(banner);
         }
     } else {
@@ -7719,7 +7719,7 @@ function generateOrhanReport() {
             <div class="stat-card"><div><h3>Shpenzime te perbashketa</h3><p>${sharedExpenses} den (${sharedExpensePerPerson} per person)</p></div></div>
         </div>
         <div style="margin-top:15px;">
-            <button class="btn btn-primary" onclick="exportOrhanReport()"><i class="fas fa-download"></i> Eksporto raportin</button>
+            <button type="button" class="btn btn-primary" onclick="exportOrhanReport()"><i class="fas fa-download" aria-hidden="true"></i> Eksporto raportin</button>
         </div>
     `;
     openModal('Raporti i Orhanit', html);
@@ -7786,10 +7786,10 @@ function openProductModal(editId) {
             <label>Sell Price (den):</label>
             <input type="number" id="product-sell-price" min="0" value="${product ? product.sellPrice : 0}">
         </div>
-        <button class="btn btn-primary" onclick="${isEdit ? `updateProduct('${editId}')` : 'addProduct()'}" style="width:100%;">
+        <button type="button" class="btn btn-primary" onclick="${isEdit ? `updateProduct('${editId}')` : 'addProduct()'}" style="width:100%;">
             ${isEdit ? 'Update Product' : 'Add Product'}
         </button>
-        ${isEdit ? `<button class="btn btn-danger" onclick="deleteProduct('${editId}')" style="width:100%; margin-top:10px;">Delete Product</button>` : ''}
+        ${isEdit ? `<button type="button" class="btn btn-danger" onclick="deleteProduct('${editId}')" style="width:100%; margin-top:10px;">Delete Product</button>` : ''}
     `;
     openModal(isEdit ? 'Edit Product' : 'Add Product', html);
 }
@@ -7888,7 +7888,7 @@ function refreshProducts() {
     if (!container) return;
 
     let html = '<h3>Product Management</h3>';
-    html += '<button class="btn btn-primary" onclick="openProductModal()" style="margin-bottom:15px;">Add New Product</button>';
+    html += '<button type="button" class="btn btn-primary" onclick="openProductModal()" style="margin-bottom:15px;">Add New Product</button>';
     html += '<table class="data-table"><thead><tr><th>Name</th><th>Weight</th><th>Buy Price</th><th>Sell Price</th><th>Margin</th><th>Actions</th></tr></thead><tbody>';
 
     // Bug #98: PRODUCTS guard + field fallbacks
@@ -7905,7 +7905,7 @@ function refreshProducts() {
                 <td>${sellPrice} den</td>
                 <td>${margin} den (${marginPct}%)</td>
                 <td>
-                    <button class="btn btn-sm" onclick="openProductModal('${p.id}')">Edit</button>
+                    <button type="button" class="btn btn-sm" onclick="openProductModal('${p.id}')">Edit</button>
                 </td>
             </tr>
         `;
@@ -7933,7 +7933,7 @@ function openProfitSplitModal() {
             <input type="number" id="profit-partner-pct" min="0" max="100" value="${split.partner || 50}">
         </div>
         <p style="font-size:12px; color:#666;">Note: Percentages should add up to 100%</p>
-        <button class="btn btn-primary" onclick="saveProfitSplit()" style="width:100%;">Save Profit Split</button>
+        <button type="button" class="btn btn-primary" onclick="saveProfitSplit()" style="width:100%;">Save Profit Split</button>
     `;
     openModal('Profit Split Settings', html);
 }
@@ -8006,7 +8006,7 @@ function refreshCashDrawer() {
                 <div class="stat-value" style="font-size:24px;">${expectedBalance} den</div>
             </div>
         </div>
-        <button class="btn btn-primary" onclick="openCashDrawerModal()" style="margin-top:20px;">Set Starting Cash</button>
+        <button type="button" class="btn btn-primary" onclick="openCashDrawerModal()" style="margin-top:20px;">Set Starting Cash</button>
         <h3 style="margin-top:30px;">Cash Drawer History</h3>
         <table class="data-table">
             <thead><tr><th>Date</th><th>Starting Cash</th><th>Note</th></tr></thead>
@@ -8041,7 +8041,7 @@ function openCashDrawerModal() {
             <label>Note:</label>
             <textarea id="drawer-note">${existing ? existing.note || '' : ''}</textarea>
         </div>
-        <button class="btn btn-primary" onclick="saveCashDrawer()" style="width:100%;">Save</button>
+        <button type="button" class="btn btn-primary" onclick="saveCashDrawer()" style="width:100%;">Save</button>
     `;
     openModal('Set Starting Cash', html);
 }
@@ -8266,7 +8266,7 @@ function showPinLockScreen() {
     box.innerHTML = `
         <h2>Enter PIN</h2>
         <input type="password" id="pin-input" maxlength="6" style="font-size:24px; text-align:center; padding:10px; width:100%; margin:20px 0;" placeholder="******">
-        <button class="btn btn-primary" onclick="verifyPin()" style="width:100%;">Unlock</button>
+        <button type="button" class="btn btn-primary" onclick="verifyPin()" style="width:100%;">Unlock</button>
         <p id="pin-error" style="color:red; margin-top:10px;"></p>
     `;
 
@@ -8301,7 +8301,7 @@ function openPinSettingsModal() {
             <label>PIN Code (6 digits):</label>
             <input type="password" id="pin-code" maxlength="6" value="${state.pinCode || ''}" placeholder="******">
         </div>
-        <button class="btn btn-primary" onclick="savePinSettings()" style="width:100%;">Save PIN Settings</button>
+        <button type="button" class="btn btn-primary" onclick="savePinSettings()" style="width:100%;">Save PIN Settings</button>
     `;
     openModal('PIN Lock Settings', html);
 }
@@ -8366,7 +8366,7 @@ function openAutoBackupSettings() {
             </select>
         </div>
         <p style="font-size:12px; color:#666;">Last backup: ${(state.autoBackup || {}).lastBackup ? new Date((state.autoBackup || {}).lastBackup).toLocaleString() : 'Never'}</p>
-        <button class="btn btn-primary" onclick="saveAutoBackupSettings()" style="width:100%;">Save Settings</button>
+        <button type="button" class="btn btn-primary" onclick="saveAutoBackupSettings()" style="width:100%;">Save Settings</button>
     `;
     openModal('Auto-Backup Settings', html);
 }
@@ -8423,10 +8423,10 @@ function openPresetModal(editId) {
                 ${(state.locations || []).map(l => `<option value="${l}" ${preset && preset.location === l ? 'selected' : ''}>${l}</option>`).join('')}
             </select>
         </div>
-        <button class="btn btn-primary" onclick="${isEdit ? `updatePreset(${editId})` : 'addPreset()'}" style="width:100%;">
+        <button type="button" class="btn btn-primary" onclick="${isEdit ? `updatePreset(${editId})` : 'addPreset()'}" style="width:100%;">
             ${isEdit ? 'Update Preset' : 'Add Preset'}
         </button>
-        ${isEdit ? `<button class="btn btn-danger" onclick="deletePreset(${editId})" style="width:100%; margin-top:10px;">Delete Preset</button>` : ''}
+        ${isEdit ? `<button type="button" class="btn btn-danger" onclick="deletePreset(${editId})" style="width:100%; margin-top:10px;">Delete Preset</button>` : ''}
     `;
     openModal(isEdit ? 'Edit Preset' : 'Add Quick Sale Preset', html);
 }
@@ -8631,7 +8631,7 @@ function openExpenseCategoryModal() {
             <label>Categories (one per line):</label>
             <textarea id="expense-categories" rows="6">${state.expenseCategories.join('\n')}</textarea>
         </div>
-        <button class="btn btn-primary" onclick="saveExpenseCategories()" style="width:100%;">Save Categories</button>
+        <button type="button" class="btn btn-primary" onclick="saveExpenseCategories()" style="width:100%;">Save Categories</button>
     `;
     openModal('Expense Categories', html);
 }
@@ -8717,7 +8717,7 @@ function refreshSettingsUI() {
 
     // (Sugjerimi #10) Density mode picker
     const curDensity = document.body.getAttribute('data-density') || 'comfortable';
-    let html = '<h3><i class="fas fa-th-large"></i> Pamja</h3>';
+    let html = '<h3><i class="fas fa-th-large" aria-hidden="true"></i> Pamja</h3>';
     html += '<div style="padding:14px 16px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;margin:8px 0;">';
     html += '<div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:10px;font-weight:600;">DENSITETI I LISTAVE</div>';
     html += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
@@ -8728,25 +8728,25 @@ function refreshSettingsUI() {
     ];
     modes.forEach(m => {
         const active = m.v === curDensity ? 'background:var(--primary);color:white;border-color:var(--primary);' : '';
-        html += `<button class="btn btn-sm" onclick="setDensity('${m.v}'); refreshSettingsUI();" style="flex:1;min-width:120px;${active}" title="${m.d}">${m.l}</button>`;
+        html += `<button type="button" class="btn btn-sm" onclick="setDensity('${m.v}'); refreshSettingsUI();" style="flex:1;min-width:120px;${active}" title="${m.d}">${m.l}</button>`;
     });
     html += '</div></div>';
 
     html += '<h3>Additional Settings</h3>';
-    html += '<button class="btn" onclick="openProfitSplitModal()" style="margin:5px;">Profit Split Settings</button>';
-    html += '<button class="btn" onclick="openPinSettingsModal()" style="margin:5px;">PIN Lock Settings</button>';
-    html += '<button class="btn" onclick="openAutoBackupSettings()" style="margin:5px;">Auto-Backup Settings</button>';
-    html += '<button class="btn" onclick="openDashboardSettings()" style="margin:5px;">Dashboard Customization</button>';
-    html += '<button class="btn" onclick="openExpenseCategoryModal()" style="margin:5px;">Expense Categories</button>';
-    html += '<button class="btn" onclick="openPresetModal()" style="margin:5px;">Manage Quick Sale Presets</button>';
-    html += '<button class="btn" onclick="generateRestockSuggestion()" style="margin:5px;">Restock Suggestions</button>';
-    html += '<button class="btn" onclick="generateAgingReport()" style="margin:5px;">Aging Report</button>';
-    html += '<button class="btn" onclick="generatePLReport()" style="margin:5px;">P&L Report</button>';
+    html += '<button type="button" class="btn" onclick="openProfitSplitModal()" style="margin:5px;">Profit Split Settings</button>';
+    html += '<button type="button" class="btn" onclick="openPinSettingsModal()" style="margin:5px;">PIN Lock Settings</button>';
+    html += '<button type="button" class="btn" onclick="openAutoBackupSettings()" style="margin:5px;">Auto-Backup Settings</button>';
+    html += '<button type="button" class="btn" onclick="openDashboardSettings()" style="margin:5px;">Dashboard Customization</button>';
+    html += '<button type="button" class="btn" onclick="openExpenseCategoryModal()" style="margin:5px;">Expense Categories</button>';
+    html += '<button type="button" class="btn" onclick="openPresetModal()" style="margin:5px;">Manage Quick Sale Presets</button>';
+    html += '<button type="button" class="btn" onclick="generateRestockSuggestion()" style="margin:5px;">Restock Suggestions</button>';
+    html += '<button type="button" class="btn" onclick="generateAgingReport()" style="margin:5px;">Aging Report</button>';
+    html += '<button type="button" class="btn" onclick="generatePLReport()" style="margin:5px;">P&L Report</button>';
 
-    html += '<h3 style="margin-top:25px;"><i class="fas fa-sync-alt"></i> Përditësimi i Aplikacionit</h3>';
+    html += '<h3 style="margin-top:25px;"><i class="fas fa-sync-alt" aria-hidden="true"></i> Përditësimi i Aplikacionit</h3>';
     html += '<div style="padding:10px;background:#eef7ff;border-left:4px solid #3498db;border-radius:6px;margin:5px;">';
     html += '<p style="margin:0 0 8px;">Nëse butonat ose funksionet e reja nuk punojnë, pastro cache-n dhe rifresko aplikacionin:</p>';
-    html += '<button class="btn" style="background:#3498db;color:white;" onclick="forceUpdateApp()"><i class="fas fa-sync-alt"></i> Pastro Cache & Rifresko</button>';
+    html += '<button type="button" class="btn" style="background:#3498db;color:white;" onclick="forceUpdateApp()"><i class="fas fa-sync-alt" aria-hidden="true"></i> Pastro Cache & Rifresko</button>';
     html += '<small style="display:block;margin-top:6px;color:#666;">Shkurtore: <kbd>Shift + Ctrl/Cmd + U</kbd></small>';
     html += '</div>';
 
@@ -8759,7 +8759,7 @@ function refreshSettingsUI() {
         var daysSince = lastBk ? Math.floor((Date.now() - lastBk.getTime()) / 86400000) : null;
         var bkWarn = daysSince === null || daysSince >= 7;
 
-        html += '<h3 style="margin-top:25px;"><i class="fas fa-database"></i> Hapësira & Siguria</h3>';
+        html += '<h3 style="margin-top:25px;"><i class="fas fa-database" aria-hidden="true"></i> Hapësira & Siguria</h3>';
         html += '<div style="padding:10px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;margin:5px;">';
         html += '<div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>Hapësira e përdorur:</span><strong>' + stats.sizeMB + ' MB</strong></div>';
         html += '<div style="background:#eee;border-radius:10px;overflow:hidden;height:10px;margin-bottom:10px;">';
@@ -8778,13 +8778,13 @@ function refreshSettingsUI() {
         if (daysSince === null) html += '🛑 Nuk keni bërë kurrë backup! ';
         else if (bkWarn) html += '⚠️ Backup-i i fundit: <b>' + daysSince + ' ditë më parë</b>. ';
         else html += '✅ Backup-i i fundit: ' + daysSince + ' ditë më parë. ';
-        html += '<button class="btn btn-sm" style="background:#3498db;color:white;margin-left:8px;" onclick="exportBackup(); state.autoBackup = state.autoBackup || {}; (state.autoBackup || {}).lastBackup = new Date().toISOString(); saveState(); refreshSettingsUI();"><i class="fas fa-download"></i> Bëj Backup Tani</button>';
+        html += '<button type="button" class="btn btn-sm" style="background:#3498db;color:white;margin-left:8px;" onclick="exportBackup(); state.autoBackup = state.autoBackup || {}; (state.autoBackup || {}).lastBackup = new Date().toISOString(); saveState(); refreshSettingsUI();"><i class="fas fa-download" aria-hidden="true"></i> Bëj Backup Tani</button>';
         html += '</div>';
         html += '</div>';
     } catch(e) { /* silent */ }
 
-    html += '<h3 style="margin-top:25px; color:var(--danger);"><i class="fas fa-exclamation-triangle"></i> Reset & Pastrim</h3>';
-    html += '<button class="btn btn-reset-open" onclick="openResetCenter()" style="margin:5px;"><i class="fas fa-trash-alt"></i> Hap Reset Center</button>';
+    html += '<h3 style="margin-top:25px; color:var(--danger);"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i> Reset & Pastrim</h3>';
+    html += '<button type="button" class="btn btn-reset-open" onclick="openResetCenter()" style="margin:5px;"><i class="fas fa-trash-alt" aria-hidden="true"></i> Hap Reset Center</button>';
 
     container.innerHTML = html;
 }
@@ -9033,89 +9033,89 @@ function resetAll() {
 function openResetCenter() {
     let html = `
         <div style="margin-bottom:15px; padding:12px; background:#fff3cd; border-radius:8px; color:#856404;">
-            <i class="fas fa-exclamation-triangle"></i> <strong>KUJDES:</strong> Reset-i eshte i pakthyeshem! Mendohuni mire para se te klikoni.
+            <i class="fas fa-exclamation-triangle" aria-hidden="true"></i> <strong>KUJDES:</strong> Reset-i eshte i pakthyeshem! Mendohuni mire para se te klikoni.
         </div>
 
         <h4 style="margin:15px 0 10px; color:var(--text-secondary);">Biznesi</h4>
         <div class="reset-grid">
-            <button class="btn btn-reset" onclick="resetSales()">
-                <i class="fas fa-cash-register"></i> Reset Shitjet
+            <button type="button" class="btn btn-reset" onclick="resetSales()">
+                <i class="fas fa-cash-register" aria-hidden="true"></i> Reset Shitjet
                 <span class="reset-desc">${(state.sales || []).length} shitje</span>
             </button>
-            <button class="btn btn-reset" onclick="resetStock()">
-                <i class="fas fa-boxes-stacked"></i> Reset Stoku
+            <button type="button" class="btn btn-reset" onclick="resetStock()">
+                <i class="fas fa-boxes-stacked" aria-hidden="true"></i> Reset Stoku
                 <span class="reset-desc">${Object.values(state.stock || {}).reduce((s,v)=>s+v,0)} cope</span>
             </button>
-            <button class="btn btn-reset" onclick="resetExpenses()">
-                <i class="fas fa-receipt"></i> Reset Shpenzimet
+            <button type="button" class="btn btn-reset" onclick="resetExpenses()">
+                <i class="fas fa-receipt" aria-hidden="true"></i> Reset Shpenzimet
                 <span class="reset-desc">${(state.expenses || []).length} shpenzime</span>
             </button>
-            <button class="btn btn-reset" onclick="resetOrders()">
-                <i class="fas fa-clipboard-list"></i> Reset Porosite
+            <button type="button" class="btn btn-reset" onclick="resetOrders()">
+                <i class="fas fa-clipboard-list" aria-hidden="true"></i> Reset Porosite
                 <span class="reset-desc">${(state.orders || []).length} porosi</span>
             </button>
-            <button class="btn btn-reset" onclick="resetReturns()">
-                <i class="fas fa-undo"></i> Reset Kthimet
+            <button type="button" class="btn btn-reset" onclick="resetReturns()">
+                <i class="fas fa-undo" aria-hidden="true"></i> Reset Kthimet
                 <span class="reset-desc">${(state.returns || []).length} kthime</span>
             </button>
-            <button class="btn btn-reset" onclick="resetProfit()">
-                <i class="fas fa-coins"></i> Reset Fitimi
+            <button type="button" class="btn btn-reset" onclick="resetProfit()">
+                <i class="fas fa-coins" aria-hidden="true"></i> Reset Fitimi
                 <span class="reset-desc">Fitimi & ndarja</span>
             </button>
         </div>
 
         <h4 style="margin:15px 0 10px; color:var(--text-secondary);">Klientet & Fatoni</h4>
         <div class="reset-grid">
-            <button class="btn btn-reset" onclick="resetClients()">
-                <i class="fas fa-users"></i> Reset Klientet
+            <button type="button" class="btn btn-reset" onclick="resetClients()">
+                <i class="fas fa-users" aria-hidden="true"></i> Reset Klientet
                 <span class="reset-desc">${(state.clients || []).length} kliente</span>
             </button>
-            <button class="btn btn-reset" onclick="resetClientDebts()">
-                <i class="fas fa-hand-holding-usd"></i> Zero Borxhet
+            <button type="button" class="btn btn-reset" onclick="resetClientDebts()">
+                <i class="fas fa-hand-holding-usd" aria-hidden="true"></i> Zero Borxhet
                 <span class="reset-desc">${(state.clients || []).filter(c=>c.debt>0).length} me borxh</span>
             </button>
-            <button class="btn btn-reset" onclick="resetFaton()">
-                <i class="fas fa-handshake"></i> Reset Fatoni
+            <button type="button" class="btn btn-reset" onclick="resetFaton()">
+                <i class="fas fa-handshake" aria-hidden="true"></i> Reset Fatoni
                 <span class="reset-desc">${(state.fatonPurchases||[]).length} blerje</span>
             </button>
         </div>
 
         <h4 style="margin:15px 0 10px; color:var(--text-secondary);">Te tjera</h4>
         <div class="reset-grid">
-            <button class="btn btn-reset" onclick="resetContacts()">
-                <i class="fas fa-address-book"></i> Reset Kontaktet
+            <button type="button" class="btn btn-reset" onclick="resetContacts()">
+                <i class="fas fa-address-book" aria-hidden="true"></i> Reset Kontaktet
                 <span class="reset-desc">${(state.contacts || []).length} kontakte</span>
             </button>
-            <button class="btn btn-reset" onclick="resetNotes()">
-                <i class="fas fa-sticky-note"></i> Reset Shenimet
+            <button type="button" class="btn btn-reset" onclick="resetNotes()">
+                <i class="fas fa-sticky-note" aria-hidden="true"></i> Reset Shenimet
                 <span class="reset-desc">${(state.notes || []).length} shenime</span>
             </button>
-            <button class="btn btn-reset" onclick="resetTargets()">
-                <i class="fas fa-bullseye"></i> Reset Qellimet
+            <button type="button" class="btn btn-reset" onclick="resetTargets()">
+                <i class="fas fa-bullseye" aria-hidden="true"></i> Reset Qellimet
                 <span class="reset-desc">${(state.targets || []).length} qellime</span>
             </button>
-            <button class="btn btn-reset" onclick="resetPresets()">
-                <i class="fas fa-bolt"></i> Reset Preset-et
+            <button type="button" class="btn btn-reset" onclick="resetPresets()">
+                <i class="fas fa-bolt" aria-hidden="true"></i> Reset Preset-et
                 <span class="reset-desc">${(state.salePresets || []).length} presete</span>
             </button>
-            <button class="btn btn-reset" onclick="resetCashDrawer()">
-                <i class="fas fa-cash-register"></i> Reset Arka Ditore
+            <button type="button" class="btn btn-reset" onclick="resetCashDrawer()">
+                <i class="fas fa-cash-register" aria-hidden="true"></i> Reset Arka Ditore
                 <span class="reset-desc">${(state.cashDrawer || []).length} dite</span>
             </button>
-            <button class="btn btn-reset" onclick="resetWeeklyReports()">
-                <i class="fas fa-chart-bar"></i> Reset Raportet
+            <button type="button" class="btn btn-reset" onclick="resetWeeklyReports()">
+                <i class="fas fa-chart-bar" aria-hidden="true"></i> Reset Raportet
                 <span class="reset-desc">${(state.weeklyReports||[]).length} raporte</span>
             </button>
-            <button class="btn btn-reset" onclick="resetActivityLog()">
-                <i class="fas fa-history"></i> Reset Logjet
+            <button type="button" class="btn btn-reset" onclick="resetActivityLog()">
+                <i class="fas fa-history" aria-hidden="true"></i> Reset Logjet
                 <span class="reset-desc">${(state.activityLog||[]).length} log</span>
             </button>
         </div>
 
         <h4 style="margin:20px 0 10px; color:var(--danger);">Zona e Rrezikshme</h4>
         <div style="padding:15px; border:2px solid var(--danger); border-radius:8px;">
-            <button class="btn btn-reset-all" onclick="resetAll()">
-                <i class="fas fa-skull-crossbones"></i> RESET I PLOTE - Fshi GJITHCKA
+            <button type="button" class="btn btn-reset-all" onclick="resetAll()">
+                <i class="fas fa-skull-crossbones" aria-hidden="true"></i> RESET I PLOTE - Fshi GJITHCKA
             </button>
             <p style="font-size:0.8em; color:var(--text-secondary); margin-top:8px;">Automatikisht do te ruaje nje backup para se te fshije.</p>
         </div>
@@ -9824,9 +9824,9 @@ function exportTrends(format) {
 // Helper: generate export buttons HTML for any page
 function getExportButtons(exportFuncName) {
     return '<div class="export-buttons">' +
-        '<button class="btn btn-export btn-excel" onclick="' + exportFuncName + '(\'excel\')"><i class="fas fa-file-excel"></i> Excel</button>' +
-        '<button class="btn btn-export btn-pdf" onclick="' + exportFuncName + '(\'pdf\')"><i class="fas fa-file-pdf"></i> PDF</button>' +
-        '<button class="btn btn-export btn-word" onclick="' + exportFuncName + '(\'word\')"><i class="fas fa-file-word"></i> Word</button>' +
+        '<button type="button" class="btn btn-export btn-excel" onclick="' + exportFuncName + '(\'excel\')"><i class="fas fa-file-excel" aria-hidden="true"></i> Excel</button>' +
+        '<button type="button" class="btn btn-export btn-pdf" onclick="' + exportFuncName + '(\'pdf\')"><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</button>' +
+        '<button type="button" class="btn btn-export btn-word" onclick="' + exportFuncName + '(\'word\')"><i class="fas fa-file-word" aria-hidden="true"></i> Word</button>' +
     '</div>';
 }
 
@@ -9853,7 +9853,7 @@ function openClientPaymentDashboard() {
     html += '</div>';
 
     // Today's payments list
-    html += '<h4 style="margin-bottom:8px;"><i class="fas fa-clock"></i> Pagesat e sotme</h4>';
+    html += '<h4 style="margin-bottom:8px;"><i class="fas fa-clock" aria-hidden="true"></i> Pagesat e sotme</h4>';
     if (todayPayments.length > 0) {
         html += '<table class="data-table"><thead><tr><th>Klienti</th><th>Shuma</th><th>Metoda</th><th>Shenim</th></tr></thead><tbody>';
         todayPayments.forEach(p => {
@@ -9866,7 +9866,7 @@ function openClientPaymentDashboard() {
     }
 
     // Who owes - sorted by debt
-    html += '<h4 style="margin:15px 0 8px;"><i class="fas fa-exclamation-triangle"></i> Kush ka borxh</h4>';
+    html += '<h4 style="margin:15px 0 8px;"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i> Kush ka borxh</h4>';
     if (clientsWithDebt.length > 0) {
         html += '<table class="data-table"><thead><tr><th>Klienti</th><th>Borxhi</th><th>Dite pa paguar</th><th>Veprime</th></tr></thead><tbody>';
         clientsWithDebt.sort((a, b) => b.debt - a.debt).forEach(c => {
@@ -9876,8 +9876,8 @@ function openClientPaymentDashboard() {
             html += '<tr><td><strong>' + c.name + '</strong></td>';
             html += '<td style="color:var(--danger);font-weight:bold;">' + c.debt + ' den</td>';
             html += '<td style="color:' + urgency + ';">' + daysSince + ' dite</td>';
-            html += '<td><button class="btn btn-sm btn-success" onclick="closeModal();openQuickCollectModal(\'' + c.id + '\')"><i class="fas fa-hand-holding-usd"></i></button> ';
-            html += '<button class="btn btn-sm btn-success" onclick="sendClientDebtWhatsApp(\'' + c.id + '\')"><i class="fab fa-whatsapp"></i></button></td></tr>';
+            html += '<td><button type="button" class="btn btn-sm btn-success" onclick="closeModal();openQuickCollectModal(\'' + c.id + '\')" aria-label="Close modal"><i class="fas fa-hand-holding-usd" aria-hidden="true"></i></button> ';
+            html += '<button type="button" class="btn btn-sm btn-success" onclick="sendClientDebtWhatsApp(\'' + c.id + '\')" aria-label="Send client debt whats app"><i class="fab fa-whatsapp" aria-hidden="true"></i></button></td></tr>';
         });
         html += '</tbody></table>';
     } else {
@@ -9904,8 +9904,8 @@ function openQuickCollectModal(clientId) {
     html += '<div style="background:var(--bg-secondary);padding:12px;border-radius:10px;margin-bottom:15px;">';
     html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
     html += '<div><strong style="font-size:1.1em;">' + client.name + '</strong>';
-    if (client.phone) html += '<br><small style="color:var(--text-secondary);"><i class="fas fa-phone"></i> ' + client.phone + '</small>';
-    if (client.city) html += ' <small style="color:var(--text-secondary);"><i class="fas fa-map-marker-alt"></i> ' + client.city + '</small>';
+    if (client.phone) html += '<br><small style="color:var(--text-secondary);"><i class="fas fa-phone" aria-hidden="true"></i> ' + client.phone + '</small>';
+    if (client.city) html += ' <small style="color:var(--text-secondary);"><i class="fas fa-map-marker-alt" aria-hidden="true"></i> ' + client.city + '</small>';
     html += '</div>';
     html += '<div style="text-align:right;"><div style="font-size:0.8em;color:var(--text-secondary);">Borxhi</div><div style="font-size:1.3em;font-weight:bold;color:' + (client.debt > 0 ? 'var(--danger)' : 'var(--success)') + ';">' + client.debt + ' den</div></div>';
     html += '</div>';
@@ -9930,21 +9930,21 @@ function openQuickCollectModal(clientId) {
     }
 
     // Form fields
-    html += '<div class="form-group"><label><i class="fas fa-money-bill"></i> Shuma:</label><input type="number" id="collect-amount" class="form-control" min="1" max="' + client.debt + '" value="' + client.debt + '" oninput="updateCollectPreview(\'' + clientId + '\')"></div>';
+    html += '<div class="form-group"><label><i class="fas fa-money-bill" aria-hidden="true"></i> Shuma:</label><input type="number" id="collect-amount" class="form-control" min="1" max="' + client.debt + '" value="' + client.debt + '" oninput="updateCollectPreview(\'' + clientId + '\')"></div>';
     html += '<div style="display:flex;gap:8px;">';
-    html += '<div class="form-group" style="flex:1;"><label><i class="fas fa-calendar"></i> Data:</label><input type="date" id="collect-date" class="form-control" value="' + new Date().toISOString().split('T')[0] + '"></div>';
-    html += '<div class="form-group" style="flex:1;"><label><i class="fas fa-credit-card"></i> Metoda:</label><select id="collect-method" class="form-control"><option value="Cash">Cash</option><option value="Transfer">Transfer bankar</option><option value="Tjeter">Tjeter</option></select></div>';
+    html += '<div class="form-group" style="flex:1;"><label><i class="fas fa-calendar" aria-hidden="true"></i> Data:</label><input type="date" id="collect-date" class="form-control" value="' + new Date().toISOString().split('T')[0] + '"></div>';
+    html += '<div class="form-group" style="flex:1;"><label><i class="fas fa-credit-card" aria-hidden="true"></i> Metoda:</label><select id="collect-method" class="form-control"><option value="Cash">Cash</option><option value="Transfer">Transfer bankar</option><option value="Tjeter">Tjeter</option></select></div>';
     html += '</div>';
-    html += '<div class="form-group"><label><i class="fas fa-tag"></i> Kategoria:</label><select id="collect-category" class="form-control"><option value="borxh">Pagese borxhi</option><option value="keste">Keste</option><option value="paradhenie">Paradhenie</option><option value="porosi">Pagese porosie</option></select></div>';
-    html += '<div class="form-group"><label><i class="fas fa-user"></i> Pagese nga:</label><input type="text" id="collect-payer" class="form-control" placeholder="Klienti vete (opsionale)" value="' + client.name + '"></div>';
-    html += '<div class="form-group"><label><i class="fas fa-sticky-note"></i> Shenim:</label><input type="text" id="collect-note" class="form-control" placeholder="Opsionale"></div>';
+    html += '<div class="form-group"><label><i class="fas fa-tag" aria-hidden="true"></i> Kategoria:</label><select id="collect-category" class="form-control"><option value="borxh">Pagese borxhi</option><option value="keste">Keste</option><option value="paradhenie">Paradhenie</option><option value="porosi">Pagese porosie</option></select></div>';
+    html += '<div class="form-group"><label><i class="fas fa-user" aria-hidden="true"></i> Pagese nga:</label><input type="text" id="collect-payer" class="form-control" placeholder="Klienti vete (opsionale)" value="' + client.name + '"></div>';
+    html += '<div class="form-group"><label><i class="fas fa-sticky-note" aria-hidden="true"></i> Shenim:</label><input type="text" id="collect-note" class="form-control" placeholder="Opsionale"></div>';
 
     // Auto actions checkboxes
     html += '<div style="background:var(--bg);border-radius:8px;padding:10px;margin-bottom:12px;">';
-    html += '<div style="font-size:0.85em;font-weight:600;margin-bottom:6px;"><i class="fas fa-magic"></i> Veprime automatike:</div>';
-    html += '<label style="display:flex;align-items:center;gap:6px;font-size:0.85em;margin-bottom:4px;cursor:pointer;"><input type="checkbox" id="collect-auto-receipt"> <i class="fas fa-receipt" style="color:var(--primary);"></i> Gjenero fature PDF</label>';
-    html += '<label style="display:flex;align-items:center;gap:6px;font-size:0.85em;margin-bottom:4px;cursor:pointer;"><input type="checkbox" id="collect-auto-whatsapp" checked> <i class="fab fa-whatsapp" style="color:#25d366;"></i> Dergo konfirmim WhatsApp klientit</label>';
-    html += '<label style="display:flex;align-items:center;gap:6px;font-size:0.85em;cursor:pointer;"><input type="checkbox" id="collect-auto-profit-wa" checked> <i class="fab fa-whatsapp" style="color:#128c7e;"></i> Dergo deshmine e fitimit (Elez + Orhan)</label>';
+    html += '<div style="font-size:0.85em;font-weight:600;margin-bottom:6px;"><i class="fas fa-magic" aria-hidden="true"></i> Veprime automatike:</div>';
+    html += '<label style="display:flex;align-items:center;gap:6px;font-size:0.85em;margin-bottom:4px;cursor:pointer;"><input type="checkbox" id="collect-auto-receipt"> <i class="fas fa-receipt" style="color:var(--primary);" aria-hidden="true"></i> Gjenero fature PDF</label>';
+    html += '<label style="display:flex;align-items:center;gap:6px;font-size:0.85em;margin-bottom:4px;cursor:pointer;"><input type="checkbox" id="collect-auto-whatsapp" checked> <i class="fab fa-whatsapp" style="color:#25d366;" aria-hidden="true"></i> Dergo konfirmim WhatsApp klientit</label>';
+    html += '<label style="display:flex;align-items:center;gap:6px;font-size:0.85em;cursor:pointer;"><input type="checkbox" id="collect-auto-profit-wa" checked> <i class="fab fa-whatsapp" style="color:#128c7e;" aria-hidden="true"></i> Dergo deshmine e fitimit (Elez + Orhan)</label>';
     html += '</div>';
 
     // Live preview of profit split
@@ -9953,11 +9953,11 @@ function openQuickCollectModal(clientId) {
     html += '</div>';
 
     // Main button
-    html += '<button class="btn btn-success" onclick="collectClientPayment(\'' + clientId + '\')" style="width:100%;font-size:1.1em;padding:14px;border-radius:12px;"><i class="fas fa-check-circle"></i> Pranuar - Merr pagesen</button>';
+    html += '<button type="button" class="btn btn-success" onclick="collectClientPayment(\'' + clientId + '\')" style="width:100%;font-size:1.1em;padding:14px;border-radius:12px;"><i class="fas fa-check-circle" aria-hidden="true"></i> Pranuar - Merr pagesen</button>';
 
     // Last payments
     if (lastPayments.length > 0) {
-        html += '<div style="margin-top:15px;border-top:1px solid var(--border);padding-top:10px;"><small style="color:var(--text-secondary);font-weight:600;"><i class="fas fa-history"></i> Pagesat e fundit:</small>';
+        html += '<div style="margin-top:15px;border-top:1px solid var(--border);padding-top:10px;"><small style="color:var(--text-secondary);font-weight:600;"><i class="fas fa-history" aria-hidden="true"></i> Pagesat e fundit:</small>';
         lastPayments.forEach(p => {
             html += '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.85em;border-bottom:1px solid var(--border);">';
             html += '<span>' + p.date + '</span><span style="color:var(--success);font-weight:bold;">+' + p.amount + ' den</span><span>' + (p.method || 'Cash') + '</span>';
@@ -9977,10 +9977,10 @@ function buildCollectPreview(clientId, amount, totalProfit) {
     let h = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.85em;">';
     h += '<div style="text-align:center;padding:8px;background:white;border-radius:8px;"><div style="color:var(--text-secondary);font-size:0.75em;">Borxhi pas pageses</div><div style="font-size:1.2em;font-weight:700;color:' + (newDebt > 0 ? 'var(--danger)' : 'var(--success)') + ';">' + newDebt + ' den</div></div>';
     h += '<div style="text-align:center;padding:8px;background:white;border-radius:8px;"><div style="color:var(--text-secondary);font-size:0.75em;">Pagesa</div><div style="font-size:1.2em;font-weight:700;color:var(--success);">' + amount + ' den</div></div>';
-    h += '<div style="text-align:center;padding:8px;background:white;border-radius:8px;"><div style="color:var(--text-secondary);font-size:0.75em;"><i class="fas fa-user" style="color:#e67e22;"></i> Pjesa Elezit</div><div style="font-size:1.2em;font-weight:700;color:#e67e22;">' + calcOwnerShare(totalProfit) + ' den</div></div>';
-    h += '<div style="text-align:center;padding:8px;background:white;border-radius:8px;"><div style="color:var(--text-secondary);font-size:0.75em;"><i class="fas fa-user" style="color:#8e44ad;"></i> Pjesa ' + (state.partnerName || 'Orhan') + '</div><div style="font-size:1.2em;font-weight:700;color:#8e44ad;">' + calcPartnerShare(totalProfit) + ' den</div></div>';
+    h += '<div style="text-align:center;padding:8px;background:white;border-radius:8px;"><div style="color:var(--text-secondary);font-size:0.75em;"><i class="fas fa-user" style="color:#e67e22;" aria-hidden="true"></i> Pjesa Elezit</div><div style="font-size:1.2em;font-weight:700;color:#e67e22;">' + calcOwnerShare(totalProfit) + ' den</div></div>';
+    h += '<div style="text-align:center;padding:8px;background:white;border-radius:8px;"><div style="color:var(--text-secondary);font-size:0.75em;"><i class="fas fa-user" style="color:#8e44ad;" aria-hidden="true"></i> Pjesa ' + (state.partnerName || 'Orhan') + '</div><div style="font-size:1.2em;font-weight:700;color:#8e44ad;">' + calcPartnerShare(totalProfit) + ' den</div></div>';
     h += '</div>';
-    if (newDebt === 0 && client.debt > 0) h += '<div style="text-align:center;margin-top:8px;color:var(--success);font-weight:bold;"><i class="fas fa-star"></i> Borxhi do te pastrohet komplet!</div>';
+    if (newDebt === 0 && client.debt > 0) h += '<div style="text-align:center;margin-top:8px;color:var(--success);font-weight:bold;"><i class="fas fa-star" aria-hidden="true"></i> Borxhi do te pastrohet komplet!</div>';
     return h;
 }
 
@@ -10046,30 +10046,30 @@ function collectClientPayment(clientId) {
 
     // Show confirmation
     let confirmHtml = '<div style="text-align:center;padding:10px;">';
-    confirmHtml += '<div style="font-size:3em;color:var(--success);margin-bottom:10px;"><i class="fas fa-check-circle"></i></div>';
+    confirmHtml += '<div style="font-size:3em;color:var(--success);margin-bottom:10px;"><i class="fas fa-check-circle" aria-hidden="true"></i></div>';
     confirmHtml += '<h3 style="color:var(--success);">Pagesa u pranua!</h3>';
     confirmHtml += '<p style="margin:10px 0;font-size:1.2em;"><strong>' + client.name + '</strong> pagoi <strong style="color:var(--success);">' + amount + ' den</strong></p>';
     if (payer !== client.name) confirmHtml += '<p style="font-size:0.9em;color:var(--text-secondary);">Pagese nga: <strong>' + payer + '</strong></p>';
     confirmHtml += '<div class="confirmation-grid" style="grid-template-columns:repeat(2,1fr);margin:15px 0;">';
     confirmHtml += '<div class="confirmation-card"><div class="conf-label">Borxhi para</div><div class="conf-value" style="color:var(--danger);">' + oldDebt + ' den</div></div>';
     confirmHtml += '<div class="confirmation-card"><div class="conf-label">Borxhi tani</div><div class="conf-value" style="color:' + (client.debt > 0 ? 'var(--warning)' : 'var(--success)') + ';">' + client.debt + ' den</div></div>';
-    confirmHtml += '<div class="confirmation-card"><div class="conf-label"><i class="fas fa-user" style="color:#e67e22;"></i> Fitimi Elezit</div><div class="conf-value" style="color:#e67e22;">' + ownerShare + ' den</div></div>';
-    confirmHtml += '<div class="confirmation-card"><div class="conf-label"><i class="fas fa-user" style="color:#8e44ad;"></i> Fitimi ' + state.partnerName + '</div><div class="conf-value" style="color:#8e44ad;">' + partnerShare + ' den</div></div>';
+    confirmHtml += '<div class="confirmation-card"><div class="conf-label"><i class="fas fa-user" style="color:#e67e22;" aria-hidden="true"></i> Fitimi Elezit</div><div class="conf-value" style="color:#e67e22;">' + ownerShare + ' den</div></div>';
+    confirmHtml += '<div class="confirmation-card"><div class="conf-label"><i class="fas fa-user" style="color:#8e44ad;" aria-hidden="true"></i> Fitimi ' + state.partnerName + '</div><div class="conf-value" style="color:#8e44ad;">' + partnerShare + ' den</div></div>';
     confirmHtml += '</div>';
 
     // Auto-action status
     let actionsHtml = '<div style="background:var(--bg);border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:0.8em;">';
-    if (autoReceipt) actionsHtml += '<div style="color:var(--success);"><i class="fas fa-check"></i> Fatura PDF u gjenerua</div>';
-    if (autoWhatsApp) actionsHtml += '<div style="color:#25d366;"><i class="fas fa-check"></i> WhatsApp konfirmim u dergua te klienti</div>';
-    if (autoProfitWA) actionsHtml += '<div style="color:#128c7e;"><i class="fas fa-check"></i> Deshmi fitimi u dergua (Elez + ' + state.partnerName + ')</div>';
+    if (autoReceipt) actionsHtml += '<div style="color:var(--success);"><i class="fas fa-check" aria-hidden="true"></i> Fatura PDF u gjenerua</div>';
+    if (autoWhatsApp) actionsHtml += '<div style="color:#25d366;"><i class="fas fa-check" aria-hidden="true"></i> WhatsApp konfirmim u dergua te klienti</div>';
+    if (autoProfitWA) actionsHtml += '<div style="color:#128c7e;"><i class="fas fa-check" aria-hidden="true"></i> Deshmi fitimi u dergua (Elez + ' + state.partnerName + ')</div>';
     actionsHtml += '</div>';
     confirmHtml += actionsHtml;
 
     confirmHtml += '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">';
-    if (!autoReceipt) confirmHtml += '<button class="btn btn-primary" onclick="generateClientReceipt(\'' + clientId + '\',' + amount + ')"><i class="fas fa-receipt"></i> Fatura</button>';
-    if (!autoWhatsApp) confirmHtml += '<button class="btn btn-success" onclick="sendClientPaymentWhatsApp(\'' + clientId + '\',' + amount + ')"><i class="fab fa-whatsapp"></i> WhatsApp Klientit</button>';
-    if (!autoProfitWA) confirmHtml += '<button class="btn btn-info" onclick="sendProfitSplitWhatsApp(\'' + clientId + '\',' + amount + ',' + oldDebt + ',' + profit + ',' + ownerShare + ',' + partnerShare + ')"><i class="fab fa-whatsapp"></i> Deshmi Fitimi</button>';
-    confirmHtml += '<button class="btn btn-secondary" onclick="closeModal()">Mbyll</button>';
+    if (!autoReceipt) confirmHtml += '<button type="button" class="btn btn-primary" onclick="generateClientReceipt(\'' + clientId + '\',' + amount + ')"><i class="fas fa-receipt" aria-hidden="true"></i> Fatura</button>';
+    if (!autoWhatsApp) confirmHtml += '<button type="button" class="btn btn-success" onclick="sendClientPaymentWhatsApp(\'' + clientId + '\',' + amount + ')"><i class="fab fa-whatsapp" aria-hidden="true"></i> WhatsApp Klientit</button>';
+    if (!autoProfitWA) confirmHtml += '<button type="button" class="btn btn-info" onclick="sendProfitSplitWhatsApp(\'' + clientId + '\',' + amount + ',' + oldDebt + ',' + profit + ',' + ownerShare + ',' + partnerShare + ')"><i class="fab fa-whatsapp" aria-hidden="true"></i> Deshmi Fitimi</button>';
+    confirmHtml += '<button type="button" class="btn btn-secondary" onclick="closeModal()">Mbyll</button>';
     confirmHtml += '</div></div>';
 
     openModal('Pagesa u pranua', confirmHtml);
@@ -10214,8 +10214,8 @@ function editClientPayment(clientId, paymentId) {
     html += '</select></div>';
     html += '<div class="form-group"><label>Shenim</label><input type="text" id="edit-pay-note" class="form-control" value="' + (payment.note || '') + '" placeholder="Arsyeja e ndryshimit..."></div>';
     html += '<div style="display:flex;gap:8px;margin-top:15px;">';
-    html += '<button class="btn btn-primary" onclick="saveEditedPayment(\'' + clientId + '\',' + paymentId + ')" style="flex:1;"><i class="fas fa-save"></i> Ruaj ndryshimet</button>';
-    html += '<button class="btn btn-secondary" onclick="showClientPaymentHistory(\'' + clientId + '\')" style="flex:1;"><i class="fas fa-arrow-left"></i> Kthehu</button>';
+    html += '<button type="button" class="btn btn-primary" onclick="saveEditedPayment(\'' + clientId + '\',' + paymentId + ')" style="flex:1;"><i class="fas fa-save" aria-hidden="true"></i> Ruaj ndryshimet</button>';
+    html += '<button type="button" class="btn btn-secondary" onclick="showClientPaymentHistory(\'' + clientId + '\')" style="flex:1;"><i class="fas fa-arrow-left" aria-hidden="true"></i> Kthehu</button>';
     html += '</div></div>';
 
     openModal('Edito pagesen - ' + client.name, html);
@@ -10260,7 +10260,7 @@ function cancelClientPayment(clientId, paymentId) {
     if (!payment) return;
 
     let html = '<div style="text-align:center;padding:15px;">';
-    html += '<div style="font-size:3em;color:var(--warning);margin-bottom:10px;"><i class="fas fa-exclamation-triangle"></i></div>';
+    html += '<div style="font-size:3em;color:var(--warning);margin-bottom:10px;"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i></div>';
     html += '<h3>Anulo pagesen?</h3>';
     html += '<p>Kjo do te ktheje borxhin <strong>' + payment.amount + ' den</strong> te klientit <strong>' + client.name + '</strong></p>';
     html += '<div style="background:var(--bg);border-radius:10px;padding:12px;margin:15px 0;">';
@@ -10269,8 +10269,8 @@ function cancelClientPayment(clientId, paymentId) {
     html += '</div>';
     html += '<div class="form-group"><label>Arsyeja e anulimit</label><input type="text" id="cancel-pay-reason" class="form-control" placeholder="P.sh. Klienti nuk e dha borxhin..."></div>';
     html += '<div style="display:flex;gap:8px;margin-top:15px;">';
-    html += '<button class="btn btn-warning" onclick="confirmCancelPayment(\'' + clientId + '\',' + paymentId + ')" style="flex:1;color:white;"><i class="fas fa-undo"></i> Po, anulo</button>';
-    html += '<button class="btn btn-secondary" onclick="showClientPaymentHistory(\'' + clientId + '\')" style="flex:1;"><i class="fas fa-arrow-left"></i> Jo, kthehu</button>';
+    html += '<button type="button" class="btn btn-warning" onclick="confirmCancelPayment(\'' + clientId + '\',' + paymentId + ')" style="flex:1;color:white;"><i class="fas fa-undo" aria-hidden="true"></i> Po, anulo</button>';
+    html += '<button type="button" class="btn btn-secondary" onclick="showClientPaymentHistory(\'' + clientId + '\')" style="flex:1;"><i class="fas fa-arrow-left" aria-hidden="true"></i> Jo, kthehu</button>';
     html += '</div></div>';
 
     openModal('Anulo pagesen', html);
@@ -10309,16 +10309,16 @@ function deleteClientPayment(clientId, paymentId) {
     if (!payment) return;
 
     let html = '<div style="text-align:center;padding:15px;">';
-    html += '<div style="font-size:3em;color:var(--danger);margin-bottom:10px;"><i class="fas fa-trash-alt"></i></div>';
+    html += '<div style="font-size:3em;color:var(--danger);margin-bottom:10px;"><i class="fas fa-trash-alt" aria-hidden="true"></i></div>';
     html += '<h3 style="color:var(--danger);">Fshi pagesen perfundimisht?</h3>';
     html += '<p>Kjo veprim <strong>nuk mund te kthehet</strong>!</p>';
     html += '<p>Pagesa: <strong>' + payment.amount + ' den</strong> | ' + payment.date + '</p>';
     if (payment.status !== 'cancelled') {
-        html += '<p style="color:var(--warning);"><i class="fas fa-info-circle"></i> Borxhi i klientit do te rritet me ' + payment.amount + ' den</p>';
+        html += '<p style="color:var(--warning);"><i class="fas fa-info-circle" aria-hidden="true"></i> Borxhi i klientit do te rritet me ' + payment.amount + ' den</p>';
     }
     html += '<div style="display:flex;gap:8px;margin-top:15px;">';
-    html += '<button class="btn btn-danger" onclick="confirmDeletePayment(\'' + clientId + '\',' + paymentId + ')" style="flex:1;"><i class="fas fa-trash"></i> Po, fshi</button>';
-    html += '<button class="btn btn-secondary" onclick="showClientPaymentHistory(\'' + clientId + '\')" style="flex:1;"><i class="fas fa-arrow-left"></i> Jo, kthehu</button>';
+    html += '<button type="button" class="btn btn-danger" onclick="confirmDeletePayment(\'' + clientId + '\',' + paymentId + ')" style="flex:1;"><i class="fas fa-trash" aria-hidden="true"></i> Po, fshi</button>';
+    html += '<button type="button" class="btn btn-secondary" onclick="showClientPaymentHistory(\'' + clientId + '\')" style="flex:1;"><i class="fas fa-arrow-left" aria-hidden="true"></i> Jo, kthehu</button>';
     html += '</div></div>';
 
     openModal('Fshi pagesen', html);
@@ -10403,14 +10403,14 @@ function showClientPaymentHistory(clientId) {
             html += '<td style="color:' + (isCancelled ? 'var(--text-secondary)' : 'var(--success)') + ';font-weight:bold;">' + p.amount + ' den</td>';
             html += '<td>' + (p.method || '-') + '</td>';
             html += '<td>' + (p.note || '-') + '</td>';
-            html += '<td>' + (isCancelled ? '<span style="color:var(--danger);font-size:0.8em;"><i class="fas fa-ban"></i> Anuluar</span>' : '<span style="color:var(--success);font-size:0.8em;"><i class="fas fa-check-circle"></i> Aktive</span>') + '</td>';
+            html += '<td>' + (isCancelled ? '<span style="color:var(--danger);font-size:0.8em;"><i class="fas fa-ban" aria-hidden="true"></i> Anuluar</span>' : '<span style="color:var(--success);font-size:0.8em;"><i class="fas fa-check-circle" aria-hidden="true"></i> Aktive</span>') + '</td>';
             html += '<td style="white-space:nowrap;">';
             if (!isCancelled) {
-                html += '<button class="btn btn-sm btn-secondary" onclick="editClientPayment(\'' + clientId + '\',' + p.id + ')" title="Edito" style="margin-right:3px;"><i class="fas fa-edit"></i></button>';
-                html += '<button class="btn btn-sm btn-warning" onclick="cancelClientPayment(\'' + clientId + '\',' + p.id + ')" title="Anulo" style="margin-right:3px;color:white;"><i class="fas fa-undo"></i></button>';
-                html += '<button class="btn btn-sm btn-danger" onclick="deleteClientPayment(\'' + clientId + '\',' + p.id + ')" title="Fshi"><i class="fas fa-trash"></i></button>';
+                html += '<button type="button" class="btn btn-sm btn-secondary" onclick="editClientPayment(\'' + clientId + '\',' + p.id + ')" title="Edito" style="margin-right:3px;" aria-label="Edito"><i class="fas fa-edit" aria-hidden="true"></i></button>';
+                html += '<button type="button" class="btn btn-sm btn-warning" onclick="cancelClientPayment(\'' + clientId + '\',' + p.id + ')" title="Anulo" style="margin-right:3px;color:white;" aria-label="Anulo"><i class="fas fa-undo" aria-hidden="true"></i></button>';
+                html += '<button type="button" class="btn btn-sm btn-danger" onclick="deleteClientPayment(\'' + clientId + '\',' + p.id + ')" title="Fshi" aria-label="Fshi"><i class="fas fa-trash" aria-hidden="true"></i></button>';
             } else {
-                html += '<button class="btn btn-sm btn-success" onclick="restoreClientPayment(\'' + clientId + '\',' + p.id + ')" title="Rikthe"><i class="fas fa-redo"></i></button>';
+                html += '<button type="button" class="btn btn-sm btn-success" onclick="restoreClientPayment(\'' + clientId + '\',' + p.id + ')" title="Rikthe" aria-label="Rikthe"><i class="fas fa-redo" aria-hidden="true"></i></button>';
             }
             html += '</td></tr>';
         });
@@ -10430,10 +10430,10 @@ function showClientPaymentHistory(clientId) {
 
     // Action buttons
     html += '<div style="display:flex;gap:8px;margin-top:15px;flex-wrap:wrap;">';
-    html += '<button class="btn btn-primary" onclick="closeModal();openQuickCollectModal(\'' + clientId + '\')"><i class="fas fa-hand-holding-usd"></i> Merr pagese</button>';
-    html += '<button class="btn btn-secondary" onclick="generateClientStatement(\'' + clientId + '\')"><i class="fas fa-file-pdf"></i> Statement</button>';
-    html += '<button class="btn btn-secondary" onclick="showClientPaymentChart(\'' + clientId + '\')"><i class="fas fa-chart-line"></i> Grafik</button>';
-    html += '<button class="btn btn-success" onclick="sendClientDebtWhatsApp(\'' + clientId + '\')"><i class="fab fa-whatsapp"></i> Kujtese</button>';
+    html += '<button type="button" class="btn btn-primary" onclick="closeModal();openQuickCollectModal(\'' + clientId + '\')"><i class="fas fa-hand-holding-usd" aria-hidden="true"></i> Merr pagese</button>';
+    html += '<button type="button" class="btn btn-secondary" onclick="generateClientStatement(\'' + clientId + '\')"><i class="fas fa-file-pdf" aria-hidden="true"></i> Statement</button>';
+    html += '<button type="button" class="btn btn-secondary" onclick="showClientPaymentChart(\'' + clientId + '\')"><i class="fas fa-chart-line" aria-hidden="true"></i> Grafik</button>';
+    html += '<button type="button" class="btn btn-success" onclick="sendClientDebtWhatsApp(\'' + clientId + '\')"><i class="fab fa-whatsapp" aria-hidden="true"></i> Kujtese</button>';
     html += '</div>';
 
     openModal('Historiku - ' + client.name, html);
@@ -10599,17 +10599,17 @@ function openClientHistoryReport(clientId, filters) {
     const report = buildClientHistoryReport(clientId, normalizedFilters);
     if (!report) return;
     const waButton = report.client.phone && report.debt > 0
-        ? `<button class="btn btn-success" onclick="sendClientMarketHistoryWhatsApp('${clientId}')"><i class="fab fa-whatsapp"></i> Kujtesë WhatsApp</button>`
+        ? `<button type="button" class="btn btn-success" onclick="sendClientMarketHistoryWhatsApp('${clientId}')"><i class="fab fa-whatsapp" aria-hidden="true"></i> Kujtesë WhatsApp</button>`
         : '';
 
     openModal('Historiku i Marketit', `
         <div class="market-history-actions">
             <input type="date" id="market-history-date-from" value="${normalizedFilters.fromDate || ''}">
             <input type="date" id="market-history-date-to" value="${normalizedFilters.toDate || ''}">
-            <button class="btn btn-secondary" onclick="openClientHistoryReport('${clientId}', readMarketHistoryFilters())"><i class="fas fa-filter"></i> Apliko</button>
+            <button type="button" class="btn btn-secondary" onclick="openClientHistoryReport('${clientId}', readMarketHistoryFilters())"><i class="fas fa-filter" aria-hidden="true"></i> Apliko</button>
             ${waButton}
-            <button class="btn btn-primary" onclick="downloadClientHistoryPdf('${clientId}', readMarketHistoryFilters())"><i class="fas fa-file-pdf"></i> PDF</button>
-            <button class="btn btn-secondary" onclick="printClientHistory('${clientId}', readMarketHistoryFilters())"><i class="fas fa-print"></i> Printo</button>
+            <button type="button" class="btn btn-primary" onclick="downloadClientHistoryPdf('${clientId}', readMarketHistoryFilters())"><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</button>
+            <button type="button" class="btn btn-secondary" onclick="printClientHistory('${clientId}', readMarketHistoryFilters())"><i class="fas fa-print" aria-hidden="true"></i> Printo</button>
         </div>
         ${getClientHistoryReportDocument(clientId, normalizedFilters)}
     `);
@@ -10698,7 +10698,7 @@ function openClientInstallmentModal(clientId) {
     html += '<p><strong>' + client.name + '</strong> - Borxhi: <span style="color:var(--danger);font-weight:bold;">' + client.debt + ' den</span></p></div>';
     html += '<div class="form-group"><label>Numri i kesteve:</label><input type="number" id="cl-inst-count" min="2" max="12" value="3"></div>';
     html += '<div class="form-group"><label>Intervali (dite):</label><input type="number" id="cl-inst-interval" min="7" max="90" value="30"></div>';
-    html += '<button class="btn btn-primary" onclick="saveClientInstallments(\'' + clientId + '\')" style="width:100%;"><i class="fas fa-calendar-check"></i> Krijo plan kestesh</button>';
+    html += '<button type="button" class="btn btn-primary" onclick="saveClientInstallments(\'' + clientId + '\')" style="width:100%;"><i class="fas fa-calendar-check" aria-hidden="true"></i> Krijo plan kestesh</button>';
     openModal('Keste per ' + client.name, html);
 }
 
@@ -10731,9 +10731,9 @@ function openEarlyPaymentModal(clientId) {
     html += '<p><strong>' + client.name + '</strong> - Borxhi: ' + client.debt + ' den</p></div>';
     html += '<p style="margin-bottom:12px;">Zgjidhni zbritjen per pagese te shpejte:</p>';
     html += '<div style="display:flex;flex-direction:column;gap:8px;">';
-    html += '<button class="btn btn-success" onclick="applyEarlyDiscount(\'' + clientId + '\',3)" style="padding:12px;text-align:left;"><strong>3% zbritje</strong> - Klienti paguan ' + (client.debt - discount3) + ' den (kursen ' + discount3 + ' den)</button>';
-    html += '<button class="btn btn-success" onclick="applyEarlyDiscount(\'' + clientId + '\',5)" style="padding:12px;text-align:left;"><strong>5% zbritje</strong> - Klienti paguan ' + (client.debt - discount5) + ' den (kursen ' + discount5 + ' den)</button>';
-    html += '<button class="btn btn-secondary" onclick="closeModal();openQuickCollectModal(\'' + clientId + '\')" style="padding:12px;">Pa zbritje - Pagese normale</button>';
+    html += '<button type="button" class="btn btn-success" onclick="applyEarlyDiscount(\'' + clientId + '\',3)" style="padding:12px;text-align:left;"><strong>3% zbritje</strong> - Klienti paguan ' + (client.debt - discount3) + ' den (kursen ' + discount3 + ' den)</button>';
+    html += '<button type="button" class="btn btn-success" onclick="applyEarlyDiscount(\'' + clientId + '\',5)" style="padding:12px;text-align:left;"><strong>5% zbritje</strong> - Klienti paguan ' + (client.debt - discount5) + ' den (kursen ' + discount5 + ' den)</button>';
+    html += '<button type="button" class="btn btn-secondary" onclick="closeModal();openQuickCollectModal(\'' + clientId + '\')" style="padding:12px;">Pa zbritje - Pagese normale</button>';
     html += '</div>';
     openModal('Zbritje per pagese te shpejte', html);
 }
@@ -10758,7 +10758,7 @@ function showClientRanking() {
     clients.forEach((c, i) => {
         const totalBought = (state.sales || []).filter(s => s && s.clientId === c.id).reduce((s, x) => s + ((x && x.sellTotal) || 0), 0);
         const totalPaid = (state.clientPayments || []).filter(p => p.clientId === c.id && p.status !== 'cancelled').reduce((s, p) => s + ((p && p.amount) || 0), 0);
-        const status = c.debt <= 0 ? '<span style="color:var(--success);"><i class="fas fa-check-circle"></i> I rregullt</span>' : c.debt > 10000 ? '<span style="color:var(--danger);"><i class="fas fa-exclamation-circle"></i> Borxh i larte</span>' : '<span style="color:var(--warning);"><i class="fas fa-clock"></i> Ka borxh</span>';
+        const status = c.debt <= 0 ? '<span style="color:var(--success);"><i class="fas fa-check-circle" aria-hidden="true"></i> I rregullt</span>' : c.debt > 10000 ? '<span style="color:var(--danger);"><i class="fas fa-exclamation-circle" aria-hidden="true"></i> Borxh i larte</span>' : '<span style="color:var(--warning);"><i class="fas fa-clock" aria-hidden="true"></i> Ka borxh</span>';
         html += '<tr><td><strong>' + (i + 1) + '</strong></td><td>' + c.name + '</td>';
         html += '<td style="color:' + (c.debt > 0 ? 'var(--danger)' : 'var(--success)') + ';font-weight:bold;">' + c.debt + ' den</td>';
         html += '<td>' + totalBought + ' den</td><td>' + totalPaid + ' den</td><td>' + status + '</td></tr>';
@@ -10967,8 +10967,8 @@ function openMarketHistoryReportSelector() {
             <input type="date" id="market-history-date-to">
         </div>
         <div class="market-history-actions">
-            <button class="btn btn-primary" onclick="openClientHistoryReport((document.getElementById('market-history-client') || {}).value, readMarketHistoryFilters())"><i class="fas fa-eye"></i> Shiko raportin</button>
-            <button class="btn btn-secondary" onclick="downloadClientHistoryPdf((document.getElementById('market-history-client') || {}).value, readMarketHistoryFilters())"><i class="fas fa-file-pdf"></i> PDF</button>
+            <button type="button" class="btn btn-primary" onclick="openClientHistoryReport((document.getElementById('market-history-client') || {}).value, readMarketHistoryFilters())"><i class="fas fa-eye" aria-hidden="true"></i> Shiko raportin</button>
+            <button type="button" class="btn btn-secondary" onclick="downloadClientHistoryPdf((document.getElementById('market-history-client') || {}).value, readMarketHistoryFilters())"><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</button>
         </div>
     `);
 }
@@ -11016,7 +11016,7 @@ function globalSearch(query) {
         if (query.length === 0) {
             results.classList.add('hidden');
         } else {
-            results.innerHTML = '<div class="sr-empty"><i class="fas fa-keyboard"></i> Shkruani së paku 2 karaktere…</div>';
+            results.innerHTML = '<div class="sr-empty"><i class="fas fa-keyboard" aria-hidden="true"></i> Shkruani së paku 2 karaktere…</div>';
             results.classList.remove('hidden');
         }
         return;
@@ -11042,10 +11042,10 @@ function _doGlobalSearch(query, results) {
     );
     totalFound += clientMatches.length;
     if (clientMatches.length) {
-        let html = '<div class="sr-section-header"><i class="fas fa-user"></i> Klientë (' + clientMatches.length + ')</div>';
+        let html = '<div class="sr-section-header"><i class="fas fa-user" aria-hidden="true"></i> Klientë (' + clientMatches.length + ')</div>';
         clientMatches.slice(0, 5).forEach(c => {
             html += `<div class="search-result-item" data-sr-action="client" data-sr-id="${_srEsc(c.id)}" onclick="_srOpen('client','${_srEsc(c.id)}')">
-                <i class="fas fa-user"></i>
+                <i class="fas fa-user" aria-hidden="true"></i>
                 <div class="sr-body"><div class="sr-name">${_srHi(c.name || '-', query)}</div>
                 <div class="sr-detail">${_srEsc(c.phone || '')}${c.email ? ' | ' + _srEsc(c.email) : ''} | Borxh: ${c.debt || 0} ден</div></div>
                 <span class="sr-type">Klient</span></div>`;
@@ -11062,7 +11062,7 @@ function _doGlobalSearch(query, results) {
     );
     totalFound += prodMatches.length;
     if (prodMatches.length) {
-        let html = '<div class="sr-section-header"><i class="fas fa-box"></i> Produkte (' + prodMatches.length + ')</div>';
+        let html = '<div class="sr-section-header"><i class="fas fa-box" aria-hidden="true"></i> Produkte (' + prodMatches.length + ')</div>';
         prodMatches.slice(0, 5).forEach(p => {
             const stk = ((state.stock || {})[p.id] || 0);
             const stkColor = stk === 0 ? 'var(--danger)' : (stk < 5 ? 'var(--warning)' : 'var(--success)');
@@ -11077,18 +11077,16 @@ function _doGlobalSearch(query, results) {
             // Quick actions: Shit (sale), Shto Stok (add stock), 360° (full view)
             const actions = `
                 <div class="sr-quick-actions" onclick="event.stopPropagation();">
-                    <button class="sr-qa-btn" title="Shit menjëherë" onclick="hideSearchResults();navigateTo('sales');setTimeout(()=>{if(typeof openSaleModal==='function'){openSaleModal();setTimeout(()=>{const sel=document.getElementById('sale-product');if(sel){sel.value='${pidEsc}';sel.dispatchEvent(new Event('change'));}},100);}},150);">
-                        <i class="fas fa-cash-register"></i>
+                    <button type="button" class="sr-qa-btn" title="Shit menjëherë" onclick="hideSearchResults();navigateTo('sales');setTimeout(()=>{if(typeof openSaleModal==='function'){openSaleModal();setTimeout(()=>{const sel=document.getElementById('sale-product');if(sel){sel.value='${pidEsc}';sel.dispatchEvent(new Event('change'));}},100);}},150);">
+                        <i class="fas fa-cash-register" aria-hidden="true"></i>
                     </button>
-                    <button class="sr-qa-btn" title="Shto stok" onclick="hideSearchResults();navigateTo('stock');setTimeout(()=>{const el=document.getElementById('stock-product-${pidEsc}');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},150);">
-                        <i class="fas fa-plus-circle"></i>
+                    <button type="button" class="sr-qa-btn" title="Shto stok" onclick="hideSearchResults();navigateTo('stock');setTimeout(()=>{const el=document.getElementById('stock-product-${pidEsc}');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},150);">
+                        <i class="fas fa-plus-circle" aria-hidden="true"></i>
                     </button>
-                    <button class="sr-qa-btn" title="Pamja 360°" onclick="_srOpen('product','${pidEsc}');">
-                        <i class="fas fa-chart-pie"></i>
-                    </button>
+                    <button type="button" class="sr-qa-btn" title="Pamja 360°" onclick="_srOpen('product','${pidEsc}');" aria-label="Pamja 360°"><i class="fas fa-chart-pie" aria-hidden="true"></i></button>
                 </div>`;
             html += `<div class="search-result-item search-result-product" data-sr-action="product" data-sr-id="${pidEsc}" onclick="_srOpen('product','${pidEsc}')">
-                <i class="fas fa-box"></i>
+                <i class="fas fa-box" aria-hidden="true"></i>
                 <div class="sr-body">
                     <div class="sr-name">${_srHi(p.name, query)}</div>
                     <div class="sr-detail">${detail}</div>
@@ -11112,12 +11110,12 @@ function _doGlobalSearch(query, results) {
     });
     totalFound += salesMatches.length;
     if (salesMatches.length) {
-        let html = '<div class="sr-section-header"><i class="fas fa-cash-register"></i> Shitje (' + salesMatches.length + ')</div>';
+        let html = '<div class="sr-section-header"><i class="fas fa-cash-register" aria-hidden="true"></i> Shitje (' + salesMatches.length + ')</div>';
         salesMatches.slice(0, 5).forEach(s => {
             const p = getProduct(s.productId);
             const c = (state.clients || []).find(cl => cl.id === s.clientId);
             html += `<div class="search-result-item" data-sr-action="sale" onclick="_srOpen('sale')">
-                <i class="fas fa-cash-register"></i>
+                <i class="fas fa-cash-register" aria-hidden="true"></i>
                 <div class="sr-body"><div class="sr-name">${_srHi((p ? p.name : 'N/A') + ' x' + (s.quantity || 0), query)}</div>
                 <div class="sr-detail">${_srEsc(s.date || '-')} | ${s.sellTotal || 0} ден${c ? ' | ' + _srEsc(c.name) : ''}</div></div>
                 <span class="sr-type">Shitje</span></div>`;
@@ -11136,11 +11134,11 @@ function _doGlobalSearch(query, results) {
     });
     totalFound += orderMatches.length;
     if (orderMatches.length) {
-        let html = '<div class="sr-section-header"><i class="fas fa-shopping-cart"></i> Porosi (' + orderMatches.length + ')</div>';
+        let html = '<div class="sr-section-header"><i class="fas fa-shopping-cart" aria-hidden="true"></i> Porosi (' + orderMatches.length + ')</div>';
         orderMatches.slice(0, 3).forEach(o => {
             const p = getProduct(o.productId);
             html += `<div class="search-result-item" data-sr-action="order" onclick="_srOpen('order')">
-                <i class="fas fa-shopping-cart"></i>
+                <i class="fas fa-shopping-cart" aria-hidden="true"></i>
                 <div class="sr-body"><div class="sr-name">${_srHi((p ? p.name : 'N/A') + ' x' + (o.quantity || 0), query)}</div>
                 <div class="sr-detail">${_srEsc(o.date || '-')} | ${_srEsc(o.status || 'pending')}</div></div>
                 <span class="sr-type">Porosi</span></div>`;
@@ -11156,10 +11154,10 @@ function _doGlobalSearch(query, results) {
     );
     totalFound += expMatches.length;
     if (expMatches.length) {
-        let html = '<div class="sr-section-header"><i class="fas fa-receipt"></i> Shpenzime (' + expMatches.length + ')</div>';
+        let html = '<div class="sr-section-header"><i class="fas fa-receipt" aria-hidden="true"></i> Shpenzime (' + expMatches.length + ')</div>';
         expMatches.slice(0, 3).forEach(e => {
             html += `<div class="search-result-item" data-sr-action="expense" onclick="_srOpen('expense')">
-                <i class="fas fa-receipt"></i>
+                <i class="fas fa-receipt" aria-hidden="true"></i>
                 <div class="sr-body"><div class="sr-name">${_srHi(e.description || '-', query)}</div>
                 <div class="sr-detail">${_srEsc(e.date || '-')} | ${e.amount || 0} ден | ${_srEsc(e.category || '-')}</div></div>
                 <span class="sr-type">Shpenzim</span></div>`;
@@ -11175,11 +11173,11 @@ function _doGlobalSearch(query, results) {
     });
     totalFound += retMatches.length;
     if (retMatches.length) {
-        let html = '<div class="sr-section-header"><i class="fas fa-undo"></i> Kthime (' + retMatches.length + ')</div>';
+        let html = '<div class="sr-section-header"><i class="fas fa-undo" aria-hidden="true"></i> Kthime (' + retMatches.length + ')</div>';
         retMatches.slice(0, 3).forEach(r => {
             const p = getProduct(r.productId);
             html += `<div class="search-result-item" data-sr-action="return" onclick="_srOpen('return')">
-                <i class="fas fa-undo"></i>
+                <i class="fas fa-undo" aria-hidden="true"></i>
                 <div class="sr-body"><div class="sr-name">${_srHi((p ? p.name : 'N/A') + ' x' + (r.quantity || 0), query)}</div>
                 <div class="sr-detail">${_srEsc(r.date || '-')} | ${_srEsc(r.reason || '-')}</div></div>
                 <span class="sr-type">Kthim</span></div>`;
@@ -11194,11 +11192,11 @@ function _doGlobalSearch(query, results) {
     );
     totalFound += noteMatches.length;
     if (noteMatches.length) {
-        let html = '<div class="sr-section-header"><i class="fas fa-sticky-note"></i> Shënime (' + noteMatches.length + ')</div>';
+        let html = '<div class="sr-section-header"><i class="fas fa-sticky-note" aria-hidden="true"></i> Shënime (' + noteMatches.length + ')</div>';
         noteMatches.slice(0, 3).forEach(n => {
             const snippet = (n.content || '').substring(0, 60);
             html += `<div class="search-result-item" data-sr-action="note" onclick="_srOpen('note')">
-                <i class="fas fa-sticky-note"></i>
+                <i class="fas fa-sticky-note" aria-hidden="true"></i>
                 <div class="sr-body"><div class="sr-name">${_srHi(n.title || 'Shënim', query)}</div>
                 <div class="sr-detail">${_srHi(snippet + (n.content && n.content.length > 60 ? '…' : ''), query)}</div></div>
                 <span class="sr-type">Shënim</span></div>`;
@@ -11215,10 +11213,10 @@ function _doGlobalSearch(query, results) {
     );
     totalFound += contactMatches.length;
     if (contactMatches.length) {
-        let html = '<div class="sr-section-header"><i class="fas fa-address-book"></i> Kontakte (' + contactMatches.length + ')</div>';
+        let html = '<div class="sr-section-header"><i class="fas fa-address-book" aria-hidden="true"></i> Kontakte (' + contactMatches.length + ')</div>';
         contactMatches.slice(0, 3).forEach(c => {
             html += `<div class="search-result-item" data-sr-action="contact" onclick="_srOpen('contact')">
-                <i class="fas fa-address-book"></i>
+                <i class="fas fa-address-book" aria-hidden="true"></i>
                 <div class="sr-body"><div class="sr-name">${_srHi(c.name || '-', query)}</div>
                 <div class="sr-detail">${_srEsc(c.phone || '')}${c.email ? ' | ' + _srEsc(c.email) : ''}</div></div>
                 <span class="sr-type">Kontakt</span></div>`;
@@ -11234,10 +11232,10 @@ function _doGlobalSearch(query, results) {
     );
     totalFound += distMatches.length;
     if (distMatches.length) {
-        let html = '<div class="sr-section-header"><i class="fas fa-store"></i> Dyqane Dist. (' + distMatches.length + ')</div>';
+        let html = '<div class="sr-section-header"><i class="fas fa-store" aria-hidden="true"></i> Dyqane Dist. (' + distMatches.length + ')</div>';
         distMatches.slice(0, 3).forEach(s => {
             html += `<div class="search-result-item" data-sr-action="dist" onclick="_srOpen('dist')">
-                <i class="fas fa-store"></i>
+                <i class="fas fa-store" aria-hidden="true"></i>
                 <div class="sr-body"><div class="sr-name">${_srHi(s.name || '-', query)}</div>
                 <div class="sr-detail">${_srEsc(s.address || '')}${s.phone ? ' | ' + _srEsc(s.phone) : ''}</div></div>
                 <span class="sr-type">Dyqan</span></div>`;
@@ -11254,10 +11252,10 @@ function _doGlobalSearch(query, results) {
     );
     totalFound += fatonMatches.length;
     if (fatonMatches.length) {
-        let html = '<div class="sr-section-header"><i class="fas fa-hand-holding-usd"></i> Pagesa Faton (' + fatonMatches.length + ')</div>';
+        let html = '<div class="sr-section-header"><i class="fas fa-hand-holding-usd" aria-hidden="true"></i> Pagesa Faton (' + fatonMatches.length + ')</div>';
         fatonMatches.slice(0, 3).forEach(f => {
             html += `<div class="search-result-item" data-sr-action="faton" onclick="_srOpen('faton')">
-                <i class="fas fa-hand-holding-usd"></i>
+                <i class="fas fa-hand-holding-usd" aria-hidden="true"></i>
                 <div class="sr-body"><div class="sr-name">${_srHi((f.amount || 0) + ' ден', query)}</div>
                 <div class="sr-detail">${_srEsc(f.date || '-')} | ${_srEsc(f.category || '-')}${f.note ? ' | ' + _srEsc(f.note) : ''}</div></div>
                 <span class="sr-type">Faton</span></div>`;
@@ -11268,7 +11266,7 @@ function _doGlobalSearch(query, results) {
     // Bug #124: Total counter në header
     let finalHtml = '';
     if (sections.length === 0) {
-        finalHtml = '<div class="sr-empty"><i class="fas fa-search-minus"></i> Asnjë rezultat për "<strong>' + _srEsc(query) + '</strong>"</div>';
+        finalHtml = '<div class="sr-empty"><i class="fas fa-search-minus" aria-hidden="true"></i> Asnjë rezultat për "<strong>' + _srEsc(query) + '</strong>"</div>';
     } else {
         finalHtml = '<div class="sr-total">Gjetur: <strong>' + totalFound + '</strong> rezultate për "<strong>' + _srEsc(query) + '</strong>"</div>' + sections.join('');
     }
@@ -11375,13 +11373,13 @@ function refreshDashboardMiniatures() {
     const fatonDebt = calcTotalOwedToFaton();
 
     let html = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;">';
-    html += `<div class="panel-360-card"><div class="p360-value" style="color:${lowStock.length > 0 ? 'var(--danger)' : 'var(--success)'}">${lowStock.length}</div><div class="p360-label"><i class="fas fa-boxes-stacked"></i> Stok i ulët</div></div>`;
-    html += `<div class="panel-360-card"><div class="p360-value" style="color:${debtClients.length > 0 ? 'var(--warning)' : 'var(--success)'}">${debtClients.length}</div><div class="p360-label"><i class="fas fa-users"></i> Klientë me borxh</div></div>`;
-    html += `<div class="panel-360-card"><div class="p360-value" style="color:var(--danger)">${totalDebt} ден</div><div class="p360-label"><i class="fas fa-hand-holding-usd"></i> Borxh total klientësh</div></div>`;
-    html += `<div class="panel-360-card"><div class="p360-value">${pendingOrders.length}</div><div class="p360-label"><i class="fas fa-clipboard-list"></i> Porosi aktive</div></div>`;
-    html += `<div class="panel-360-card"><div class="p360-value" style="color:var(--danger)">${fatonDebt} ден</div><div class="p360-label"><i class="fas fa-handshake"></i> Borxh Fatoni</div></div>`;
+    html += `<div class="panel-360-card"><div class="p360-value" style="color:${lowStock.length > 0 ? 'var(--danger)' : 'var(--success)'}">${lowStock.length}</div><div class="p360-label"><i class="fas fa-boxes-stacked" aria-hidden="true"></i> Stok i ulët</div></div>`;
+    html += `<div class="panel-360-card"><div class="p360-value" style="color:${debtClients.length > 0 ? 'var(--warning)' : 'var(--success)'}">${debtClients.length}</div><div class="p360-label"><i class="fas fa-users" aria-hidden="true"></i> Klientë me borxh</div></div>`;
+    html += `<div class="panel-360-card"><div class="p360-value" style="color:var(--danger)">${totalDebt} ден</div><div class="p360-label"><i class="fas fa-hand-holding-usd" aria-hidden="true"></i> Borxh total klientësh</div></div>`;
+    html += `<div class="panel-360-card"><div class="p360-value">${pendingOrders.length}</div><div class="p360-label"><i class="fas fa-clipboard-list" aria-hidden="true"></i> Porosi aktive</div></div>`;
+    html += `<div class="panel-360-card"><div class="p360-value" style="color:var(--danger)">${fatonDebt} ден</div><div class="p360-label"><i class="fas fa-handshake" aria-hidden="true"></i> Borxh Fatoni</div></div>`;
     html += '</div>';
-    miniDiv.innerHTML = '<strong><i class="fas fa-th-large"></i> Përmbledhje nga të gjitha tabet</strong>' + html;
+    miniDiv.innerHTML = '<strong><i class="fas fa-th-large" aria-hidden="true"></i> Përmbledhje nga të gjitha tabet</strong>' + html;
 }
 
 function calcTotalOwedToFaton() {
@@ -11465,9 +11463,9 @@ function showSmartSuggestions() {
 
     if (suggestions.length === 0) { sugDiv.innerHTML = ''; return; }
 
-    let html = '<div class="suggestions-bar"><strong><i class="fas fa-lightbulb"></i> Sugjerime</strong>';
+    let html = '<div class="suggestions-bar"><strong><i class="fas fa-lightbulb" aria-hidden="true"></i> Sugjerime</strong>';
     suggestions.slice(0, 5).forEach(s => {
-        html += `<div class="suggestion-item"><i class="fas ${s.icon}"></i><span>${s.text}</span><button onclick="${s.action}">${s.btn}</button></div>`;
+        html += `<div class="suggestion-item"><i class="fas ${s.icon}" aria-hidden="true"></i><span>${s.text}</span><button type="button" onclick="${s.action}">${s.btn}</button></div>`;
     });
     html += '</div>';
     sugDiv.innerHTML = html;
@@ -11484,7 +11482,7 @@ function initGlobalQuickActions() {
         <div class="fab-menu" id="global-fab-menu">
         </div>
         <div class="fab-badge" id="fab-badge"></div>
-        <button class="fab-button" id="fab-main-btn" onclick="toggleGlobalFAB()"><i class="fas fa-plus" id="fab-icon"></i></button>`;
+        <button type="button" class="fab-button" id="fab-main-btn" onclick="toggleGlobalFAB()" aria-label="Toggle global fab"><i class="fas fa-plus" id="fab-icon" aria-hidden="true"></i></button>`;
     document.body.appendChild(fab);
     fab.style.bottom = '50px';
     updateFABBadge();
@@ -11552,7 +11550,7 @@ function toggleGlobalFAB() {
         menu.innerHTML = items.map((item, i) =>
             `<div class="fab-menu-item" onclick="${item.action}" style="transition-delay:${i * 40}ms;opacity:0;transform:translateY(10px) scale(0.8);">
                 <span class="fab-item-label">${item.label}</span>
-                <span class="fab-item-icon" style="background:${item.color};"><i class="fas ${item.icon}"></i></span>
+                <span class="fab-item-icon" style="background:${item.color};"><i class="fas ${item.icon}" aria-hidden="true"></i></span>
             </div>`
         ).join('');
 
@@ -11611,13 +11609,13 @@ function openGlobalTimeline() {
     let html = '<div class="global-timeline">';
     events.slice(0, 50).forEach(e => {
         html += `<div class="gt-item">
-            <div class="gt-icon ${e.cls}"><i class="fas ${e.icon}"></i></div>
+            <div class="gt-icon ${e.cls}"><i class="fas ${e.icon}" aria-hidden="true"></i></div>
             <div class="gt-content"><div class="gt-title">${e.title}</div><div class="gt-detail">${e.detail}</div><div class="gt-time">${e.date} ${e.time}</div></div>
         </div>`;
     });
     html += '</div>';
 
-    openModal(`<h3><i class="fas fa-stream"></i> Timeline Globale</h3>${html}`);
+    openModal(`<h3><i class="fas fa-stream" aria-hidden="true"></i> Timeline Globale</h3>${html}`);
 }
 
 // Feature 6: Daily Report
@@ -11636,7 +11634,7 @@ function generateDailyReport() {
     const partnerShare = calcPartnerShare(todayProfit);
 
     let html = `<div class="daily-report">
-        <h3><i class="fas fa-file-alt"></i> Raport Ditor - ${today}</h3>
+        <h3><i class="fas fa-file-alt" aria-hidden="true"></i> Raport Ditor - ${today}</h3>
         <div class="dr-row"><span class="dr-label">Shitje sot</span><span class="dr-value">${todaySales.length} shitje</span></div>
         <div class="dr-row"><span class="dr-label">Qarkullimi</span><span class="dr-value">${todayRevenue} ден</span></div>
         <div class="dr-row"><span class="dr-label">Fitimi</span><span class="dr-value" style="color:var(--success)">${todayProfit} ден</span></div>
@@ -11652,7 +11650,7 @@ function generateDailyReport() {
         <hr>
         <div class="dr-row"><span class="dr-label">Stoku</span><span class="dr-value">${(typeof PRODUCTS !== "undefined" ? PRODUCTS : []).map(p => p.name + ': ' + (state.stock[p.id]||0)).join(', ')}</span></div>
         <div style="margin-top:15px;text-align:center;">
-            <button class="btn btn-primary" onclick="exportDailyReportPDF()"><i class="fas fa-file-pdf"></i> Shkarko PDF</button>
+            <button type="button" class="btn btn-primary" onclick="exportDailyReportPDF()"><i class="fas fa-file-pdf" aria-hidden="true"></i> Shkarko PDF</button>
         </div>
     </div>`;
 
@@ -11762,11 +11760,11 @@ function openClient360(clientId) {
 
     // Contact info
     html += '<div style="margin-bottom:12px;">';
-    if (client.phone) html += `<button class="btn btn-sm" style="background:#25D366;color:white;" onclick="sendWhatsApp('${client.phone}','Përshëndetje ${client.name}')"><i class="fab fa-whatsapp"></i> WhatsApp</button> `;
-    html += `<button class="btn btn-sm btn-success" onclick="openQuickCollectModal('${clientId}');closeSidePanel()"><i class="fas fa-hand-holding-usd"></i> Mbledh Pagesë</button> `;
-    html += `<button class="btn btn-sm btn-info" onclick="generateClientStatement('${clientId}')"><i class="fas fa-file-alt"></i> Pasqyrë</button>`;
-    html += ` <button class="btn btn-sm btn-primary" onclick="openClientTaskModal('${clientId}');closeSidePanel()"><i class="fas fa-list-check"></i> Task</button>`;
-    html += ` <button class="btn btn-sm btn-secondary" onclick="openClientVisitModal('${clientId}');closeSidePanel()"><i class="fas fa-route"></i> Vizitë</button>`;
+    if (client.phone) html += `<button type="button" class="btn btn-sm" style="background:#25D366;color:white;" onclick="sendWhatsApp('${client.phone}','Përshëndetje ${client.name}')"><i class="fab fa-whatsapp" aria-hidden="true"></i> WhatsApp</button> `;
+    html += `<button type="button" class="btn btn-sm btn-success" onclick="openQuickCollectModal('${clientId}');closeSidePanel()"><i class="fas fa-hand-holding-usd" aria-hidden="true"></i> Mbledh Pagesë</button> `;
+    html += `<button type="button" class="btn btn-sm btn-info" onclick="generateClientStatement('${clientId}')"><i class="fas fa-file-alt" aria-hidden="true"></i> Pasqyrë</button>`;
+    html += ` <button type="button" class="btn btn-sm btn-primary" onclick="openClientTaskModal('${clientId}');closeSidePanel()"><i class="fas fa-list-check" aria-hidden="true"></i> Task</button>`;
+    html += ` <button type="button" class="btn btn-sm btn-secondary" onclick="openClientVisitModal('${clientId}');closeSidePanel()"><i class="fas fa-route" aria-hidden="true"></i> Vizitë</button>`;
     html += '</div>';
 
     // Last 5 sales
@@ -11955,10 +11953,10 @@ function filterByGlobalDate(items, dateField) {
 // Feature 13: Monthly Comparison Helper
 function getMonthlyComparison(currentValue, previousValue) {
     if (previousValue === 0 && currentValue === 0) return '<span class="month-compare same">= 0%</span>';
-    if (previousValue === 0) return '<span class="month-compare up"><i class="fas fa-arrow-up"></i> Ri</span>';
+    if (previousValue === 0) return '<span class="month-compare up"><i class="fas fa-arrow-up" aria-hidden="true"></i> Ri</span>';
     const pct = Math.round(((currentValue - previousValue) / previousValue) * 100);
-    if (pct > 0) return `<span class="month-compare up"><i class="fas fa-arrow-up"></i> +${pct}%</span>`;
-    if (pct < 0) return `<span class="month-compare down"><i class="fas fa-arrow-down"></i> ${pct}%</span>`;
+    if (pct > 0) return `<span class="month-compare up"><i class="fas fa-arrow-up" aria-hidden="true"></i> +${pct}%</span>`;
+    if (pct < 0) return `<span class="month-compare down"><i class="fas fa-arrow-down" aria-hidden="true"></i> ${pct}%</span>`;
     return '<span class="month-compare same">= 0%</span>';
 }
 
@@ -12027,7 +12025,7 @@ function refreshRecentActivityBar() {
         })
         .slice(-5).reverse();
     if (activities.length === 0) {
-        rab.innerHTML = '<div class="rab-item"><i class="fas fa-info-circle"></i> Asnjë veprim ende</div>';
+        rab.innerHTML = '<div class="rab-item"><i class="fas fa-info-circle" aria-hidden="true"></i> Asnjë veprim ende</div>';
         return;
     }
 
@@ -12063,7 +12061,7 @@ function refreshRecentActivityBar() {
         const text = a.text || a.details || a.action || 'Veprim';
         const time = a.time || (a.timestamp ? new Date(a.timestamp).toLocaleTimeString('sq', { hour: '2-digit', minute: '2-digit' }) : '');
         return `<div class="rab-item" onclick="navigateTo('${page}')" title="${text}">
-            <i class="fas ${icon}"></i>
+            <i class="fas ${icon}" aria-hidden="true"></i>
             <span>${text.length > 40 ? text.substring(0, 40) + '...' : text}</span>
             <span class="rab-time">${time}</span>
         </div>`;
@@ -12266,19 +12264,19 @@ function _onRestoreFileSelected(input) {
                 preview.style.display = 'block';
                 preview.innerHTML = `
                     <div style="background:var(--bg-secondary);padding:15px;border-radius:10px;margin-bottom:15px;text-align:left;">
-                        <h4 style="margin:0 0 10px;color:var(--primary);"><i class="fas fa-file-code"></i> ${file.name}</h4>
+                        <h4 style="margin:0 0 10px;color:var(--primary);"><i class="fas fa-file-code" aria-hidden="true"></i> ${file.name}</h4>
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                            <div><i class="fas fa-shopping-cart"></i> Shitje: <strong>${salesCount}</strong></div>
-                            <div><i class="fas fa-users"></i> Klientë: <strong>${clientsCount}</strong></div>
-                            <div><i class="fas fa-boxes"></i> Stok: <strong>${stockCount}</strong> produkte</div>
-                            <div><i class="fas fa-money-bill"></i> Pagesa: <strong>${paymentsCount}</strong></div>
+                            <div><i class="fas fa-shopping-cart" aria-hidden="true"></i> Shitje: <strong>${salesCount}</strong></div>
+                            <div><i class="fas fa-users" aria-hidden="true"></i> Klientë: <strong>${clientsCount}</strong></div>
+                            <div><i class="fas fa-boxes" aria-hidden="true"></i> Stok: <strong>${stockCount}</strong> produkte</div>
+                            <div><i class="fas fa-money-bill" aria-hidden="true"></i> Pagesa: <strong>${paymentsCount}</strong></div>
                         </div>
                         <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
                             <span style="color:var(--danger);">Borxh total: <strong>${totalDebt} den</strong></span>
                         </div>
                     </div>
                     <div style="background:#fff3e0;padding:10px;border-radius:8px;margin-bottom:15px;color:#e65100;font-size:0.9em;">
-                        <i class="fas fa-exclamation-triangle"></i> Të dhënat aktuale (${(state.sales || []).length} shitje, ${(state.clients || []).length} klientë) do të zëvendësohen!
+                        <i class="fas fa-exclamation-triangle" aria-hidden="true"></i> Të dhënat aktuale (${(state.sales || []).length} shitje, ${(state.clients || []).length} klientë) do të zëvendësohen!
                     </div>
                 `;
             }
@@ -12286,11 +12284,11 @@ function _onRestoreFileSelected(input) {
                 actions.style.display = 'flex';
                 actions.style.gap = '10px';
                 actions.innerHTML = `
-                    <button onclick="closeModal()" style="flex:1;padding:14px;border:2px solid var(--border);background:var(--bg);color:var(--text-primary);border-radius:8px;cursor:pointer;font-size:1em;">
-                        <i class="fas fa-times"></i> Anulo
+                    <button type="button" onclick="closeModal()" style="flex:1;padding:14px;border:2px solid var(--border);background:var(--bg);color:var(--text-primary);border-radius:8px;cursor:pointer;font-size:1em;">
+                        <i class="fas fa-times" aria-hidden="true"></i> Anulo
                     </button>
-                    <button onclick="_confirmRestore()" style="flex:1;padding:14px;border:none;background:var(--success);color:white;border-radius:8px;cursor:pointer;font-size:1.1em;font-weight:bold;">
-                        <i class="fas fa-check"></i> RIKTHE
+                    <button type="button" onclick="_confirmRestore()" style="flex:1;padding:14px;border:none;background:var(--success);color:white;border-radius:8px;cursor:pointer;font-size:1.1em;font-weight:bold;">
+                        <i class="fas fa-check" aria-hidden="true"></i> RIKTHE
                     </button>
                 `;
             }
@@ -12386,7 +12384,7 @@ function showSalesPrediction() {
     const last7 = last30.slice(-7).reduce((s, d) => s + ((d && d.revenue) || 0), 0);
     const prev7 = last30.slice(-14, -7).reduce((s, d) => s + ((d && d.revenue) || 0), 0);
     const trend = prev7 > 0 ? Math.round(((last7 - prev7) / prev7) * 100) : 0;
-    const trendIcon = trend > 0 ? '<i class="fas fa-arrow-up" style="color:var(--success)"></i>' : trend < 0 ? '<i class="fas fa-arrow-down" style="color:var(--danger)"></i>' : '<i class="fas fa-minus"></i>';
+    const trendIcon = trend > 0 ? '<i class="fas fa-arrow-up" style="color:var(--success)" aria-hidden="true"></i>' : trend < 0 ? '<i class="fas fa-arrow-down" style="color:var(--danger)" aria-hidden="true"></i>' : '<i class="fas fa-minus" aria-hidden="true"></i>';
     const weeklyPrediction = Math.round(avgRevenue * 7);
     const weeklyProfitPred = Math.round(avgProfit * 7);
     const dayNames = ['Diel', 'Hën', 'Mar', 'Mër', 'Enj', 'Pre', 'Sht'];
@@ -12399,18 +12397,18 @@ function showSalesPrediction() {
     });
     let bestDay = 0;
     for (let i = 1; i < 7; i++) { if (dayTotals[i] > dayTotals[bestDay]) bestDay = i; }
-    let html = `<div class="daily-report"><h3><i class="fas fa-chart-line"></i> Parashikim Shitjesh</h3>
+    let html = `<div class="daily-report"><h3><i class="fas fa-chart-line" aria-hidden="true"></i> Parashikim Shitjesh</h3>
         <div class="panel-360-grid">
             <div class="panel-360-card"><div class="p360-value">${avgCount}</div><div class="p360-label">Mesatare shitje/ditë</div></div>
             <div class="panel-360-card"><div class="p360-value">${avgRevenue} ден</div><div class="p360-label">Mesatare qarkullim/ditë</div></div>
             <div class="panel-360-card"><div class="p360-value">${avgProfit} ден</div><div class="p360-label">Mesatare fitim/ditë</div></div>
             <div class="panel-360-card"><div class="p360-value">${trendIcon} ${trend}%</div><div class="p360-label">Trendi (7 ditë)</div></div>
         </div>
-        <h4><i class="fas fa-forward"></i> Parashikim 7 ditë</h4>
+        <h4><i class="fas fa-forward" aria-hidden="true"></i> Parashikim 7 ditë</h4>
         <div class="dr-row"><span class="dr-label">Qarkullim i pritshëm</span><span class="dr-value">${weeklyPrediction} ден</span></div>
         <div class="dr-row"><span class="dr-label">Fitim i pritshëm</span><span class="dr-value" style="color:var(--success)">${weeklyProfitPred} ден</span></div>
         <div class="dr-row"><span class="dr-label">Dita më e mirë</span><span class="dr-value">${dayNames[bestDay]}</span></div>
-        <h4><i class="fas fa-chart-bar"></i> Shitjet sipas ditës</h4>
+        <h4><i class="fas fa-chart-bar" aria-hidden="true"></i> Shitjet sipas ditës</h4>
         <div style="display:flex;gap:8px;align-items:flex-end;height:100px;margin-top:10px;">`;
     const maxDay = Math.max(...dayTotals, 1);
     dayNames.forEach((name, i) => { const h = Math.round((dayTotals[i] / maxDay) * 80); html += `<div style="flex:1;text-align:center;"><div style="background:var(--primary);height:${h}px;border-radius:4px 4px 0 0;margin:0 2px;"></div><small>${name}</small></div>`; });
@@ -12430,7 +12428,7 @@ function showProfitableProducts() {
         const totalSold = sales.reduce((s, x) => s + (x.quantity || 0), 0);
         return { ...p, totalProfit, totalSold, totalRevenue, margin: totalRevenue > 0 ? Math.round((totalProfit / totalRevenue) * 100) : 0, salesCount: sales.length };
     }).sort((a, b) => b.totalProfit - a.totalProfit);
-    let html = '<h3><i class="fas fa-trophy"></i> Produktet më fitimprurëse</h3><div class="table-container"><table class="data-table"><thead><tr><th>#</th><th>Produkti</th><th>Shitur</th><th>Qarkullim</th><th>Fitimi</th><th>Marzhi</th></tr></thead><tbody>';
+    let html = '<h3><i class="fas fa-trophy" aria-hidden="true"></i> Produktet më fitimprurëse</h3><div class="table-container"><table class="data-table"><thead><tr><th>#</th><th>Produkti</th><th>Shitur</th><th>Qarkullim</th><th>Fitimi</th><th>Marzhi</th></tr></thead><tbody>';
     productStats.forEach((p, i) => {
         const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i+1);
         html += `<tr><td>${medal}</td><td>${p.name}</td><td>${p.totalSold} copë</td><td>${p.totalRevenue} ден</td><td style="color:var(--success);font-weight:700">${p.totalProfit} ден</td><td>${p.margin}%</td></tr>`;
@@ -12447,7 +12445,7 @@ function showBestSalesHour() {
     let bestHour = 0;
     for (let i = 1; i < 24; i++) { if (hourData[i] > hourData[bestHour]) bestHour = i; }
     const maxH = Math.max(...hourData, 1);
-    let html = `<h3><i class="fas fa-clock"></i> Ora më e mirë e shitjes</h3>
+    let html = `<h3><i class="fas fa-clock" aria-hidden="true"></i> Ora më e mirë e shitjes</h3>
         <div class="panel-360-grid"><div class="panel-360-card"><div class="p360-value">${bestHour}:00</div><div class="p360-label">Ora më e mirë</div></div>
         <div class="panel-360-card"><div class="p360-value">${hourData[bestHour]} ден</div><div class="p360-label">Qarkullim</div></div></div>
         <h4>Shitjet sipas orës</h4><div style="display:flex;gap:2px;align-items:flex-end;height:120px;overflow-x:auto;">`;
@@ -12472,7 +12470,7 @@ function showSalesSeason() {
     let bestMonth = 0;
     for (let i = 1; i < 12; i++) { if (monthData[i] > monthData[bestMonth]) bestMonth = i; }
     const maxM = Math.max(...monthData, 1);
-    let html = `<h3><i class="fas fa-calendar-alt"></i> Sezoni i Shitjeve</h3>
+    let html = `<h3><i class="fas fa-calendar-alt" aria-hidden="true"></i> Sezoni i Shitjeve</h3>
         <div class="panel-360-grid"><div class="panel-360-card"><div class="p360-value">${monthNames[bestMonth]}</div><div class="p360-label">Muaji më i mirë</div></div>
         <div class="panel-360-card"><div class="p360-value">${monthData[bestMonth]} ден</div><div class="p360-label">Qarkullim</div></div></div>
         <div style="display:flex;gap:4px;align-items:flex-end;height:120px;margin-top:10px;">`;
@@ -12497,8 +12495,8 @@ function showClientMap() {
         zones[zone].revenue += ALL_SALES.filter(s => s.clientId === c.id).reduce((s, x) => s + (x.sellTotal || 0), 0);
     });
     const sortedZones = Object.entries(zones).sort((a, b) => b[1].revenue - a[1].revenue);
-    let html = '<h3><i class="fas fa-map-marker-alt"></i> Harta e Klientëve</h3><div class="table-container"><table class="data-table"><thead><tr><th>Zona</th><th>Klientë</th><th>Qarkullim</th><th>Borxh</th></tr></thead><tbody>';
-    sortedZones.forEach(([zone, data]) => { html += `<tr><td><i class="fas fa-map-pin" style="color:var(--primary)"></i> ${zone}</td><td>${data.count}</td><td>${data.revenue} ден</td><td style="color:${data.debt > 0 ? 'var(--danger)' : ''}">${data.debt} ден</td></tr>`; });
+    let html = '<h3><i class="fas fa-map-marker-alt" aria-hidden="true"></i> Harta e Klientëve</h3><div class="table-container"><table class="data-table"><thead><tr><th>Zona</th><th>Klientë</th><th>Qarkullim</th><th>Borxh</th></tr></thead><tbody>';
+    sortedZones.forEach(([zone, data]) => { html += `<tr><td><i class="fas fa-map-pin" style="color:var(--primary)" aria-hidden="true"></i> ${zone}</td><td>${data.count}</td><td>${data.revenue} ден</td><td style="color:${data.debt > 0 ? 'var(--danger)' : ''}">${data.debt} ден</td></tr>`; });
     html += '</tbody></table></div>';
     openModal(html);
 }
@@ -12513,10 +12511,10 @@ function showWhatsAppTemplates(phone, clientName) {
         { name: 'Kujtesë fature', icon: 'fa-file-invoice', msg: `Përshëndetje ${clientName}, fatura juaj po afrohet afatit. Ju lutem bëni pagesën.` },
         { name: 'Produkt i ri', icon: 'fa-box', msg: `Përshëndetje ${clientName}! Kemi arritur produkte të reja. Na vizitoni!` },
     ];
-    let html = '<h3><i class="fab fa-whatsapp" style="color:#25D366"></i> Shabllone WhatsApp</h3><div style="display:grid;gap:10px;">';
+    let html = '<h3><i class="fab fa-whatsapp" style="color:#25D366" aria-hidden="true"></i> Shabllone WhatsApp</h3><div style="display:grid;gap:10px;">';
     templates.forEach(t => {
         const encodedMsg = encodeURIComponent(t.msg);
-        html += `<div style="background:var(--bg);border-radius:10px;padding:12px;border:1px solid var(--border);"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><strong><i class="fas ${t.icon}"></i> ${t.name}</strong><button class="btn btn-sm" style="background:#25D366;color:white;" onclick="window.open('https://wa.me/${(phone||'').replace(/[^0-9]/g,'')}?text=${encodedMsg}','_blank');closeModal();"><i class="fab fa-whatsapp"></i> Dërgo</button></div><p style="font-size:0.85rem;color:var(--text-secondary);margin:0;">${t.msg}</p></div>`;
+        html += `<div style="background:var(--bg);border-radius:10px;padding:12px;border:1px solid var(--border);"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><strong><i class="fas ${t.icon}" aria-hidden="true"></i> ${t.name}</strong><button type="button" class="btn btn-sm" style="background:#25D366;color:white;" onclick="window.open('https://wa.me/${(phone||'').replace(/[^0-9]/g,'')}?text=${encodedMsg}','_blank');closeModal();"><i class="fab fa-whatsapp" aria-hidden="true"></i> Dërgo</button></div><p style="font-size:0.85rem;color:var(--text-secondary);margin:0;">${t.msg}</p></div>`;
     });
     html += '</div>';
     openModal(html);
@@ -12524,13 +12522,13 @@ function showWhatsAppTemplates(phone, clientName) {
 
 // ADV-9: Stock Count (Physical Inventory)
 function openStockCountModal() {
-    let html = '<h3><i class="fas fa-clipboard-check"></i> Inventar Fizik</h3><p style="color:var(--text-secondary)">Fut sasinë reale të stokut</p>';
+    let html = '<h3><i class="fas fa-clipboard-check" aria-hidden="true"></i> Inventar Fizik</h3><p style="color:var(--text-secondary)">Fut sasinë reale të stokut</p>';
     html += '<div class="table-container"><table class="data-table"><thead><tr><th>Produkti</th><th>Sistemi</th><th>Real</th><th>Diferenca</th></tr></thead><tbody>';
     // Bug #62: PRODUCTS/state.stock guards
     if (!state.stock) state.stock = {};
     (typeof PRODUCTS !== 'undefined' && PRODUCTS ? PRODUCTS : []).forEach(p => { const sysQty = state.stock[p.id] || 0; html += `<tr><td>${p.name || '-'}</td><td>${sysQty}</td><td><input type="number" id="count-${p.id}" value="${sysQty}" min="0" style="width:70px;padding:4px;border:1px solid var(--border);border-radius:4px;" oninput="updateCountDiff('${p.id}', ${sysQty}, this.value)"></td><td id="diff-${p.id}" style="font-weight:700">0</td></tr>`; });
     html += '</tbody></table></div>';
-    html += '<div style="margin-top:15px;display:flex;gap:10px;"><button class="btn btn-primary" onclick="applyStockCount()"><i class="fas fa-check"></i> Apliko</button><button class="btn btn-secondary" onclick="closeModal()">Anulo</button></div>';
+    html += '<div style="margin-top:15px;display:flex;gap:10px;"><button type="button" class="btn btn-primary" onclick="applyStockCount()"><i class="fas fa-check" aria-hidden="true"></i> Apliko</button><button type="button" class="btn btn-secondary" onclick="closeModal()">Anulo</button></div>';
     openModal(html);
 }
 
@@ -12558,9 +12556,9 @@ function applyStockCount() {
 // ADV-10: Multiple Suppliers
 function openSuppliersModal() {
     if (!state.suppliers) state.suppliers = [{ id: 'faton', name: 'Faton', phone: '', balance: 0 }];
-    let html = '<h3><i class="fas fa-truck"></i> Furnitorët</h3><div class="table-container"><table class="data-table"><thead><tr><th>Emri</th><th>Telefoni</th><th>Borxhi</th><th>Veprime</th></tr></thead><tbody>';
-    (state.suppliers || []).forEach(s => { html += `<tr><td>${s.name}</td><td>${s.phone || '-'}</td><td style="color:var(--danger)">${s.balance || 0} ден</td><td><button class="btn btn-sm btn-secondary" onclick="editSupplier('${s.id}')"><i class="fas fa-edit"></i></button></td></tr>`; });
-    html += '</tbody></table></div><button class="btn btn-primary" style="margin-top:10px;" onclick="addNewSupplier()"><i class="fas fa-plus"></i> Shto furnitor</button>';
+    let html = '<h3><i class="fas fa-truck" aria-hidden="true"></i> Furnitorët</h3><div class="table-container"><table class="data-table"><thead><tr><th>Emri</th><th>Telefoni</th><th>Borxhi</th><th>Veprime</th></tr></thead><tbody>';
+    (state.suppliers || []).forEach(s => { html += `<tr><td>${s.name}</td><td>${s.phone || '-'}</td><td style="color:var(--danger)">${s.balance || 0} ден</td><td><button type="button" class="btn btn-sm btn-secondary" onclick="editSupplier('${s.id}')" aria-label="Edit supplier"><i class="fas fa-edit" aria-hidden="true"></i></button></td></tr>`; });
+    html += '</tbody></table></div><button type="button" class="btn btn-primary" style="margin-top:10px;" onclick="addNewSupplier()"><i class="fas fa-plus" aria-hidden="true"></i> Shto furnitor</button>';
     openModal(html);
 }
 
@@ -12583,10 +12581,10 @@ function editSupplier(id) {
 
 // ADV-11: Barcode/QR Scanner
 function openBarcodeScanner() {
-    let html = `<h3><i class="fas fa-barcode"></i> Skaner Barkod/QR</h3><div style="margin-bottom:10px;"><input type="text" id="barcode-input" placeholder="Fut barkodin..." style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:1rem;"></div>
-        <button class="btn btn-primary" onclick="searchBarcode()"><i class="fas fa-search"></i> Kërko</button><div id="barcode-result" style="margin-top:15px;"></div>
+    let html = `<h3><i class="fas fa-barcode" aria-hidden="true"></i> Skaner Barkod/QR</h3><div style="margin-bottom:10px;"><input type="text" id="barcode-input" placeholder="Fut barkodin..." style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:1rem;"></div>
+        <button type="button" class="btn btn-primary" onclick="searchBarcode()"><i class="fas fa-search" aria-hidden="true"></i> Kërko</button><div id="barcode-result" style="margin-top:15px;"></div>
         <hr style="margin:15px 0;"><h4>Barkodët</h4><div class="table-container"><table class="data-table"><thead><tr><th>Produkti</th><th>ID</th><th>QR</th></tr></thead><tbody>`;
-    (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).forEach(p => { html += `<tr><td>${p.name}</td><td>${p.id}</td><td><button class="btn btn-sm btn-info" onclick="showProductQR('${p.id}')"><i class="fas fa-qrcode"></i></button></td></tr>`; });
+    (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).forEach(p => { html += `<tr><td>${p.name}</td><td>${p.id}</td><td><button type="button" class="btn btn-sm btn-info" onclick="showProductQR('${p.id}')" aria-label="Show product qr"><i class="fas fa-qrcode" aria-hidden="true"></i></button></td></tr>`; });
     html += '</tbody></table></div>';
     openModal(html);
 }
@@ -12616,14 +12614,14 @@ function openPromotionsModal() {
     if (!state.promotions) state.promotions = [];
     const today = new Date().toISOString().split('T')[0];
     const active = (state.promotions || []).filter(p => (!p.endDate || p.endDate >= today) && (!p.startDate || p.startDate <= today));
-    let html = '<h3><i class="fas fa-tag"></i> Oferta & Promocione</h3>';
-    if (active.length > 0) { html += '<h4 style="color:var(--success)">Aktive</h4>'; active.forEach(p => { html += `<div style="background:var(--bg);padding:12px;border-radius:8px;margin-bottom:8px;border-left:4px solid var(--success);"><strong>${p.name}</strong> - ${p.discount}% zbritje<br><small>${p.productId ? (getProduct(p.productId)||{}).name || 'Të gjitha' : 'Të gjitha'} | Deri: ${p.endDate || 'Pa limit'}</small><button class="btn btn-sm btn-danger" style="float:right" onclick="deletePromotion('${p.id}')"><i class="fas fa-trash"></i></button></div>`; }); }
+    let html = '<h3><i class="fas fa-tag" aria-hidden="true"></i> Oferta & Promocione</h3>';
+    if (active.length > 0) { html += '<h4 style="color:var(--success)">Aktive</h4>'; active.forEach(p => { html += `<div style="background:var(--bg);padding:12px;border-radius:8px;margin-bottom:8px;border-left:4px solid var(--success);"><strong>${p.name}</strong> - ${p.discount}% zbritje<br><small>${p.productId ? (getProduct(p.productId)||{}).name || 'Të gjitha' : 'Të gjitha'} | Deri: ${p.endDate || 'Pa limit'}</small><button type="button" class="btn btn-sm btn-danger" style="float:right" onclick="deletePromotion('${p.id}')" aria-label="Delete promotion"><i class="fas fa-trash" aria-hidden="true"></i></button></div>`; }); }
     html += `<h4 style="margin-top:15px;">Shto ofertë</h4><div style="display:grid;gap:8px;">
         <input type="text" id="promo-name" placeholder="Emri" style="padding:8px;border:1px solid var(--border);border-radius:6px;">
         <select id="promo-product" style="padding:8px;border:1px solid var(--border);border-radius:6px;"><option value="">Të gjitha</option>${(typeof PRODUCTS !== "undefined" ? PRODUCTS : []).map(p => `<option value="${p.id}">${p.name}</option>`).join('')}</select>
         <input type="number" id="promo-discount" placeholder="Zbritja (%)" min="1" max="99" style="padding:8px;border:1px solid var(--border);border-radius:6px;">
         <div style="display:flex;gap:8px;"><input type="date" id="promo-start" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;"><input type="date" id="promo-end" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;"></div>
-        <button class="btn btn-success" onclick="addPromotion()"><i class="fas fa-plus"></i> Shto</button></div>`;
+        <button type="button" class="btn btn-success" onclick="addPromotion()"><i class="fas fa-plus" aria-hidden="true"></i> Shto</button></div>`;
     openModal(html);
 }
 
@@ -12659,10 +12657,10 @@ function checkAutoOrders() {
     const list = (typeof PRODUCTS !== 'undefined' && PRODUCTS ? PRODUCTS : []);
     const lowProducts = list.filter(p => (state.stock[p.id] || 0) < state.autoOrderThreshold);
     if (lowProducts.length === 0) { if (typeof showToast === 'function') showToast('Stoku OK, nuk nevojiten porosi'); return; }
-    let html = `<h3><i class="fas fa-magic"></i> Porosi Automatike</h3><p>Produkte me stok nën ${state.autoOrderThreshold}:</p>`;
+    let html = `<h3><i class="fas fa-magic" aria-hidden="true"></i> Porosi Automatike</h3><p>Produkte me stok nën ${state.autoOrderThreshold}:</p>`;
     html += '<div class="table-container"><table class="data-table"><thead><tr><th>Produkti</th><th>Stoku</th><th>Porosi</th><th>Veprim</th></tr></thead><tbody>';
-    lowProducts.forEach(p => { const stock = state.stock[p.id] || 0; html += `<tr><td>${p.name || '-'}</td><td style="color:var(--danger)">${stock}</td><td><input type="number" id="auto-order-${p.id}" value="${10 - stock}" min="1" style="width:60px;padding:4px;border:1px solid var(--border);border-radius:4px;"></td><td><button class="btn btn-sm btn-success" onclick="createAutoOrder('${p.id}')"><i class="fas fa-check"></i></button></td></tr>`; });
-    html += '</tbody></table></div><button class="btn btn-primary" style="margin-top:10px;" onclick="createAllAutoOrders()"><i class="fas fa-cart-plus"></i> Porosit të gjitha</button>';
+    lowProducts.forEach(p => { const stock = state.stock[p.id] || 0; html += `<tr><td>${p.name || '-'}</td><td style="color:var(--danger)">${stock}</td><td><input type="number" id="auto-order-${p.id}" value="${10 - stock}" min="1" style="width:60px;padding:4px;border:1px solid var(--border);border-radius:4px;"></td><td><button type="button" class="btn btn-sm btn-success" onclick="createAutoOrder('${p.id}')" aria-label="Create auto order"><i class="fas fa-check" aria-hidden="true"></i></button></td></tr>`; });
+    html += '</tbody></table></div><button type="button" class="btn btn-primary" style="margin-top:10px;" onclick="createAllAutoOrders()"><i class="fas fa-cart-plus" aria-hidden="true"></i> Porosit të gjitha</button>';
     openModal(html);
 }
 
@@ -12692,7 +12690,7 @@ function showProfitByClient() {
         const totalRevenue = sales.reduce((s, x) => s + (x.sellTotal || 0), 0);
         return { ...c, totalProfit, totalRevenue, salesCount: sales.length, avgOrder: sales.length > 0 ? Math.round(totalRevenue / sales.length) : 0 };
     }).filter(c => c.salesCount > 0).sort((a, b) => b.totalProfit - a.totalProfit);
-    let html = '<h3><i class="fas fa-users"></i> Fitimi sipas Klientit</h3><div class="table-container"><table class="data-table"><thead><tr><th>#</th><th>Klienti</th><th>Shitje</th><th>Qarkullim</th><th>Fitimi</th><th>Mesatare</th></tr></thead><tbody>';
+    let html = '<h3><i class="fas fa-users" aria-hidden="true"></i> Fitimi sipas Klientit</h3><div class="table-container"><table class="data-table"><thead><tr><th>#</th><th>Klienti</th><th>Shitje</th><th>Qarkullim</th><th>Fitimi</th><th>Mesatare</th></tr></thead><tbody>';
     clientStats.forEach((c, i) => { const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i+1); html += `<tr onclick="openClient360('${c.id}')" style="cursor:pointer"><td>${medal}</td><td>${c.name}</td><td>${c.salesCount}</td><td>${c.totalRevenue} ден</td><td style="color:var(--success);font-weight:700">${c.totalProfit} ден</td><td>${c.avgOrder} ден</td></tr>`; });
     html += '</tbody></table></div>';
     openModal(html);
@@ -12831,7 +12829,7 @@ function showYearlyComparison() {
     const revChange = lastRevenue > 0 ? Math.round(((thisRevenue - lastRevenue) / lastRevenue) * 100) : 0;
     const profChange = lastProfit > 0 ? Math.round(((thisProfit - lastProfit) / lastProfit) * 100) : 0;
 
-    let html = `<h3><i class="fas fa-chart-line"></i> Krahasim Vjetor: ${thisYear} vs ${lastYear}</h3>`;
+    let html = `<h3><i class="fas fa-chart-line" aria-hidden="true"></i> Krahasim Vjetor: ${thisYear} vs ${lastYear}</h3>`;
     html += '<div class="panel-360-grid">';
     html += `<div class="panel-360-card"><div class="p360-value">${thisYearSales.length}</div><div class="p360-label">Shitje ${thisYear}</div></div>`;
     html += `<div class="panel-360-card"><div class="p360-value">${lastYearSales.length}</div><div class="p360-label">Shitje ${lastYear}</div></div>`;
@@ -12842,9 +12840,9 @@ function showYearlyComparison() {
     html += '</div>';
 
     html += `<div style="text-align:center;margin:15px 0;">
-        <span class="month-compare ${revChange >= 0 ? 'up' : 'down'}"><i class="fas fa-arrow-${revChange >= 0 ? 'up' : 'down'}"></i> Qarkullim: ${revChange > 0 ? '+' : ''}${revChange}%</span>
+        <span class="month-compare ${revChange >= 0 ? 'up' : 'down'}"><i class="fas fa-arrow-${revChange >= 0 ? 'up' : 'down'}" aria-hidden="true"></i> Qarkullim: ${revChange > 0 ? '+' : ''}${revChange}%</span>
         &nbsp;&nbsp;
-        <span class="month-compare ${profChange >= 0 ? 'up' : 'down'}"><i class="fas fa-arrow-${profChange >= 0 ? 'up' : 'down'}"></i> Fitim: ${profChange > 0 ? '+' : ''}${profChange}%</span>
+        <span class="month-compare ${profChange >= 0 ? 'up' : 'down'}"><i class="fas fa-arrow-${profChange >= 0 ? 'up' : 'down'}" aria-hidden="true"></i> Fitim: ${profChange > 0 ? '+' : ''}${profChange}%</span>
     </div>`;
 
     // Monthly breakdown
@@ -12874,7 +12872,7 @@ function openDashboardSettings() {
     }
     const w = state.dashboardWidgets;
 
-    let html = '<h3><i class="fas fa-th-large"></i> Personalizo Dashboard-in</h3>';
+    let html = '<h3><i class="fas fa-th-large" aria-hidden="true"></i> Personalizo Dashboard-in</h3>';
     html += '<p style="color:var(--text-secondary)">Zgjidh çfarë do të shfaqet në Dashboard</p>';
     html += '<div style="display:grid;gap:8px;">';
 
@@ -12894,12 +12892,12 @@ function openDashboardSettings() {
     widgets.forEach(wg => {
         html += `<label style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--bg);border-radius:8px;cursor:pointer;">
             <input type="checkbox" ${w[wg.key] ? 'checked' : ''} onchange="toggleDashWidget('${wg.key}', this.checked)">
-            <i class="fas ${wg.icon}" style="width:20px;color:var(--primary)"></i>
+            <i class="fas ${wg.icon}" style="width:20px;color:var(--primary)" aria-hidden="true"></i>
             <span>${wg.label}</span>
         </label>`;
     });
     html += '</div>';
-    html += '<button class="btn btn-primary" style="margin-top:15px;width:100%;" onclick="closeModal();refreshDashboard();"><i class="fas fa-check"></i> Ruaj</button>';
+    html += '<button type="button" class="btn btn-primary" style="margin-top:15px;width:100%;" onclick="closeModal();refreshDashboard();"><i class="fas fa-check" aria-hidden="true"></i> Ruaj</button>';
     openModal(html);
 }
 
@@ -12944,11 +12942,11 @@ function generateWeeklyWhatsAppReport() {
 
     const encoded = encodeURIComponent(msg);
 
-    let html = `<h3><i class="fab fa-whatsapp" style="color:#25D366"></i> Raport Javor WhatsApp</h3>`;
+    let html = `<h3><i class="fab fa-whatsapp" style="color:#25D366" aria-hidden="true"></i> Raport Javor WhatsApp</h3>`;
     html += `<pre style="background:var(--bg);padding:15px;border-radius:10px;white-space:pre-wrap;font-size:0.85rem;">${msg}</pre>`;
     html += `<div style="display:flex;gap:10px;margin-top:15px;">
-        <button class="btn" style="background:#25D366;color:white;flex:1;" onclick="window.open('https://wa.me/?text=${encoded}','_blank')"><i class="fab fa-whatsapp"></i> Dërgo në WhatsApp</button>
-        <button class="btn btn-secondary" onclick="navigator.clipboard.writeText(\`${msg.replace(/`/g, '\\`')}\`);showToast('U kopjua!')"><i class="fas fa-copy"></i> Kopjo</button>
+        <button type="button" class="btn" style="background:#25D366;color:white;flex:1;" onclick="window.open('https://wa.me/?text=${encoded}','_blank')"><i class="fab fa-whatsapp" aria-hidden="true"></i> Dërgo në WhatsApp</button>
+        <button type="button" class="btn btn-secondary" onclick="navigator.clipboard.writeText(\`${msg.replace(/`/g, '\\`')}\`);showToast('U kopjua!')"><i class="fas fa-copy" aria-hidden="true"></i> Kopjo</button>
     </div>`;
     openModal(html);
 }
@@ -12980,7 +12978,7 @@ Hurma App`);
 
 // ADV-20: Reports Hub - Central access to all reports
 function openReportsHub() {
-    let html = '<h3><i class="fas fa-chart-bar"></i> Qendra e Raporteve</h3>';
+    let html = '<h3><i class="fas fa-chart-bar" aria-hidden="true"></i> Qendra e Raporteve</h3>';
     html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">';
 
     const reports = [
@@ -13007,7 +13005,7 @@ function openReportsHub() {
         html += `<div onclick="${r.action};closeModal();" style="background:var(--bg);border-radius:12px;padding:16px;text-align:center;cursor:pointer;border:2px solid transparent;transition:all 0.2s;"
             onmouseover="this.style.borderColor='${r.color}';this.style.transform='translateY(-2px)'"
             onmouseout="this.style.borderColor='transparent';this.style.transform='none'">
-            <i class="fas ${r.icon}" style="font-size:1.8rem;color:${r.color};display:block;margin-bottom:8px;"></i>
+            <i class="fas ${r.icon}" style="font-size:1.8rem;color:${r.color};display:block;margin-bottom:8px;" aria-hidden="true"></i>
             <strong style="font-size:0.85rem;">${r.name}</strong>
         </div>`;
     });
@@ -13029,7 +13027,7 @@ function updateLiveProfitTracker() {
     }
     const today = new Date().toISOString().split('T')[0];
     const todayProfit = (state.sales || []).filter(s => s.date === today).reduce((sum, s) => sum + ((s && s.profit) || 0), 0);
-    tracker.innerHTML = '<i class="fas fa-coins"></i> ' + todayProfit + ' ден';
+    tracker.innerHTML = '<i class="fas fa-coins" aria-hidden="true"></i> ' + todayProfit + ' ден';
 }
 
 // FIX-9: Client of the Day
@@ -13047,7 +13045,7 @@ function getClientOfDay() {
 function showClientOfDay() {
     const cod = getClientOfDay();
     if (!cod) { showToast('Asnjë klient sot'); return; }
-    openModal(`<div style="text-align:center;padding:20px;"><i class="fas fa-crown" style="font-size:3rem;color:#f1c40f;"></i><h2 style="margin:10px 0;">Klienti i Ditës</h2><h3 style="color:var(--primary);">${cod.name}</h3><p style="font-size:1.5rem;font-weight:700;">${cod.total || 0} ден</p><button class="btn btn-primary" onclick="openClient360('${cod.id}');closeModal();"><i class="fas fa-user"></i> Shiko profilin</button></div>`);
+    openModal(`<div style="text-align:center;padding:20px;"><i class="fas fa-crown" style="font-size:3rem;color:#f1c40f;" aria-hidden="true"></i><h2 style="margin:10px 0;">Klienti i Ditës</h2><h3 style="color:var(--primary);">${cod.name}</h3><p style="font-size:1.5rem;font-weight:700;">${cod.total || 0} ден</p><button type="button" class="btn btn-primary" onclick="openClient360('${cod.id}');closeModal();"><i class="fas fa-user" aria-hidden="true"></i> Shiko profilin</button></div>`);
 }
 
 // FIX-10: Comparison Chart
@@ -13055,7 +13053,7 @@ function showComparisonChart() {
     const last7 = []; const now = new Date();
     for (let i = 6; i >= 0; i--) { const d = new Date(now); d.setDate(d.getDate() - i); const dateStr = d.toISOString().split('T')[0]; last7.push({ date: dateStr.slice(5), sales: (state.sales || []).filter(s => s.date === dateStr).reduce((s, x) => s + ((x && x.sellTotal) || 0), 0), fatonPay: (state.fatonPayments || []).filter(p => p.date === dateStr).reduce((s, p) => s + ((p && p.amount) || 0), 0), clientPay: (state.clientPayments || []).filter(p => p.date === dateStr).reduce((s, p) => s + ((p && p.amount) || 0), 0) }); }
     const maxVal = Math.max(...last7.map(d => Math.max(d.sales, d.fatonPay, d.clientPay)), 1);
-    let html = '<h3><i class="fas fa-chart-bar"></i> Krahasim: Shitje vs Pagesa</h3><div style="display:flex;gap:6px;margin-bottom:10px;font-size:0.8rem;"><span><span style="display:inline-block;width:12px;height:12px;background:var(--success);border-radius:2px;"></span> Shitje</span><span><span style="display:inline-block;width:12px;height:12px;background:var(--primary);border-radius:2px;"></span> Fatoni</span><span><span style="display:inline-block;width:12px;height:12px;background:var(--warning);border-radius:2px;"></span> Klientë</span></div>';
+    let html = '<h3><i class="fas fa-chart-bar" aria-hidden="true"></i> Krahasim: Shitje vs Pagesa</h3><div style="display:flex;gap:6px;margin-bottom:10px;font-size:0.8rem;"><span><span style="display:inline-block;width:12px;height:12px;background:var(--success);border-radius:2px;"></span> Shitje</span><span><span style="display:inline-block;width:12px;height:12px;background:var(--primary);border-radius:2px;"></span> Fatoni</span><span><span style="display:inline-block;width:12px;height:12px;background:var(--warning);border-radius:2px;"></span> Klientë</span></div>';
     html += '<div style="display:flex;gap:8px;align-items:flex-end;height:150px;">';
     last7.forEach(d => { const sh = Math.round((d.sales / maxVal) * 130); const fh = Math.round((d.fatonPay / maxVal) * 130); const ch = Math.round((d.clientPay / maxVal) * 130); html += `<div style="flex:1;text-align:center;"><div style="display:flex;gap:2px;align-items:flex-end;justify-content:center;height:130px;"><div style="width:8px;background:var(--success);height:${sh}px;border-radius:2px 2px 0 0;"></div><div style="width:8px;background:var(--primary);height:${fh}px;border-radius:2px 2px 0 0;"></div><div style="width:8px;background:var(--warning);height:${ch}px;border-radius:2px 2px 0 0;"></div></div><small style="font-size:0.65rem;">${d.date}</small></div>`; });
     html += '</div>'; openModal(html);
@@ -13073,13 +13071,13 @@ function addLiveCalculation() {
     if (!qtyEl || !prodEl) return;
     let calcDiv = document.getElementById('sale-live-calc');
     if (!calcDiv) { calcDiv = document.createElement('div'); calcDiv.id = 'sale-live-calc'; calcDiv.style.cssText = 'background:var(--bg);padding:12px;border-radius:10px;margin:10px 0;text-align:center;'; const btn = document.querySelector('#modal-body .btn-primary'); if (btn) btn.parentNode.insertBefore(calcDiv, btn); }
-    function calc() { const product = getProduct(prodEl.value); if (!product) return; const qty = parseInt(qtyEl.value) || 0; const disc = parseFloat(discEl.value) || 0; const cp = customEl ? parseFloat(customEl.value) : 0; const price = cp > 0 ? cp : product.sellPrice; const total = Math.round(price * qty * (1 - disc / 100)); const cost = product.buyPrice * qty; const profit = total - cost; const os = typeof calcOwnerShare === 'function' ? calcOwnerShare(profit) : Math.round(profit * 0.5); const ps = profit - os; const ap = typeof getActiveDiscount === 'function' ? getActiveDiscount(prodEl.value) : 0; calcDiv.innerHTML = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;"><div><small style="color:var(--text-secondary)">Totali</small><br><strong>${total} ден</strong></div><div><small style="color:var(--text-secondary)">Fitimi</small><br><strong style="color:var(--success)">${profit} ден</strong></div><div><small style="color:var(--text-secondary)">Stoku</small><br><strong style="color:${(state.stock[prodEl.value]||0) - qty < 3 ? 'var(--danger)' : ''}">${(state.stock[prodEl.value] || 0) - qty}</strong></div></div><div style="margin-top:6px;font-size:0.8rem;color:var(--text-secondary);">Elez: ${os} ден | ${state.partnerName || 'Orhan'}: ${ps} ден</div>${ap > 0 ? '<div style="color:var(--warning);font-size:0.8rem;margin-top:4px;"><i class="fas fa-tag"></i> Ofertë: -' + ap + '%</div>' : ''}`; }
+    function calc() { const product = getProduct(prodEl.value); if (!product) return; const qty = parseInt(qtyEl.value) || 0; const disc = parseFloat(discEl.value) || 0; const cp = customEl ? parseFloat(customEl.value) : 0; const price = cp > 0 ? cp : product.sellPrice; const total = Math.round(price * qty * (1 - disc / 100)); const cost = product.buyPrice * qty; const profit = total - cost; const os = typeof calcOwnerShare === 'function' ? calcOwnerShare(profit) : Math.round(profit * 0.5); const ps = profit - os; const ap = typeof getActiveDiscount === 'function' ? getActiveDiscount(prodEl.value) : 0; calcDiv.innerHTML = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;"><div><small style="color:var(--text-secondary)">Totali</small><br><strong>${total} ден</strong></div><div><small style="color:var(--text-secondary)">Fitimi</small><br><strong style="color:var(--success)">${profit} ден</strong></div><div><small style="color:var(--text-secondary)">Stoku</small><br><strong style="color:${(state.stock[prodEl.value]||0) - qty < 3 ? 'var(--danger)' : ''}">${(state.stock[prodEl.value] || 0) - qty}</strong></div></div><div style="margin-top:6px;font-size:0.8rem;color:var(--text-secondary);">Elez: ${os} ден | ${state.partnerName || 'Orhan'}: ${ps} ден</div>${ap > 0 ? '<div style="color:var(--warning);font-size:0.8rem;margin-top:4px;"><i class="fas fa-tag" aria-hidden="true"></i> Ofertë: -' + ap + '%</div>' : ''}`; }
     [qtyEl, discEl, prodEl, customEl].forEach(el => { if (el) el.addEventListener('input', calc); });
     if (prodEl) prodEl.addEventListener('change', calc); calc();
 }
 
 // FIX-14: Enhanced toast
-function showDetailedToast(message, type, duration) { const toast = document.createElement('div'); toast.className = 'toast ' + (type || 'success'); toast.innerHTML = `<i class="fas fa-${type === 'error' ? 'exclamation-circle' : 'check-circle'}"></i> ${message}`; const c = document.getElementById('toast-container'); if (c) { c.appendChild(toast); setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, duration || 3000); } }
+function showDetailedToast(message, type, duration) { const toast = document.createElement('div'); toast.className = 'toast ' + (type || 'success'); toast.innerHTML = `<i class="fas fa-${type === 'error' ? 'exclamation-circle' : 'check-circle'}" aria-hidden="true"></i> ${message}`; const c = document.getElementById('toast-container'); if (c) { c.appendChild(toast); setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, duration || 3000); } }
 
 // FIX-15: Global date filter sync
 function applyGlobalDateFilterToSales() { if (!window._globalDateFilter) return; const f = window._globalDateFilter; const sf = document.getElementById('sales-date-from'); const st = document.getElementById('sales-date-to'); if (sf && f.from) sf.value = f.from; if (st && f.to) st.value = f.to; }
@@ -13203,12 +13201,12 @@ function initFatonFAB() {
     fab.className = 'fab-container';
     fab.style.display = 'none';
     fab.innerHTML = '<div class="fab-menu" id="fab-menu">' +
-        '<div class="fab-menu-item" onclick="quickPayLastAmount()"><i class="fas fa-bolt"></i> Pagese e shpejte</div>' +
-        '<div class="fab-menu-item" onclick="openFatonPaymentModal()"><i class="fas fa-plus"></i> Shto pagese</div>' +
-        '<div class="fab-menu-item" onclick="openSplitPaymentModal()"><i class="fas fa-divide"></i> Pagese split</div>' +
-        '<div class="fab-menu-item" onclick="showReceiptHistory()"><i class="fas fa-receipt"></i> Faturat</div>' +
+        '<div class="fab-menu-item" onclick="quickPayLastAmount()"><i class="fas fa-bolt" aria-hidden="true"></i> Pagese e shpejte</div>' +
+        '<div class="fab-menu-item" onclick="openFatonPaymentModal()"><i class="fas fa-plus" aria-hidden="true"></i> Shto pagese</div>' +
+        '<div class="fab-menu-item" onclick="openSplitPaymentModal()"><i class="fas fa-divide" aria-hidden="true"></i> Pagese split</div>' +
+        '<div class="fab-menu-item" onclick="showReceiptHistory()"><i class="fas fa-receipt" aria-hidden="true"></i> Faturat</div>' +
         '</div>' +
-        '<button class="fab-button" onclick="toggleFABMenu()"><i class="fas fa-plus"></i></button>';
+        '<button type="button" class="fab-button" onclick="toggleFABMenu()" aria-label="Toggle fabmenu"><i class="fas fa-plus" aria-hidden="true"></i></button>';
     document.body.appendChild(fab);
 }
 
@@ -13219,7 +13217,7 @@ function toggleFABMenu() {
     const btn = fab.querySelector('.fab-button');
     if (menu) {
         menu.classList.toggle('active');
-        if (btn) btn.innerHTML = menu.classList.contains('active') ? '<i class="fas fa-times"></i>' : '<i class="fas fa-plus"></i>';
+        if (btn) btn.innerHTML = menu.classList.contains('active') ? '<i class="fas fa-times" aria-hidden="true"></i>' : '<i class="fas fa-plus" aria-hidden="true"></i>';
     }
 }
 
@@ -13296,7 +13294,7 @@ function generateStepper(steps, currentStep) {
         const isCompleted = i < currentStep;
         html += '<div class="stepper-step" style="position:relative;">';
         html += '<div class="stepper-circle ' + (isCompleted ? 'completed' : isActive ? 'active' : '') + '">';
-        html += isCompleted ? '<i class="fas fa-check"></i>' : (i + 1);
+        html += isCompleted ? '<i class="fas fa-check" aria-hidden="true"></i>' : (i + 1);
         html += '</div></div>';
         if (i < steps.length - 1) {
             html += '<div class="stepper-line ' + (isCompleted ? 'completed' : '') + '"></div>';
@@ -13354,7 +13352,7 @@ function showTopWeekProducts() {
         .sort((a, b) => b.qty - a.qty)
         .slice(0, 5);
 
-    let html = `<h3><i class="fas fa-trophy"></i> Top 5 Produktet e Javës</h3>`;
+    let html = `<h3><i class="fas fa-trophy" aria-hidden="true"></i> Top 5 Produktet e Javës</h3>`;
     html += `<p style="color:var(--text-secondary);font-size:0.85rem;">${weekStartStr} — ${weekEnd}</p>`;
 
     if (sorted.length === 0) {
@@ -13397,7 +13395,7 @@ function showPartnerProfitChart() {
     }
 
     const canvasId = 'partner-profit-chart-' + Date.now();
-    let html = `<h3><i class="fas fa-chart-bar"></i> Fitimi Elez vs ${state.partnerName} (6 muajt e fundit)</h3>`;
+    let html = `<h3><i class="fas fa-chart-bar" aria-hidden="true"></i> Fitimi Elez vs ${state.partnerName} (6 muajt e fundit)</h3>`;
     html += `<canvas id="${canvasId}" height="250"></canvas>`;
     html += `<div style="display:flex;gap:20px;justify-content:center;margin-top:10px;font-size:0.85rem;">
         <span><span style="display:inline-block;width:14px;height:14px;background:#3498db;border-radius:3px;margin-right:4px;"></span>Elez</span>
@@ -13451,10 +13449,10 @@ function showSleepingClients() {
         return { ...c, lastDate: lastSale.date, totalBought, daysSince };
     }).filter(Boolean).sort((a, b) => b.daysSince - a.daysSince);
 
-    let html = `<h3><i class="fas fa-bed"></i> Klientët e Fjetur (30+ ditë)</h3>`;
+    let html = `<h3><i class="fas fa-bed" aria-hidden="true"></i> Klientët e Fjetur (30+ ditë)</h3>`;
 
     if (sleeping.length === 0) {
-        html += '<p style="text-align:center;color:var(--success);"><i class="fas fa-check-circle"></i> Të gjithë klientët janë aktivë!</p>';
+        html += '<p style="text-align:center;color:var(--success);"><i class="fas fa-check-circle" aria-hidden="true"></i> Të gjithë klientët janë aktivë!</p>';
     } else {
         html += `<p style="color:var(--text-secondary);font-size:0.85rem;">${sleeping.length} klientë nuk kanë blerë prej 30+ ditësh</p>`;
         html += '<div class="table-container"><table class="data-table"><thead><tr><th>Klienti</th><th>Ditë pa blerë</th><th>Blerja e fundit</th><th>Total blerë</th><th>Kujtesë</th></tr></thead><tbody>';
@@ -13466,7 +13464,7 @@ function showSleepingClients() {
                 <td style="color:var(--danger);font-weight:700;">${c.daysSince} ditë</td>
                 <td>${c.lastDate}</td>
                 <td>${c.totalBought} ден</td>
-                <td>${c.phone ? `<a href="${waLink}" target="_blank" class="btn btn-sm" style="background:#25D366;color:white;"><i class="fab fa-whatsapp"></i></a>` : '-'}</td>
+                <td>${c.phone ? `<a href="${waLink}" target="_blank" class="btn btn-sm" style="background:#25D366;color:white;"><i class="fab fa-whatsapp" aria-hidden="true"></i></a>` : '-'}</td>
             </tr>`;
         });
         html += '</tbody></table></div>';
@@ -13491,7 +13489,7 @@ function showTodayPaymentsSummary() {
     const totalFaton = fatonPayments.reduce((s, p) => s + ((p && p.amount) || 0), 0);
     const grandTotal = totalClient + totalFaton;
 
-    let html = `<h3><i class="fas fa-hand-holding-usd"></i> Pagesat e Sotme (${today})</h3>`;
+    let html = `<h3><i class="fas fa-hand-holding-usd" aria-hidden="true"></i> Pagesat e Sotme (${today})</h3>`;
     html += `<div class="panel-360-grid" style="margin-bottom:15px;">
         <div class="panel-360-card"><div class="p360-value" style="color:var(--success)">${grandTotal} ден</div><div class="p360-label">Total sot</div></div>
         <div class="panel-360-card"><div class="p360-value">${totalClient} ден</div><div class="p360-label">Nga klientët</div></div>
@@ -13499,7 +13497,7 @@ function showTodayPaymentsSummary() {
     </div>`;
 
     if (clientPayments.length > 0) {
-        html += '<h4><i class="fas fa-users"></i> Pagesat e klientëve</h4>';
+        html += '<h4><i class="fas fa-users" aria-hidden="true"></i> Pagesat e klientëve</h4>';
         html += '<div class="table-container"><table class="data-table"><thead><tr><th>Klienti</th><th>Shuma</th><th>Shënim</th></tr></thead><tbody>';
         clientPayments.forEach(p => {
             const client = (state.clients || []).find(c => c && c.id === p.clientId);
@@ -13509,7 +13507,7 @@ function showTodayPaymentsSummary() {
     }
 
     if (fatonPayments.length > 0) {
-        html += '<h4><i class="fas fa-truck"></i> Pagesat ndaj Fatoni</h4>';
+        html += '<h4><i class="fas fa-truck" aria-hidden="true"></i> Pagesat ndaj Fatoni</h4>';
         html += '<div class="table-container"><table class="data-table"><thead><tr><th>Shuma</th><th>Shënim</th></tr></thead><tbody>';
         fatonPayments.forEach(p => {
             html += `<tr><td style="color:var(--primary);font-weight:700;">${p.amount} ден</td><td>${p.note || '-'}</td></tr>`;
@@ -13531,7 +13529,7 @@ function duplicateSale(saleIndex) {
 
     // Build the same modal as openSaleModal but with pre-filled values from the duplicated sale
     let html = `
-        <h3><i class="fas fa-copy"></i> Kopjo Shitjen</h3>
+        <h3><i class="fas fa-copy" aria-hidden="true"></i> Kopjo Shitjen</h3>
         <div class="form-group">
             <label>${t('product')}:</label>
             <select id="sale-product">
@@ -13574,8 +13572,8 @@ function duplicateSale(saleIndex) {
             <label>Lokacioni:</label>
             <input type="text" id="sale-location" value="${sale.location || ''}">
         </div>
-        <button class="btn btn-success" onclick="confirmDuplicateSale()" style="width:100%;margin-top:10px;">
-            <i class="fas fa-save"></i> Shto Shitjen e Re
+        <button type="button" class="btn btn-success" onclick="confirmDuplicateSale()" style="width:100%;margin-top:10px;">
+            <i class="fas fa-save" aria-hidden="true"></i> Shto Shitjen e Re
         </button>`;
     openModal(html);
     setTimeout(() => { try { addLiveCalculation(); } catch(e) {} }, 100);
@@ -13638,8 +13636,8 @@ function showQuickSaleButtons() {
 
     let html = '<div style="display:flex;flex-wrap:wrap;gap:8px;">';
     top3.forEach(p => {
-        html += `<button class="btn btn-primary" style="flex:1;min-width:100px;" onclick="openQuickSaleForProduct('${p.id}')">
-            <i class="fas fa-bolt"></i><br>
+        html += `<button type="button" class="btn btn-primary" style="flex:1;min-width:100px;" onclick="openQuickSaleForProduct('${p.id}')">
+            <i class="fas fa-bolt" aria-hidden="true"></i><br>
             <strong>${p.name}</strong><br>
             <small>${p.sellPrice} ден</small>
         </button>`;
@@ -13653,7 +13651,7 @@ function openQuickSaleForProduct(productId) {
     if (!product) return;
 
     let html = `
-        <h3><i class="fas fa-bolt"></i> Shitje e Shpejtë — ${product.name}</h3>
+        <h3><i class="fas fa-bolt" aria-hidden="true"></i> Shitje e Shpejtë — ${product.name}</h3>
         <input type="hidden" id="sale-product" value="${productId}">
         <div class="form-group">
             <label>Sasia:</label>
@@ -13678,8 +13676,8 @@ function openQuickSaleForProduct(productId) {
             <strong>Çmimi: ${product.sellPrice} ден/njësi</strong><br>
             <small style="color:var(--text-secondary);">Stoku: ${(state.stock || {})[productId] || 0}</small>
         </div>
-        <button class="btn btn-success" onclick="confirmDuplicateSale()" style="width:100%;margin-top:10px;font-size:1.1rem;">
-            <i class="fas fa-check"></i> Shto Shitjen
+        <button type="button" class="btn btn-success" onclick="confirmDuplicateSale()" style="width:100%;margin-top:10px;font-size:1.1rem;">
+            <i class="fas fa-check" aria-hidden="true"></i> Shto Shitjen
         </button>`;
 
     openModal(html);
@@ -13690,7 +13688,7 @@ function openDailyTargetModal() {
     if (!state.dailyTarget) state.dailyTarget = 0;
     const progress = getDailyTargetProgress();
 
-    let html = `<h3><i class="fas fa-bullseye"></i> Target Ditor i Fitimit</h3>`;
+    let html = `<h3><i class="fas fa-bullseye" aria-hidden="true"></i> Target Ditor i Fitimit</h3>`;
 
     if (progress.target > 0) {
         const barColor = progress.percent >= 100 ? 'var(--success)' : progress.percent >= 60 ? 'var(--warning)' : 'var(--danger)';
@@ -13707,10 +13705,10 @@ function openDailyTargetModal() {
         <label>Vendos target të ri (ден):</label>
         <input type="number" id="daily-target-input" min="0" value="${state.dailyTarget || ''}" placeholder="p.sh. 5000">
     </div>
-    <button class="btn btn-primary" onclick="saveDailyTarget()" style="width:100%;">
-        <i class="fas fa-save"></i> Ruaj Targetin
+    <button type="button" class="btn btn-primary" onclick="saveDailyTarget()" style="width:100%;">
+        <i class="fas fa-save" aria-hidden="true"></i> Ruaj Targetin
     </button>
-    ${progress.target > 0 ? `<button class="btn btn-secondary" onclick="state.dailyTarget=0;saveState();closeModal();showToast('Targeti u fshi');" style="width:100%;margin-top:8px;"><i class="fas fa-times"></i> Fshi Targetin</button>` : ''}`;
+    ${progress.target > 0 ? `<button type="button" class="btn btn-secondary" onclick="state.dailyTarget=0;saveState();closeModal();showToast('Targeti u fshi');" style="width:100%;margin-top:8px;"><i class="fas fa-times" aria-hidden="true"></i> Fshi Targetin</button>` : ''}`;
 
     openModal(html);
 }
@@ -13768,11 +13766,11 @@ function showWeeklyComparison() {
         const pct = pctChange(curr, prev);
         const up = pct >= 0;
         return `<span class="month-compare ${up ? 'up' : 'down'}" style="font-size:0.9rem;">
-            <i class="fas fa-arrow-${up ? 'up' : 'down'}"></i> ${pct > 0 ? '+' : ''}${pct}%
+            <i class="fas fa-arrow-${up ? 'up' : 'down'}" aria-hidden="true"></i> ${pct > 0 ? '+' : ''}${pct}%
         </span>`;
     }
 
-    let html = `<h3><i class="fas fa-calendar-week"></i> Krahasim Javor</h3>`;
+    let html = `<h3><i class="fas fa-calendar-week" aria-hidden="true"></i> Krahasim Javor</h3>`;
     html += `<p style="color:var(--text-secondary);font-size:0.8rem;">Kjo javë: ${thisWeekStartStr} — ${todayStr} &nbsp;|&nbsp; Java e kaluar: ${lastWeekStartStr} — ${lastWeekEndStr}</p>`;
 
     const rows = [
@@ -13803,10 +13801,10 @@ function openClientNotesModal(clientId) {
 
     const notes = (state.clientNotes || []).filter(n => n.clientId === clientId).sort((a, b) => b.date.localeCompare(a.date));
 
-    let html = `<h3><i class="fas fa-sticky-note"></i> Notat për ${client.name}</h3>`;
+    let html = `<h3><i class="fas fa-sticky-note" aria-hidden="true"></i> Notat për ${client.name}</h3>`;
     html += `<div class="form-group" style="display:flex;gap:8px;">
         <textarea id="client-note-text" placeholder="Shkruaj një shënim..." rows="2" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;resize:none;"></textarea>
-        <button class="btn btn-primary" onclick="addClientNote('${clientId}')" style="align-self:flex-end;"><i class="fas fa-plus"></i> Shto</button>
+        <button type="button" class="btn btn-primary" onclick="addClientNote('${clientId}')" style="align-self:flex-end;"><i class="fas fa-plus" aria-hidden="true"></i> Shto</button>
     </div>`;
 
     if (notes.length === 0) {
@@ -13817,7 +13815,7 @@ function openClientNotesModal(clientId) {
             html += `<div style="background:var(--bg);padding:10px 12px;border-radius:8px;border-left:3px solid var(--primary);">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
                     <small style="color:var(--text-secondary);">${n.date}</small>
-                    <button class="btn btn-sm btn-danger" onclick="deleteClientNote('${n.id}','${clientId}')" style="padding:2px 6px;"><i class="fas fa-trash"></i></button>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteClientNote('${n.id}','${clientId}')" style="padding:2px 6px;" aria-label="Delete client note"><i class="fas fa-trash" aria-hidden="true"></i></button>
                 </div>
                 <div>${n.text}</div>
             </div>`;
@@ -14030,7 +14028,7 @@ function showQuickPaymentDashboard() {
             <td style="padding:10px;color:var(--danger);font-weight:700;">${c.debt} den</td>
             <td style="padding:10px;">${c.phone || '-'}</td>
             <td style="padding:10px;">
-                <button onclick="openQuickCollectModal('${c.id}')" style="background:var(--primary);color:white;border:none;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:0.85rem;">Merr Pagese</button>
+                <button type="button" onclick="openQuickCollectModal('${c.id}')" style="background:var(--primary);color:white;border:none;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:0.85rem;">Merr Pagese</button>
             </td>
         </tr>`).join('');
 
@@ -14083,7 +14081,7 @@ function processQuickCollect(clientId) {
     showToast(`Pagesa e ${amount} den u regjistrua per ${client.name}!`, 'success');
 
     // Ask to send thank you
-    const sendWa = client.phone ? `<br><br><button onclick="sendThankYouWhatsApp('${client.id}', ${amount})" style="background:var(--success);color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;margin-top:8px;">Dergo Faleminderit WhatsApp</button>` : '';
+    const sendWa = client.phone ? `<br><br><button type="button" onclick="sendThankYouWhatsApp('${client.id}', ${amount})" style="background:var(--success);color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;margin-top:8px;">Dergo Faleminderit WhatsApp</button>` : '';
     openModal('Pagesa u Regjistrua', `<div style="text-align:center;padding:1rem;"><span style="font-size:2rem;">✓</span><p style="font-size:1.1rem;margin-top:0.5rem;">${client.name} pagoi <strong>${amount} den</strong>.</p><p>Borxh mbetur: <strong style="color:${client.debt>0?'var(--danger)':'var(--success)'};">${client.debt} den</strong></p>${sendWa}</div>`);
 }
 
@@ -14282,7 +14280,7 @@ function updateLastClientHeader() {
         badge.className = 'last-sale-chip';
         badge.innerHTML = `
             <button class="lsc-nav lsc-nav-prev" type="button" aria-label="Mbrapa" title="Mbrapa">
-                <i class="fas fa-chevron-left"></i>
+                <i class="fas fa-chevron-left" aria-hidden="true"></i>
             </button>
             <button class="lsc-main" type="button" aria-label="Shiko shitjen">
                 <span class="lsc-icon" aria-hidden="true">🛒</span>
@@ -14292,10 +14290,10 @@ function updateLastClientHeader() {
                 <span class="lsc-pager" id="lsc-pager" aria-live="polite"></span>
             </button>
             <button class="lsc-nav lsc-nav-next" type="button" aria-label="Para" title="Para">
-                <i class="fas fa-chevron-right"></i>
+                <i class="fas fa-chevron-right" aria-hidden="true"></i>
             </button>
             <button class="lsc-menu-btn" type="button" aria-label="Më shumë veprime" title="Veprime">
-                <i class="fas fa-ellipsis-vertical"></i>
+                <i class="fas fa-ellipsis-vertical" aria-hidden="true"></i>
             </button>`;
         topbar.appendChild(badge);
 
@@ -14496,8 +14494,8 @@ function _openLastSaleMenu(badge, client, product, sale) {
     }, danger: true });
 
     menu.innerHTML = items.map((it, i) =>
-        `<button class="lsc-menu-item ${it.danger ? 'lsc-menu-item-danger' : ''}" data-i="${i}">
-            <i class="fas ${it.icon}"></i><span>${it.label}</span>
+        `<button type="button" class="lsc-menu-item ${it.danger ? 'lsc-menu-item-danger' : ''}" data-i="${i}">
+            <i class="fas ${it.icon}" aria-hidden="true"></i><span>${it.label}</span>
         </button>`
     ).join('');
 
@@ -14967,7 +14965,7 @@ function _openLastSaleMenu(badge, client, product, sale) {
             <div class="mp-backdrop" data-mp-close="1"></div>
             <div class="mp-panel" role="dialog" aria-label="Lidhja Master">
                 <div class="mp-header">
-                    <i class="fas fa-bolt mp-header-icon"></i>
+                    <i class="fas fa-bolt mp-header-icon" aria-hidden="true"></i>
                     <input type="text" id="mp-input" class="mp-input"
                         placeholder="Shkruaj: emër klienti, produkti, sasi… p.sh. 'ajdan medjool 3'"
                         autocomplete="off" spellcheck="false">
@@ -15719,7 +15717,7 @@ function openVolumeDiscountSettings() {
             <tr>
                 <td>${d.minQty}+</td>
                 <td style="color:var(--success);font-weight:700;">${d.discountPct}%</td>
-                <td><button class="btn btn-danger" style="padding:4px 10px;font-size:0.8em;" onclick="(state.volumeDiscounts = state.volumeDiscounts || []).splice(${i},1);saveState();(document.getElementById('vd-tbody') || {}).innerHTML =renderVDRows();">Fshi</button></td>
+                <td><button type="button" class="btn btn-danger" style="padding:4px 10px;font-size:0.8em;" onclick="(state.volumeDiscounts = state.volumeDiscounts || []).splice(${i},1);saveState();(document.getElementById('vd-tbody') || {}).innerHTML =renderVDRows();">Fshi</button></td>
             </tr>`).join('');
     }
 
@@ -15737,7 +15735,7 @@ function openVolumeDiscountSettings() {
                     <label style="font-size:0.8em;color:var(--text-secondary);">Zbritja (%)</label>
                     <input type="number" id="vd-pct" class="form-input" placeholder="p.sh. 5" min="0.1" max="100" step="0.1" style="width:100%;">
                 </div>
-                <button class="btn btn-primary" onclick="(function(){
+                <button type="button" class="btn btn-primary" onclick="(function(){
                     const qty = parseInt((document.getElementById('vd-minqty') || {}).value);
                     const pct = parseFloat((document.getElementById('vd-pct') || {}).value);
                     if (!qty || !pct || qty < 1 || pct <= 0) { showToast('Vendos vlera valide','error'); return; }
@@ -15993,7 +15991,7 @@ function showFullAuditLog() {
             </select>
             <input type="date" id="audit-date-from" class="form-input" style="min-width:130px;" onchange="filterAuditLog()">
             <input type="date" id="audit-date-to" class="form-input" style="min-width:130px;" onchange="filterAuditLog()">
-            <button class="btn btn-success" onclick="exportAuditLog()"><i class="fas fa-file-excel"></i> Excel</button>
+            <button type="button" class="btn btn-success" onclick="exportAuditLog()"><i class="fas fa-file-excel" aria-hidden="true"></i> Excel</button>
         </div>
         <div id="audit-count" style="font-size:0.82em;color:var(--text-secondary);margin-bottom:8px;"></div>
         <div id="audit-log-body" style="max-height:420px;overflow-y:auto;"></div>`;
@@ -16213,7 +16211,7 @@ function openChangePinModal() {
                     placeholder="••••" autocomplete="off"/>
             </div>
             <div id="change-pin-error" style="color:var(--danger);font-size:0.9em;min-height:18px;"></div>
-            <button class="btn btn-primary" onclick="submitChangePinModal()" style="width:100%;">Ndrysho PIN</button>
+            <button type="button" class="btn btn-primary" onclick="submitChangePinModal()" style="width:100%;">Ndrysho PIN</button>
         </div>`;
     openModal('🔑 Ndrysho PIN Fshirjes', body);
 }
@@ -16428,7 +16426,7 @@ function openCommissionSettings() {
             <div id="commission-preview" style="background:var(--bg-secondary);border-radius:8px;padding:12px;font-size:0.95em;color:var(--text-secondary);">
                 Shembull: shitje 1000 ден → komision <strong>${calculateCommission(1000)} ден</strong>
             </div>
-            <button class="btn btn-primary" onclick="saveCommissionSettings()" style="width:100%;">💾 Ruaj Komisionin</button>
+            <button type="button" class="btn btn-primary" onclick="saveCommissionSettings()" style="width:100%;">💾 Ruaj Komisionin</button>
         </div>`;
     openModal('💼 Komision Shitësi', body);
     setTimeout(() => {
@@ -16504,7 +16502,7 @@ function showCommissionReport() {
                     <tbody>${rows || '<tr><td colspan="4" style="padding:14px;text-align:center;color:var(--text-secondary);">Asnjë shitje këtë muaj</td></tr>'}</tbody>
                 </table>
             </div>
-            <button class="btn btn-secondary" onclick="openCommissionSettings()" style="width:100%;">⚙️ Ndrysho Komisionin</button>
+            <button type="button" class="btn btn-secondary" onclick="openCommissionSettings()" style="width:100%;">⚙️ Ndrysho Komisionin</button>
         </div>`;
     openModal(`💼 Raport Komisionesh - ${monthStr}`, body);
 }
@@ -16524,7 +16522,7 @@ function addWarranty(saleIndex) {
                     style="width:100px;padding:8px;border:2px solid var(--primary);border-radius:8px;font-size:1.1em;background:var(--bg-secondary);color:var(--text-primary);"/>
             </div>
             <p style="font-size:0.85em;color:var(--text-secondary);">Shembuj: 30 (1 muaj), 90 (3 muaj), 365 (1 vit)</p>
-            <button class="btn btn-primary" onclick="saveWarranty(${saleIndex})" style="width:100%;">💾 Ruaj Garancinë</button>
+            <button type="button" class="btn btn-primary" onclick="saveWarranty(${saleIndex})" style="width:100%;">💾 Ruaj Garancinë</button>
         </div>`;
     openModal('🛡️ Shto Garanci', body);
 }
@@ -16565,7 +16563,7 @@ function showWarrantyTracker() {
             <td style="padding:8px;">${expiry.toISOString().split('T')[0]}</td>
             <td style="padding:8px;">${s.warrantyDays} ditë</td>
             <td style="padding:8px;"><span style="font-weight:600;color:${statusColor};">${statusText}</span></td>
-            <td style="padding:8px;"><button class="btn btn-sm" style="padding:3px 8px;font-size:0.8em;" onclick="addWarranty(${s._index})">✏️</button></td>
+            <td style="padding:8px;"><button type="button" class="btn btn-sm" style="padding:3px 8px;font-size:0.8em;" onclick="addWarranty(${s._index})">✏️</button></td>
         </tr>`;
     }).join('');
 
@@ -16646,7 +16644,7 @@ function showSMSTemplates(clientId) {
         <div style="border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;background:var(--bg-secondary);">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
                 <span style="font-weight:700;color:var(--text-primary);">${t.icon} ${t.title}</span>
-                <button class="btn btn-sm btn-secondary" onclick="copySmsTemplate(${i})" style="padding:4px 12px;font-size:0.85em;" id="copy-sms-btn-${i}">📋 Kopjo</button>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="copySmsTemplate(${i})" style="padding:4px 12px;font-size:0.85em;" id="copy-sms-btn-${i}">📋 Kopjo</button>
             </div>
             <p id="sms-template-${i}" style="font-size:0.88em;color:var(--text-secondary);line-height:1.5;margin:0;">${t.text}</p>
         </div>`).join('');
@@ -16894,7 +16892,7 @@ function sendBackupToEmail() {
                Hap Email Klientin
             </a>
             <br>
-            <button onclick="
+            <button type="button" onclick="
                 navigator.clipboard.writeText(${JSON.stringify(backupData)}).then(()=>{
                     showToast('Te dhenat u kopjuan ne clipboard!', 'success');
                 }).catch(()=>{
@@ -16970,19 +16968,19 @@ function oneClickBackup() {
                 Madhesia e te dhenave: <strong>${sizeStr}</strong>
             </p>
             <div style="display:flex; flex-direction:column; gap:14px;">
-                <button onclick="downloadJSONBackup(); closeModal();"
+                <button type="button" onclick="downloadJSONBackup(); closeModal();"
                     style="background:#2196F3; color:#fff; border:none; padding:16px; border-radius:10px;
                            font-size:16px; cursor:pointer; display:flex; align-items:center; gap:12px;">
                     <span style="font-size:24px;">💾</span>
                     <span><strong>Shkarko JSON</strong><br><small style="opacity:.8;">Skedar backup i plote</small></span>
                 </button>
-                <button onclick="try{masterExport();}catch(e){showToast('Exportimi deshtoi','error');} closeModal();"
+                <button type="button" onclick="try{masterExport();}catch(e){showToast('Exportimi deshtoi','error');} closeModal();"
                     style="background:#4CAF50; color:#fff; border:none; padding:16px; border-radius:10px;
                            font-size:16px; cursor:pointer; display:flex; align-items:center; gap:12px;">
                     <span style="font-size:24px;">📊</span>
                     <span><strong>Shkarko Excel</strong><br><small style="opacity:.8;">Te gjitha te dhenat ne spreadsheet</small></span>
                 </button>
-                <button onclick="copyBackupToClipboard()"
+                <button type="button" onclick="copyBackupToClipboard()"
                     style="background:#FF9800; color:#fff; border:none; padding:16px; border-radius:10px;
                            font-size:16px; cursor:pointer; display:flex; align-items:center; gap:12px;">
                     <span style="font-size:24px;">📋</span>
@@ -17065,9 +17063,9 @@ function recoverFromIndexedDB() {
                Pagesat: <strong>${(saved.clientPayments||[]).length}</strong></p>
             <p style="color:#e74c3c; margin-top:12px;">Kjo do te zevendesoje te dhenat aktuale!</p>
             <div style="display:flex; gap:10px; margin-top:16px; justify-content:flex-end;">
-                <button onclick="closeModal();"
+                <button type="button" onclick="closeModal();"
                     style="background:#ccc; border:none; padding:10px 20px; border-radius:6px; cursor:pointer;">Anulo</button>
-                <button onclick="
+                <button type="button" onclick="
                     Object.keys(state).forEach(k => delete state[k]);
                     Object.assign(state, window._idbRecoveryData);
                     if (!state.activityLog) state.activityLog = [];
@@ -17128,9 +17126,9 @@ function compressOldData() {
         <p>Totali: <strong>${totalOld.toFixed(2)} MKD</strong>, Fitimi: <strong>${profitOld.toFixed(2)} MKD</strong></p>
         <p style="color:#e67e22; margin-top:8px;">Keto shitje do te zhvendosen ne arkiv (nuk fshihen, ruhen si permbledhje).</p>
         <div style="display:flex; gap:10px; margin-top:16px; justify-content:flex-end;">
-            <button onclick="closeModal();"
+            <button type="button" onclick="closeModal();"
                 style="background:#ccc; border:none; padding:10px 20px; border-radius:6px; cursor:pointer;">Anulo</button>
-            <button onclick="
+            <button type="button" onclick="
                 if (!state.archivedSales) state.archivedSales = [];
                 state.archivedSales = state.archivedSales.concat(window._oldSalesBuffer);
                 state.sales = window._keepSalesBuffer;
@@ -17186,11 +17184,11 @@ function checkStorageSpace() {
                 <p style="color:#e74c3c; font-weight:bold;">Hapesira e ruajtjes eshte ${pct}% e mbushur (${usedKB} KB)!</p>
                 <p style="margin:12px 0;">Ndermerni veprim menjehere per te shmangur humbjen e te dhenave.</p>
                 <div style="display:flex; flex-direction:column; gap:10px; margin-top:16px;">
-                    <button onclick="archiveOldData();"
+                    <button type="button" onclick="archiveOldData();"
                         style="background:#e67e22; color:#fff; border:none; padding:12px; border-radius:8px; cursor:pointer; font-size:15px;">
                         Arkivo te Dhenat e Vjetra
                     </button>
-                    <button onclick="downloadJSONBackup(); closeModal();"
+                    <button type="button" onclick="downloadJSONBackup(); closeModal();"
                         style="background:#2196F3; color:#fff; border:none; padding:12px; border-radius:8px; cursor:pointer; font-size:15px;">
                         Shkarko Backup JSON
                     </button>
@@ -17231,9 +17229,9 @@ function archiveOldData() {
         </ul>
         <p style="color:#e67e22;">Keto do te zhvendosen ne arkiv (mund te rikthehen me vone).</p>
         <div style="display:flex; gap:10px; margin-top:16px; justify-content:flex-end;">
-            <button onclick="closeModal();"
+            <button type="button" onclick="closeModal();"
                 style="background:#ccc; border:none; padding:10px 20px; border-radius:6px; cursor:pointer;">Anulo</button>
-            <button onclick="_doArchiveOldData(); closeModal();"
+            <button type="button" onclick="_doArchiveOldData(); closeModal();"
                 style="background:#e67e22; color:#fff; border:none; padding:10px 20px; border-radius:6px; cursor:pointer;">Arkivo</button>
         </div>
     `);
@@ -17303,11 +17301,11 @@ function viewArchive() {
             <p>Fitimi total: <strong>${totalProfit.toFixed(2)} MKD</strong></p>
             <p>Pagesat totale: <strong>${totalPayments.toFixed(2)} MKD</strong></p>
             <div style="display:flex; gap:10px; margin-top:16px; justify-content:flex-end;">
-                <button onclick="restoreFromArchive();"
+                <button type="button" onclick="restoreFromArchive();"
                     style="background:#4CAF50; color:#fff; border:none; padding:10px 20px; border-radius:6px; cursor:pointer;">
                     Rikthe te Dhenat
                 </button>
-                <button onclick="closeModal();"
+                <button type="button" onclick="closeModal();"
                     style="background:#ccc; border:none; padding:10px 20px; border-radius:6px; cursor:pointer;">Mbyll</button>
             </div>
         </div>
@@ -17329,9 +17327,9 @@ function restoreFromArchive() {
         </ul>
         <p style="color:#e74c3c;">Keto do te shtohen tek te dhenat aktuale.</p>
         <div style="display:flex; gap:10px; margin-top:16px; justify-content:flex-end;">
-            <button onclick="closeModal();"
+            <button type="button" onclick="closeModal();"
                 style="background:#ccc; border:none; padding:10px 20px; border-radius:6px; cursor:pointer;">Anulo</button>
-            <button onclick="
+            <button type="button" onclick="
                 state.sales = (state.sales || []).concat(state.archive.sales || []);
                 state.clientPayments = (state.clientPayments || []).concat(state.archive.payments || []);
                 state.activityLog = (state.activityLog || []).concat(state.archive.activities || []);
@@ -17401,7 +17399,7 @@ function findDuplicates() {
                 <td>${s.date || '-'}</td>
                 <td>${clientName}</td>
                 <td>${(s.sellTotal || 0)} den</td>
-                <td><button onclick="_deleteDupSale(${idx})" style="background:#e74c3c;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;">Fshi</button></td>
+                <td><button type="button" onclick="_deleteDupSale(${idx})" style="background:#e74c3c;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;">Fshi</button></td>
             </tr>`;
         });
     });
@@ -17414,7 +17412,7 @@ function findDuplicates() {
                 <td>-</td>
                 <td>${(clients[idx] || {}).name || '-'}</td>
                 <td>-</td>
-                <td><button onclick="_deleteDupClient(${idx})" style="background:#e74c3c;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;">Fshi</button></td>
+                <td><button type="button" onclick="_deleteDupClient(${idx})" style="background:#e74c3c;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;">Fshi</button></td>
             </tr>`;
         });
     });
@@ -17428,7 +17426,7 @@ function findDuplicates() {
                 <td>${p.date || '-'}</td>
                 <td>${clientName}</td>
                 <td>${(p.amount || 0).toFixed(2)} MKD</td>
-                <td><button onclick="_deleteDupPayment(${idx})" style="background:#e74c3c;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;">Fshi</button></td>
+                <td><button type="button" onclick="_deleteDupPayment(${idx})" style="background:#e74c3c;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;">Fshi</button></td>
             </tr>`;
         });
     });
@@ -17450,7 +17448,7 @@ function findDuplicates() {
         </table>
         </div>
         <div style="margin-top:16px; text-align:right;">
-            <button onclick="closeModal();"
+            <button type="button" onclick="closeModal();"
                 style="background:#ccc; border:none; padding:10px 20px; border-radius:6px; cursor:pointer;">Mbyll</button>
         </div>
     `);
@@ -17554,19 +17552,19 @@ function showStorageDashboard() {
             </div>
 
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                <button onclick="archiveOldData();"
+                <button type="button" onclick="archiveOldData();"
                     style="background:#e67e22; color:#fff; border:none; padding:10px; border-radius:8px; cursor:pointer; font-size:13px;">
                     Arkivo te Vjetrat
                 </button>
-                <button onclick="downloadJSONBackup(); closeModal();"
+                <button type="button" onclick="downloadJSONBackup(); closeModal();"
                     style="background:#2196F3; color:#fff; border:none; padding:10px; border-radius:8px; cursor:pointer; font-size:13px;">
                     Shkarko Backup
                 </button>
-                <button onclick="findDuplicates();"
+                <button type="button" onclick="findDuplicates();"
                     style="background:#9C27B0; color:#fff; border:none; padding:10px; border-radius:8px; cursor:pointer; font-size:13px;">
                     Pastro Duplikate
                 </button>
-                <button onclick="oneClickBackup();"
+                <button type="button" onclick="oneClickBackup();"
                     style="background:#4CAF50; color:#fff; border:none; padding:10px; border-radius:8px; cursor:pointer; font-size:13px;">
                     Backup 1-Klik
                 </button>
@@ -17626,7 +17624,7 @@ function showVersionHistory() {
                 <td style="padding:8px 12px;">${label}</td>
                 <td style="padding:8px 12px;">${salesCount} shitje</td>
                 <td style="padding:8px 12px;">
-                    <button onclick="restoreVersion(${i})" style="background:#4CAF50;color:#fff;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;">Rikthe</button>
+                    <button type="button" onclick="restoreVersion(${i})" style="background:#4CAF50;color:#fff;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;">Rikthe</button>
                 </td>
             </tr>`;
             count++;
@@ -17651,7 +17649,7 @@ function showVersionHistory() {
             </table>
         </div>
         <div style="margin-top:16px;display:flex;gap:10px;">
-            <button onclick="saveVersion()" style="background:#2196F3;color:#fff;border:none;padding:10px 18px;border-radius:8px;cursor:pointer;">Ruaj Version Tani</button>
+            <button type="button" onclick="saveVersion()" style="background:#2196F3;color:#fff;border:none;padding:10px 18px;border-radius:8px;cursor:pointer;">Ruaj Version Tani</button>
         </div>
     `);
 }
@@ -17713,7 +17711,7 @@ function openEncryptBackupModal() {
             <input type="password" id="enc-password-confirm" placeholder="Konfirmo fjalëkalimin..."
                 style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box;" />
         </div>
-        <button onclick="_doEncryptDownload()" style="background:#4CAF50;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;width:100%;">
+        <button type="button" onclick="_doEncryptDownload()" style="background:#4CAF50;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;width:100%;">
             Shkarko Backup të Enkriptuar
         </button>
     `);
@@ -17753,7 +17751,7 @@ function openDecryptRestoreModal() {
             <input type="password" id="dec-password" placeholder="Fjalëkalimi i enkriptimit..."
                 style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box;" />
         </div>
-        <button onclick="_doDecryptRestore()" style="background:#2196F3;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;width:100%;">
+        <button type="button" onclick="_doDecryptRestore()" style="background:#2196F3;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;width:100%;">
             Deshifroje dhe Rikthe
         </button>
     `);
@@ -17813,7 +17811,7 @@ function showSyncModal() {
                 style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:11px;font-family:monospace;box-sizing:border-box;resize:vertical;">${code}</textarea>
         </div>
         <div style="display:flex;gap:10px;margin-bottom:16px;">
-            <button onclick="_copySyncCode()" style="flex:1;background:#2196F3;color:#fff;border:none;padding:10px;border-radius:8px;cursor:pointer;">
+            <button type="button" onclick="_copySyncCode()" style="flex:1;background:#2196F3;color:#fff;border:none;padding:10px;border-radius:8px;cursor:pointer;">
                 Kopjo Kodin
             </button>
         </div>
@@ -17822,7 +17820,7 @@ function showSyncModal() {
             <label style="display:block;margin-bottom:4px;font-weight:600;">Importo nga Pajisja Tjetër:</label>
             <textarea id="sync-code-input" rows="4" placeholder="Ngjisni kodin nga pajisja tjetër këtu..."
                 style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:11px;font-family:monospace;box-sizing:border-box;resize:vertical;"></textarea>
-            <button onclick="_importSyncCode()" style="background:#4CAF50;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;margin-top:8px;width:100%;">
+            <button type="button" onclick="_importSyncCode()" style="background:#4CAF50;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;margin-top:8px;width:100%;">
                 Importo të Dhënat
             </button>
         </div>
@@ -17885,10 +17883,10 @@ function openImportModal() {
         </div>
         <div id="import-preview" style="display:none;background:#f9f9f9;border:1px solid #e0e0e0;border-radius:8px;padding:14px;margin-bottom:16px;"></div>
         <div id="import-actions" style="display:none;gap:10px;flex-direction:column;">
-            <button onclick="_doImport('replace')" style="background:#e53935;color:#fff;border:none;padding:10px 18px;border-radius:8px;cursor:pointer;width:100%;">
+            <button type="button" onclick="_doImport('replace')" style="background:#e53935;color:#fff;border:none;padding:10px 18px;border-radius:8px;cursor:pointer;width:100%;">
                 Zëvendëso të Gjitha të Dhënat
             </button>
-            <button onclick="_doImport('merge')" style="background:#4CAF50;color:#fff;border:none;padding:10px 18px;border-radius:8px;cursor:pointer;width:100%;">
+            <button type="button" onclick="_doImport('merge')" style="background:#4CAF50;color:#fff;border:none;padding:10px 18px;border-radius:8px;cursor:pointer;width:100%;">
                 Bashko me të Dhënat Ekzistuese
             </button>
         </div>
@@ -18005,8 +18003,8 @@ function _showBackupBanner(days) {
     banner.innerHTML = `
         <span>⚠️ ${msg}</span>
         <div style="display:flex;gap:10px;align-items:center;">
-            <button onclick="_quickBackupFromBanner()" style="background:#fff;color:#e65100;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;">Backup tani</button>
-            <button onclick="this.closest('#backup-reminder-banner').remove()" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.6);padding:6px 10px;border-radius:6px;cursor:pointer;font-size:13px;">✕</button>
+            <button type="button" onclick="_quickBackupFromBanner()" style="background:#fff;color:#e65100;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;">Backup tani</button>
+            <button type="button" onclick="this.closest('#backup-reminder-banner').remove()" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.6);padding:6px 10px;border-radius:6px;cursor:pointer;font-size:13px;">✕</button>
         </div>`;
     document.body.prepend(banner);
 }
@@ -18079,7 +18077,7 @@ function validateData() {
     openModal('Validim i të Dhënave', `
         <div style="margin-bottom:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
             <span style="font-size:14px;color:#666;">${issues.length} problem(e) u gjetën</span>
-            ${issues.length ? `<button onclick="repairData()" style="background:#4CAF50;color:#fff;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;">Riparoje Automatikisht</button>` : ''}
+            ${issues.length ? `<button type="button" onclick="repairData()" style="background:#4CAF50;color:#fff;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;">Riparoje Automatikisht</button>` : ''}
         </div>
         <div style="overflow-x:auto;max-height:400px;overflow-y:auto;">
             <table style="width:100%;border-collapse:collapse;font-size:13px;">
@@ -18259,7 +18257,7 @@ function showExportOptions() {
         { key: 'activities', label: 'Aktiviteti',   icon: '📊' }
     ];
     const btns = tabs.map(t => `
-        <button onclick="exportTabData('${t.key}')" style="background:#f5f5f5;color:#333;border:1px solid #e0e0e0;padding:14px 12px;border-radius:10px;cursor:pointer;text-align:center;font-size:13px;transition:background 0.2s;"
+        <button type="button" onclick="exportTabData('${t.key}')" style="background:#f5f5f5;color:#333;border:1px solid #e0e0e0;padding:14px 12px;border-radius:10px;cursor:pointer;text-align:center;font-size:13px;transition:background 0.2s;"
             onmouseover="this.style.background='#e3f2fd'" onmouseout="this.style.background='#f5f5f5'">
             <div style="font-size:22px;margin-bottom:4px;">${t.icon}</div>
             <div style="font-weight:600;">${t.label}</div>
@@ -18271,7 +18269,7 @@ function showExportOptions() {
             ${btns}
         </div>
         <hr style="margin:16px 0;border:none;border-top:1px solid #eee;">
-        <button onclick="_exportFullBackup()" style="background:#4CAF50;color:#fff;border:none;padding:12px 20px;border-radius:8px;cursor:pointer;width:100%;font-size:14px;font-weight:600;">
+        <button type="button" onclick="_exportFullBackup()" style="background:#4CAF50;color:#fff;border:none;padding:12px 20px;border-radius:8px;cursor:pointer;width:100%;font-size:14px;font-weight:600;">
             Eksporto Gjithçka (Backup i Plotë)
         </button>
     `);
@@ -18306,7 +18304,7 @@ function openMergeModal() {
                 onchange="_previewMergeFile(this)" />
         </div>
         <div id="merge-preview" style="display:none;background:#f9f9f9;border:1px solid #e0e0e0;border-radius:8px;padding:14px;margin-bottom:16px;"></div>
-        <button id="merge-confirm-btn" onclick="_doMerge()" style="display:none;background:#4CAF50;color:#fff;border:none;padding:12px 20px;border-radius:8px;cursor:pointer;width:100%;font-size:14px;font-weight:600;">
+        <button type="button" id="merge-confirm-btn" onclick="_doMerge()" style="display:none;background:#4CAF50;color:#fff;border:none;padding:12px 20px;border-radius:8px;cursor:pointer;width:100%;font-size:14px;font-weight:600;">
             Bashko të Dhënat
         </button>
     `);
@@ -18436,7 +18434,7 @@ function showClientDebtChart() {
     const clients = (state.clients || []).filter(c => c.debt > 0).sort((a, b) => b.debt - a.debt);
     let html = '<canvas id="client-debt-chart" width="400" height="300"></canvas>';
     if (clients.length === 0) {
-        html = '<div style="text-align:center;padding:30px;color:var(--text-secondary);"><i class="fas fa-check-circle" style="font-size:3em;color:var(--success);"></i><p style="margin-top:10px;">Asnje klient nuk ka borxh!</p></div>';
+        html = '<div style="text-align:center;padding:30px;color:var(--text-secondary);"><i class="fas fa-check-circle" style="font-size:3em;color:var(--success);" aria-hidden="true"></i><p style="margin-top:10px;">Asnje klient nuk ka borxh!</p></div>';
         openModal('Grafiku i Borxheve', html);
         return;
     }
@@ -18508,9 +18506,9 @@ function restorePreRestoreBackup() {
                     <div>Klientë: <strong>${clientsCount}</strong></div>
                 </div>
                 <div style="display:flex;gap:10px;">
-                    <button onclick="closeModal()" class="btn" style="flex:1;">Anulo</button>
-                    <button onclick="_doPreRestoreRecovery()" class="btn btn-success" style="flex:1;font-weight:bold;">
-                        <i class="fas fa-undo"></i> Rikthe
+                    <button type="button" onclick="closeModal()" class="btn" style="flex:1;">Anulo</button>
+                    <button type="button" onclick="_doPreRestoreRecovery()" class="btn btn-success" style="flex:1;font-weight:bold;">
+                        <i class="fas fa-undo" aria-hidden="true"></i> Rikthe
                     </button>
                 </div>
             </div>
@@ -18555,7 +18553,7 @@ function showTrashBin() {
     state.trash = (state.trash || []).filter(t => t.expiresAt > now);
 
     if ((state.trash || []).length === 0) {
-        openModal('🗑️ Koshi i Plehrave', '<div style="text-align:center;padding:40px;color:#999;"><i class="fas fa-trash" style="font-size:3em;margin-bottom:10px;"></i><p>Koshi është bosh!</p><p style="font-size:0.85em;">Elementet e fshira ruhen këtu për 30 ditë.</p></div>');
+        openModal('🗑️ Koshi i Plehrave', '<div style="text-align:center;padding:40px;color:#999;"><i class="fas fa-trash" style="font-size:3em;margin-bottom:10px;" aria-hidden="true"></i><p>Koshi është bosh!</p><p style="font-size:0.85em;">Elementet e fshira ruhen këtu për 30 ditë.</p></div>');
         return;
     }
 
@@ -18571,14 +18569,14 @@ function showTrashBin() {
         const amount = t.data.sellTotal || t.data.amount || t.data.debt || '';
 
         return `<tr>
-            <td style="padding:8px;"><i class="fas fa-${icon}" style="color:var(--primary);margin-right:6px;"></i>${typeName}</td>
+            <td style="padding:8px;"><i class="fas fa-${icon}" style="color:var(--primary);margin-right:6px;" aria-hidden="true"></i>${typeName}</td>
             <td style="padding:8px;">${itemName}</td>
             <td style="padding:8px;">${amount ? amount + ' den' : '-'}</td>
             <td style="padding:8px;">${deletedDate}</td>
             <td style="padding:8px;"><span style="color:${daysLeft < 7 ? 'var(--danger)' : '#888'};">${daysLeft} ditë</span></td>
             <td style="padding:8px;">
-                <button onclick="restoreFromTrash('${t.id}')" class="btn btn-sm btn-success" title="Rikthe"><i class="fas fa-undo"></i></button>
-                <button onclick="permanentDeleteFromTrash('${t.id}')" class="btn btn-sm btn-danger" title="Fshi përgjithmonë"><i class="fas fa-times"></i></button>
+                <button type="button" onclick="restoreFromTrash('${t.id}')" class="btn btn-sm btn-success" title="Rikthe" aria-label="Rikthe"><i class="fas fa-undo" aria-hidden="true"></i></button>
+                <button type="button" onclick="permanentDeleteFromTrash('${t.id}')" class="btn btn-sm btn-danger" title="Fshi përgjithmonë" aria-label="Fshi përgjithmonë"><i class="fas fa-times" aria-hidden="true"></i></button>
             </td>
         </tr>`;
     }).join('');
@@ -18586,8 +18584,8 @@ function showTrashBin() {
     openModal('🗑️ Koshi i Plehrave (' + (state.trash || []).length + ')', `
         <div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">
             <span style="color:#888;font-size:0.9em;">Elementet fshihen automatikisht pas 30 ditëve</span>
-            <button onclick="emptyTrash()" style="background:var(--danger);color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:0.85em;">
-                <i class="fas fa-trash"></i> Zbraz Koshin
+            <button type="button" onclick="emptyTrash()" style="background:var(--danger);color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:0.85em;">
+                <i class="fas fa-trash" aria-hidden="true"></i> Zbraz Koshin
             </button>
         </div>
         <div class="table-container"><table class="data-table">
@@ -18698,9 +18696,9 @@ function showVersionPreview(n) {
                     </tbody>
                 </table>
                 <div style="display:flex;gap:10px;margin-top:20px;">
-                    <button onclick="closeModal()" class="btn" style="flex:1;">Mbyll</button>
-                    <button onclick="restoreVersion(${n})" class="btn btn-danger" style="flex:1;font-weight:bold;">
-                        <i class="fas fa-undo"></i> Rikthe këtë Version
+                    <button type="button" onclick="closeModal()" class="btn" style="flex:1;">Mbyll</button>
+                    <button type="button" onclick="restoreVersion(${n})" class="btn btn-danger" style="flex:1;font-weight:bold;">
+                        <i class="fas fa-undo" aria-hidden="true"></i> Rikthe këtë Version
                     </button>
                 </div>
             </div>
@@ -18743,7 +18741,7 @@ function _onSelectiveFileSelected(input) {
                 const checkboxes = cats.map(c => `
                     <label style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg-secondary);border-radius:8px;cursor:pointer;">
                         <input type="checkbox" class="selective-restore-cb" value="${c.key}" ${c.count > 0 ? 'checked' : 'disabled'}>
-                        <i class="fas fa-${c.icon}" style="color:var(--primary);width:20px;text-align:center;"></i>
+                        <i class="fas fa-${c.icon}" style="color:var(--primary);width:20px;text-align:center;" aria-hidden="true"></i>
                         <span style="flex:1;">${c.name}</span>
                         <span style="color:#888;font-size:0.85em;">Backup: <strong>${c.count}</strong> | Aktuale: <strong>${c.current}</strong></span>
                     </label>
@@ -18760,8 +18758,8 @@ function _onSelectiveFileSelected(input) {
                             <input type="radio" name="sr-mode" value="merge"> <strong>Bashko</strong> <small>(shto të rejat)</small>
                         </label>
                     </div>
-                    <button onclick="_doSelectiveRestore()" class="btn btn-success" style="width:100%;padding:12px;font-size:1.05em;font-weight:bold;">
-                        <i class="fas fa-check"></i> Apliko Rikthimin Selektiv
+                    <button type="button" onclick="_doSelectiveRestore()" class="btn btn-success" style="width:100%;padding:12px;font-size:1.05em;font-weight:bold;">
+                        <i class="fas fa-check" aria-hidden="true"></i> Apliko Rikthimin Selektiv
                     </button>
                 `);
         } catch(err) { showToast('Skedar i pavlefshëm!', 'error'); }
@@ -18825,7 +18823,7 @@ function showRestoreComparison(backupData) {
         const color = diff > 0 ? 'var(--success)' : diff < 0 ? 'var(--danger)' : '#888';
         const sign = diff > 0 ? '+' : '';
         return `<tr>
-            <td style="padding:10px;"><i class="fas fa-${f.icon}" style="margin-right:8px;color:var(--primary);"></i>${f.name}</td>
+            <td style="padding:10px;"><i class="fas fa-${f.icon}" style="margin-right:8px;color:var(--primary);" aria-hidden="true"></i>${f.name}</td>
             <td style="padding:10px;text-align:center;font-weight:bold;">${current}</td>
             <td style="padding:10px;text-align:center;font-weight:bold;">${backup}</td>
             <td style="padding:10px;text-align:center;font-weight:bold;color:${color};">${sign}${diff}</td>
@@ -18899,7 +18897,7 @@ function saveHourlySnapshot() {
 
 function showHourlySnapshots() {
     if (!state.hourlySnapshots || (state.hourlySnapshots || []).length === 0) {
-        openModal('Snapshots çdo Orë', '<div style="text-align:center;padding:30px;color:#999;"><i class="fas fa-clock" style="font-size:3em;"></i><p>Ende nuk ka snapshots.</p></div>');
+        openModal('Snapshots çdo Orë', '<div style="text-align:center;padding:30px;color:#999;"><i class="fas fa-clock" style="font-size:3em;" aria-hidden="true"></i><p>Ende nuk ka snapshots.</p></div>');
         return;
     }
 
@@ -18912,7 +18910,7 @@ function showHourlySnapshots() {
             <td style="padding:8px;">${s.clients}</td>
             <td style="padding:8px;">${s.payments || 0}</td>
             <td style="padding:8px;color:var(--danger);">${s.totalDebt} den</td>
-            <td style="padding:8px;">${hasState ? '<button onclick="restoreHourlySnapshot(\'' + s.hour + '\')" class="btn btn-sm btn-success"><i class="fas fa-undo"></i> Rikthe</button>' : '<span style="color:#ccc;">Skaduar</span>'}</td>
+            <td style="padding:8px;">${hasState ? '<button type="button" onclick="restoreHourlySnapshot(\'' + s.hour + '\')" class="btn btn-sm btn-success"><i class="fas fa-undo" aria-hidden="true"></i> Rikthe</button>' : '<span style="color:#ccc;">Skaduar</span>'}</td>
         </tr>`;
     }).join('');
 
@@ -18962,7 +18960,7 @@ function trackChange(action, type, itemId) {
 
 function showChangeTimeline() {
     if (!state.changeTimeline || (state.changeTimeline || []).length === 0) {
-        openModal('Timeline Ndryshimesh', '<div style="text-align:center;padding:30px;color:#999;"><i class="fas fa-history" style="font-size:3em;"></i><p>Asnjë ndryshim i regjistruar.</p></div>');
+        openModal('Timeline Ndryshimesh', '<div style="text-align:center;padding:30px;color:#999;"><i class="fas fa-history" style="font-size:3em;" aria-hidden="true"></i><p>Asnjë ndryshim i regjistruar.</p></div>');
         return;
     }
 
@@ -19004,12 +19002,12 @@ function showRestoreUndoBar() {
     bar.id = 'restore-undo-bar';
     bar.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;color:white;padding:12px 24px;border-radius:12px;display:flex;align-items:center;gap:15px;z-index:99999;box-shadow:0 4px 20px rgba(0,0,0,0.3);font-size:0.95em;animation:slideUp 0.3s ease;';
     bar.innerHTML = `
-        <i class="fas fa-exclamation-circle" style="color:#FF9800;font-size:1.3em;"></i>
+        <i class="fas fa-exclamation-circle" style="color:#FF9800;font-size:1.3em;" aria-hidden="true"></i>
         <span>Restore u krye. <strong id="undo-countdown">30</strong>s për ta kthyer</span>
-        <button onclick="_undoRestore()" style="background:#FF9800;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.95em;">
-            <i class="fas fa-undo"></i> KTHE
+        <button type="button" onclick="_undoRestore()" style="background:#FF9800;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.95em;">
+            <i class="fas fa-undo" aria-hidden="true"></i> KTHE
         </button>
-        <button onclick="_dismissUndoBar()" style="background:transparent;color:#888;border:none;cursor:pointer;font-size:1.1em;">✕</button>
+        <button type="button" onclick="_dismissUndoBar()" style="background:transparent;color:#888;border:none;cursor:pointer;font-size:1.1em;">✕</button>
     `;
     document.body.appendChild(bar);
 
@@ -19123,7 +19121,7 @@ function _onVerifyFileSelected(input) {
             const data = JSON.parse(ev.target.result);
             const meta = data._backupMeta;
             if (!meta || !meta.hash) {
-                openModal('Verifikim Backup', '<div style="text-align:center;padding:20px;"><i class="fas fa-question-circle" style="font-size:3em;color:#FF9800;"></i><p style="margin-top:10px;">Ky backup nuk ka hash verifikimi.<br>Mund të jetë i vjetër ose i krijuar nga versioni i hershëm.</p><p style="color:#888;">Skedari ka: <strong>' + (data.sales||[]).length + '</strong> shitje, <strong>' + (data.clients||[]).length + '</strong> klientë</p></div>');
+                openModal('Verifikim Backup', '<div style="text-align:center;padding:20px;"><i class="fas fa-question-circle" style="font-size:3em;color:#FF9800;" aria-hidden="true"></i><p style="margin-top:10px;">Ky backup nuk ka hash verifikimi.<br>Mund të jetë i vjetër ose i krijuar nga versioni i hershëm.</p><p style="color:#888;">Skedari ka: <strong>' + (data.sales||[]).length + '</strong> shitje, <strong>' + (data.clients||[]).length + '</strong> klientë</p></div>');
                 return;
             }
             const dataClean = JSON.parse(JSON.stringify(data));
@@ -19133,7 +19131,7 @@ function _onVerifyFileSelected(input) {
 
             openModal('Verifikim Backup', `
                 <div style="text-align:center;padding:20px;">
-                    <i class="fas fa-${isValid ? 'check-circle' : 'times-circle'}" style="font-size:4em;color:${isValid ? 'var(--success)' : 'var(--danger)'};"></i>
+                    <i class="fas fa-${isValid ? 'check-circle' : 'times-circle'}" style="font-size:4em;color:${isValid ? 'var(--success)' : 'var(--danger)'};" aria-hidden="true"></i>
                     <h3 style="margin:15px 0;color:${isValid ? 'var(--success)' : 'var(--danger)'};">${isValid ? 'Backup i Vlefshëm!' : 'KUJDES: Backup i Ndryshuar!'}</h3>
                     <div style="background:var(--bg-secondary);padding:15px;border-radius:10px;text-align:left;font-size:0.9em;">
                         <p>Hash origjinal: <strong>${meta.hash}</strong></p>
@@ -19165,7 +19163,7 @@ function addRestoreLog(action, details) {
 
 function showRestoreLog() {
     if (!state.restoreLog || (state.restoreLog || []).length === 0) {
-        openModal('Ditari i Restore-ve', '<div style="text-align:center;padding:30px;color:#999;"><i class="fas fa-clipboard-list" style="font-size:3em;"></i><p>Asnjë restore i regjistruar.</p></div>');
+        openModal('Ditari i Restore-ve', '<div style="text-align:center;padding:30px;color:#999;"><i class="fas fa-clipboard-list" style="font-size:3em;" aria-hidden="true"></i><p>Asnjë restore i regjistruar.</p></div>');
         return;
     }
 
@@ -19192,14 +19190,14 @@ function pinProtectedRestore(callback) {
     if (state.deletePin) {
         openModal('Verifikim PIN', `
             <div style="text-align:center;padding:20px;">
-                <i class="fas fa-lock" style="font-size:3em;color:var(--primary);margin-bottom:15px;"></i>
+                <i class="fas fa-lock" style="font-size:3em;color:var(--primary);margin-bottom:15px;" aria-hidden="true"></i>
                 <p style="margin-bottom:15px;">Vendosni PIN-in për të vazhduar me restore:</p>
                 <input type="password" id="restore-pin-input" maxlength="6" placeholder="PIN"
                     style="width:150px;text-align:center;font-size:1.5em;padding:10px;border:2px solid var(--primary);border-radius:10px;letter-spacing:8px;"
                     onkeyup="if(event.key==='Enter') _verifyRestorePin()">
                 <br><br>
-                <button onclick="_verifyRestorePin()" class="btn btn-primary" style="padding:10px 30px;">
-                    <i class="fas fa-unlock"></i> Verifiko
+                <button type="button" onclick="_verifyRestorePin()" class="btn btn-primary" style="padding:10px 30px;">
+                    <i class="fas fa-unlock" aria-hidden="true"></i> Verifiko
                 </button>
             </div>
         `);
@@ -19238,19 +19236,19 @@ function showCloudSyncOptions() {
             </div>
 
             <div style="display:flex;flex-direction:column;gap:12px;">
-                <button onclick="uploadToGoogleDrive()" style="padding:14px;border:none;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:12px;background:#4285F4;color:white;font-size:1em;">
+                <button type="button" onclick="uploadToGoogleDrive()" style="padding:14px;border:none;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:12px;background:#4285F4;color:white;font-size:1em;">
                     <span style="font-size:1.5em;">📁</span>
                     <span style="text-align:left;"><strong>Google Drive</strong><br><small style="opacity:0.8;">Ngarko backup në Drive</small></span>
                 </button>
-                <button onclick="sendBackupViaWhatsApp()" style="padding:14px;border:none;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:12px;background:#25D366;color:white;font-size:1em;">
+                <button type="button" onclick="sendBackupViaWhatsApp()" style="padding:14px;border:none;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:12px;background:#25D366;color:white;font-size:1em;">
                     <span style="font-size:1.5em;">💬</span>
                     <span style="text-align:left;"><strong>WhatsApp</strong><br><small style="opacity:0.8;">Dërgo backup vetes në WhatsApp</small></span>
                 </button>
-                <button onclick="sendBackupToEmailBeforeRestore()" style="padding:14px;border:none;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:12px;background:#EA4335;color:white;font-size:1em;">
+                <button type="button" onclick="sendBackupToEmailBeforeRestore()" style="padding:14px;border:none;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:12px;background:#EA4335;color:white;font-size:1em;">
                     <span style="font-size:1.5em;">📧</span>
                     <span style="text-align:left;"><strong>Email</strong><br><small style="opacity:0.8;">Dërgo backup në email</small></span>
                 </button>
-                <button onclick="copyBackupToClipboard()" style="padding:14px;border:none;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:12px;background:#FF9800;color:white;font-size:1em;">
+                <button type="button" onclick="copyBackupToClipboard()" style="padding:14px;border:none;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:12px;background:#FF9800;color:white;font-size:1em;">
                     <span style="font-size:1.5em;">📋</span>
                     <span style="text-align:left;"><strong>Clipboard</strong><br><small style="opacity:0.8;">Kopjo për paste manual</small></span>
                 </button>
@@ -19354,16 +19352,16 @@ function showDataProtectionDashboard() {
             </div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                <button onclick="showTrashBin()" class="btn" style="padding:12px;">🗑️ Koshi</button>
-                <button onclick="showHourlySnapshots()" class="btn" style="padding:12px;">⏰ Snapshots</button>
-                <button onclick="showVersionHistory()" class="btn" style="padding:12px;">📁 Versione</button>
-                <button onclick="showChangeTimeline()" class="btn" style="padding:12px;">📋 Timeline</button>
-                <button onclick="showRestoreLog()" class="btn" style="padding:12px;">📓 Ditari</button>
-                <button onclick="restorePreRestoreBackup()" class="btn" style="padding:12px;">🔄 Para-Restore</button>
-                <button onclick="openSelectiveRestoreModal()" class="btn btn-info" style="padding:12px;">🎯 Selektiv</button>
-                <button onclick="showCloudSyncOptions()" class="btn btn-primary" style="padding:12px;">☁️ Cloud</button>
-                <button onclick="downloadVerifiedBackup()" class="btn btn-success" style="padding:12px;">✅ Backup+Hash</button>
-                <button onclick="verifyBackupFile()" class="btn btn-warning" style="padding:12px;">🔍 Verifiko</button>
+                <button type="button" onclick="showTrashBin()" class="btn" style="padding:12px;">🗑️ Koshi</button>
+                <button type="button" onclick="showHourlySnapshots()" class="btn" style="padding:12px;">⏰ Snapshots</button>
+                <button type="button" onclick="showVersionHistory()" class="btn" style="padding:12px;">📁 Versione</button>
+                <button type="button" onclick="showChangeTimeline()" class="btn" style="padding:12px;">📋 Timeline</button>
+                <button type="button" onclick="showRestoreLog()" class="btn" style="padding:12px;">📓 Ditari</button>
+                <button type="button" onclick="restorePreRestoreBackup()" class="btn" style="padding:12px;">🔄 Para-Restore</button>
+                <button type="button" onclick="openSelectiveRestoreModal()" class="btn btn-info" style="padding:12px;">🎯 Selektiv</button>
+                <button type="button" onclick="showCloudSyncOptions()" class="btn btn-primary" style="padding:12px;">☁️ Cloud</button>
+                <button type="button" onclick="downloadVerifiedBackup()" class="btn btn-success" style="padding:12px;">✅ Backup+Hash</button>
+                <button type="button" onclick="verifyBackupFile()" class="btn btn-warning" style="padding:12px;">🔍 Verifiko</button>
             </div>
         </div>
     `);
@@ -19725,26 +19723,26 @@ function openPWASettings() {
     openModal('⚙️ Cilësimet PWA', `
         <div style="display:flex;flex-direction:column;gap:14px;padding:10px 0;">
             <div style="background:var(--bg-secondary);padding:14px;border-radius:10px;">
-                <div style="font-weight:bold;margin-bottom:8px;"><i class="fas fa-mobile-alt"></i> Statusi i App</div>
+                <div style="font-weight:bold;margin-bottom:8px;"><i class="fas fa-mobile-alt" aria-hidden="true"></i> Statusi i App</div>
                 <div>📱 Instaluar si app: <strong>${isInstalled ? '✅ Po' : '❌ Jo'}</strong></div>
                 <div>⚙️ Service Worker: <strong>${swStatus}</strong></div>
                 <div>🔔 Njoftime: <strong>${notifStatus}</strong></div>
             </div>
 
             ${Notification.permission !== 'granted' ? `
-            <button onclick="pwaRequestNotificationPermission();closeModal();"
+            <button type="button" onclick="pwaRequestNotificationPermission();closeModal();"
                 style="background:#2c7a4b;color:#fff;border:none;border-radius:10px;padding:12px;font-size:1em;cursor:pointer;font-weight:bold;">
-                <i class="fas fa-bell"></i> Aktivizo Njoftimet
+                <i class="fas fa-bell" aria-hidden="true"></i> Aktivizo Njoftimet
             </button>` : `
-            <button onclick="_runNotificationChecks();closeModal();showToast('Kontrolli u ekzekutua!','success');"
+            <button type="button" onclick="_runNotificationChecks();closeModal();showToast('Kontrolli u ekzekutua!','success');"
                 style="background:#1565c0;color:#fff;border:none;border-radius:10px;padding:12px;font-size:1em;cursor:pointer;">
-                <i class="fas fa-sync"></i> Testo Njoftimet Tani
+                <i class="fas fa-sync" aria-hidden="true"></i> Testo Njoftimet Tani
             </button>`}
 
             ${!isInstalled && _pwaInstallPrompt ? `
-            <button onclick="pwaTriggerInstall();closeModal();"
+            <button type="button" onclick="pwaTriggerInstall();closeModal();"
                 style="background:#e65100;color:#fff;border:none;border-radius:10px;padding:12px;font-size:1em;cursor:pointer;font-weight:bold;">
-                <i class="fas fa-download"></i> Instalo si App
+                <i class="fas fa-download" aria-hidden="true"></i> Instalo si App
             </button>` : ''}
 
             <div style="font-size:0.85em;color:var(--text-secondary);text-align:center;padding-top:4px;">
@@ -20048,9 +20046,9 @@ function _renderTopClients(periodSales) {
                     '<div style="background:' + gradients[i] + ';height:100%;width:' + pct + '%;border-radius:6px;transition:width 0.6s ease;"></div>' +
                 '</div>' +
                 '<div style="display:flex;justify-content:space-between;font-size:0.78em;color:#888;">' +
-                    '<span><i class="fas fa-shopping-bag" style="color:#667eea;"></i> ' + c.count + ' porosi</span>' +
-                    '<span><i class="fas fa-calculator" style="color:#f093fb;"></i> Mesatare: ' + avgOrder + ' ден</span>' +
-                    '<span style="color:#43e97b;font-weight:700;"><i class="fas fa-coins"></i> Fitim: ' + _formatBadgeNum(c.profit) + ' ден</span>' +
+                    '<span><i class="fas fa-shopping-bag" style="color:#667eea;" aria-hidden="true"></i> ' + c.count + ' porosi</span>' +
+                    '<span><i class="fas fa-calculator" style="color:#f093fb;" aria-hidden="true"></i> Mesatare: ' + avgOrder + ' ден</span>' +
+                    '<span style="color:#43e97b;font-weight:700;"><i class="fas fa-coins" aria-hidden="true"></i> Fitim: ' + _formatBadgeNum(c.profit) + ' ден</span>' +
                 '</div>' +
             '</div>' +
         '</div>';
@@ -20233,7 +20231,7 @@ function refreshInvoicesPage() {
     if (!container) return;
 
     if (invoices.length === 0) {
-        container.innerHTML = '<div style="text-align:center;padding:40px;color:#999;"><i class="fas fa-file-invoice" style="font-size:3em;margin-bottom:12px;display:block;opacity:0.3;"></i><p>Nuk u gjetën fatura me këto filtra</p></div>';
+        container.innerHTML = '<div style="text-align:center;padding:40px;color:#999;"><i class="fas fa-file-invoice" style="font-size:3em;margin-bottom:12px;display:block;opacity:0.3;" aria-hidden="true"></i><p>Nuk u gjetën fatura me këto filtra</p></div>';
         return;
     }
 
@@ -20259,7 +20257,7 @@ function refreshInvoicesPage() {
                     '<strong style="font-size:1.1em;color:#2c3e50;">' + inv.sale.sellTotal + ' ден</strong>' +
                 '</div>' +
             '</div>' +
-            (inv.client ? '<div style="font-size:0.8em;color:#667eea;margin-bottom:6px;"><i class="fas fa-user"></i> ' + inv.client.name + (inv.client.phone ? ' • ' + inv.client.phone : '') + '</div>' : '') +
+            (inv.client ? '<div style="font-size:0.8em;color:#667eea;margin-bottom:6px;"><i class="fas fa-user" aria-hidden="true"></i> ' + inv.client.name + (inv.client.phone ? ' • ' + inv.client.phone : '') + '</div>' : '') +
             '<div style="background:#f0f0f0;border-radius:6px;height:6px;overflow:hidden;margin-bottom:6px;">' +
                 '<div style="background:' + inv.status.color + ';height:100%;width:' + pctPaid + '%;border-radius:6px;transition:width 0.4s;"></div>' +
             '</div>' +
@@ -20270,12 +20268,12 @@ function refreshInvoicesPage() {
                     (inv.dueDate ? ' • Afati: ' + dueDateStr : '') +
                 '</div>' +
                 '<div style="display:flex;gap:4px;">' +
-                    '<button class="btn btn-sm" onclick="generateInvoice(' + inv.idx + ')" style="background:#3498db;color:white;border:none;padding:5px 8px;border-radius:6px;font-size:0.75em;" title="Shiko Faturën"><i class="fas fa-eye"></i></button>' +
-                    '<button class="btn btn-sm" onclick="exportInvoicePDF(' + inv.idx + ')" style="background:#e74c3c;color:white;border:none;padding:5px 8px;border-radius:6px;font-size:0.75em;" title="Shkarko PDF"><i class="fas fa-file-pdf"></i></button>' +
-                    '<button class="btn btn-sm" onclick="exportInvoiceWord(' + inv.idx + ')" style="background:#2b579a;color:white;border:none;padding:5px 8px;border-radius:6px;font-size:0.75em;" title="Shkarko Word"><i class="fas fa-file-word"></i></button>' +
-                    '<button class="btn btn-sm" onclick="sendInvoiceWhatsApp(' + inv.idx + ')" style="background:#25d366;color:white;border:none;padding:5px 8px;border-radius:6px;font-size:0.75em;" title="Dërgo WhatsApp"><i class="fab fa-whatsapp"></i></button>' +
-                    (inv.status.key !== 'paid' && inv.status.key !== 'corrective' ? '<button class="btn btn-sm" onclick="quickMarkPaid(' + inv.idx + ')" style="background:#27ae60;color:white;border:none;padding:5px 8px;border-radius:6px;font-size:0.75em;" title="Shëno Paguar"><i class="fas fa-check"></i></button>' : '') +
-                    (inv.status.key !== 'corrective' ? '<button class="btn btn-sm" onclick="createCorrectiveInvoice(' + inv.idx + ')" style="background:#9b59b6;color:white;border:none;padding:5px 8px;border-radius:6px;font-size:0.75em;" title="Faturë Korrektive"><i class="fas fa-undo"></i></button>' : '') +
+                    '<button type="button" class="btn btn-sm" onclick="generateInvoice(' + inv.idx + ')" style="background:#3498db;color:white;border:none;padding:5px 8px;border-radius:6px;font-size:0.75em;" title="Shiko Faturën" aria-label="Shiko Faturën"><i class="fas fa-eye" aria-hidden="true"></i></button>' +
+                    '<button type="button" class="btn btn-sm" onclick="exportInvoicePDF(' + inv.idx + ')" style="background:#e74c3c;color:white;border:none;padding:5px 8px;border-radius:6px;font-size:0.75em;" title="Shkarko PDF" aria-label="Shkarko PDF"><i class="fas fa-file-pdf" aria-hidden="true"></i></button>' +
+                    '<button type="button" class="btn btn-sm" onclick="exportInvoiceWord(' + inv.idx + ')" style="background:#2b579a;color:white;border:none;padding:5px 8px;border-radius:6px;font-size:0.75em;" title="Shkarko Word" aria-label="Shkarko Word"><i class="fas fa-file-word" aria-hidden="true"></i></button>' +
+                    '<button type="button" class="btn btn-sm" onclick="sendInvoiceWhatsApp(' + inv.idx + ')" style="background:#25d366;color:white;border:none;padding:5px 8px;border-radius:6px;font-size:0.75em;" title="Dërgo WhatsApp" aria-label="Dërgo WhatsApp"><i class="fab fa-whatsapp" aria-hidden="true"></i></button>' +
+                    (inv.status.key !== 'paid' && inv.status.key !== 'corrective' ? '<button type="button" class="btn btn-sm" onclick="quickMarkPaid(' + inv.idx + ')" style="background:#27ae60;color:white;border:none;padding:5px 8px;border-radius:6px;font-size:0.75em;" title="Shëno Paguar" aria-label="Shëno Paguar"><i class="fas fa-check" aria-hidden="true"></i></button>' : '') +
+                    (inv.status.key !== 'corrective' ? '<button type="button" class="btn btn-sm" onclick="createCorrectiveInvoice(' + inv.idx + ')" style="background:#9b59b6;color:white;border:none;padding:5px 8px;border-radius:6px;font-size:0.75em;" title="Faturë Korrektive" aria-label="Faturë Korrektive"><i class="fas fa-undo" aria-hidden="true"></i></button>' : '') +
                 '</div>' +
             '</div>' +
         '</div>';
@@ -20353,8 +20351,8 @@ function exportInvoicePDF(saleIndex) {
     win.document.write('</style></head><body>');
     win.document.write(invoiceHtml);
     win.document.write('<div class="no-print" style="text-align:center;margin-top:20px;padding:20px;">');
-    win.document.write('<button onclick="window.print()" style="background:#3498db;color:white;border:none;padding:12px 30px;border-radius:8px;font-size:1em;font-weight:700;cursor:pointer;margin-right:10px;"><i class="fas fa-print"></i> Printo / Ruaj si PDF</button>');
-    win.document.write('<button onclick="window.close()" style="background:#95a5a6;color:white;border:none;padding:12px 30px;border-radius:8px;font-size:1em;cursor:pointer;">Mbyll</button>');
+    win.document.write('<button type="button" onclick="window.print()" style="background:#3498db;color:white;border:none;padding:12px 30px;border-radius:8px;font-size:1em;font-weight:700;cursor:pointer;margin-right:10px;"><i class="fas fa-print" aria-hidden="true"></i> Printo / Ruaj si PDF</button>');
+    win.document.write('<button type="button" onclick="window.close()" style="background:#95a5a6;color:white;border:none;padding:12px 30px;border-radius:8px;font-size:1em;cursor:pointer;">Mbyll</button>');
     win.document.write('</div>');
     win.document.write('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">');
     win.document.write('</body></html>');
@@ -21018,14 +21016,14 @@ function renderDistributionPage() {
 
     // Export buttons
     h += '<div class="export-buttons">';
-    h += '<button class="btn btn-export btn-excel" onclick="exportDistribution(\'excel\')"><i class="fas fa-file-excel"></i> Excel</button>';
-    h += '<button class="btn btn-export btn-pdf" onclick="exportDistribution(\'pdf\')"><i class="fas fa-file-pdf"></i> PDF</button>';
-    h += '<button class="btn btn-export btn-word" onclick="exportDistribution(\'word\')"><i class="fas fa-file-word"></i> Word</button>';
+    h += '<button type="button" class="btn btn-export btn-excel" onclick="exportDistribution(\'excel\')"><i class="fas fa-file-excel" aria-hidden="true"></i> Excel</button>';
+    h += '<button type="button" class="btn btn-export btn-pdf" onclick="exportDistribution(\'pdf\')"><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</button>';
+    h += '<button type="button" class="btn btn-export btn-word" onclick="exportDistribution(\'word\')"><i class="fas fa-file-word" aria-hidden="true"></i> Word</button>';
     h += '</div>';
 
     // Header
     h += '<div class="dist-header">';
-    h += '<i class="fas fa-truck"></i>';
+    h += '<i class="fas fa-truck" aria-hidden="true"></i>';
     h += '<div><h3>Shpërndarja Fatoni</h3><small>Menaxhimi i shpërndarjes së produkteve të Fatonit</small></div>';
     h += '</div>';
 
@@ -21033,9 +21031,9 @@ function renderDistributionPage() {
     if (overdueDebts > 0) {
         var overdueShops = distGetOverdueShopList();
         h += '<div class="dist-alarm-banner dist-alarm-overdue">';
-        h += '<i class="fas fa-exclamation-triangle"></i> <strong>ALARM:</strong> Ka borxhe te vonuara: <strong>' + overdueDebts + ' den</strong>';
+        h += '<i class="fas fa-exclamation-triangle" aria-hidden="true"></i> <strong>ALARM:</strong> Ka borxhe te vonuara: <strong>' + overdueDebts + ' den</strong>';
         if (overdueShops.length > 0) h += ' (' + overdueShops.join(', ') + ')';
-        h += ' <button class="btn btn-sm" onclick="distSwitchTab(\'debts\')" style="margin-left:10px;">Shiko</button>';
+        h += ' <button type="button" class="btn btn-sm" onclick="distSwitchTab(\'debts\')" style="margin-left:10px;">Shiko</button>';
         h += '</div>';
     }
 
@@ -21044,16 +21042,16 @@ function renderDistributionPage() {
     (typeof PRODUCTS !== "undefined" ? PRODUCTS : []).forEach(function(p) { if ((stock[p.id] || 0) <= 0) lowStockProducts.push(p.name); });
     if (lowStockProducts.length > 0) {
         h += '<div class="dist-alarm-banner dist-alarm-stock">';
-        h += '<i class="fas fa-box-open"></i> <strong>ALARM:</strong> Stoku i ulet per: <strong>' + lowStockProducts.join(', ') + '</strong>';
-        h += ' <button class="btn btn-sm" onclick="openDistReceiveModal()" style="margin-left:10px;">Pranoj Mall</button>';
+        h += '<i class="fas fa-box-open" aria-hidden="true"></i> <strong>ALARM:</strong> Stoku i ulet per: <strong>' + lowStockProducts.join(', ') + '</strong>';
+        h += ' <button type="button" class="btn btn-sm" onclick="openDistReceiveModal()" style="margin-left:10px;">Pranoj Mall</button>';
         h += '</div>';
     }
 
     // #14 Payment reminder for Faton
     if (cashReady > 0) {
         h += '<div class="dist-alarm-banner dist-alarm-faton">';
-        h += '<i class="fas fa-hand-holding-usd"></i> <strong>KUJTESË:</strong> Ke <strong>' + cashReady + ' den</strong> cash gati per Fatonin!';
-        h += ' <button class="btn btn-sm" onclick="openDistPayFatonModal()" style="margin-left:10px;">Dorëzo</button>';
+        h += '<i class="fas fa-hand-holding-usd" aria-hidden="true"></i> <strong>KUJTESË:</strong> Ke <strong>' + cashReady + ' den</strong> cash gati per Fatonin!';
+        h += ' <button type="button" class="btn btn-sm" onclick="openDistPayFatonModal()" style="margin-left:10px;">Dorëzo</button>';
         h += '</div>';
     }
 
@@ -21069,17 +21067,17 @@ function renderDistributionPage() {
 
     // Quick action buttons
     h += '<div class="dist-actions">';
-    h += '<button class="btn dist-btn-receive" onclick="openDistReceiveModal()"><i class="fas fa-box-open"></i> Pranoj Mall nga Fatoni</button>';
-    h += '<button class="btn dist-btn-deliver" onclick="openDistDeliveryModal()"><i class="fas fa-truck-loading"></i> Regjistro Dërgesë</button>';
-    h += '<button class="btn dist-btn-collect" onclick="openDistCollectPaymentModal()"><i class="fas fa-hand-holding-usd"></i> Merr Pagesë nga Dyqani</button>';
-    h += '<button class="btn dist-btn-pay" onclick="openDistPayFatonModal()"><i class="fas fa-money-bill-wave"></i> Dorëzo Cash Fatonit</button>';
-    h += '<button class="btn" style="background:#8e44ad;color:white;" onclick="openDistDailyRoute()"><i class="fas fa-route"></i> Plani i ditës</button>';
-    h += '<button class="btn" style="background:#2c3e50;color:white;" onclick="openDistCalendarView()"><i class="fas fa-calendar-alt"></i> Kalendar</button>';
+    h += '<button type="button" class="btn dist-btn-receive" onclick="openDistReceiveModal()"><i class="fas fa-box-open" aria-hidden="true"></i> Pranoj Mall nga Fatoni</button>';
+    h += '<button type="button" class="btn dist-btn-deliver" onclick="openDistDeliveryModal()"><i class="fas fa-truck-loading" aria-hidden="true"></i> Regjistro Dërgesë</button>';
+    h += '<button type="button" class="btn dist-btn-collect" onclick="openDistCollectPaymentModal()"><i class="fas fa-hand-holding-usd" aria-hidden="true"></i> Merr Pagesë nga Dyqani</button>';
+    h += '<button type="button" class="btn dist-btn-pay" onclick="openDistPayFatonModal()"><i class="fas fa-money-bill-wave" aria-hidden="true"></i> Dorëzo Cash Fatonit</button>';
+    h += '<button type="button" class="btn" style="background:#8e44ad;color:white;" onclick="openDistDailyRoute()"><i class="fas fa-route" aria-hidden="true"></i> Plani i ditës</button>';
+    h += '<button type="button" class="btn" style="background:#2c3e50;color:white;" onclick="openDistCalendarView()"><i class="fas fa-calendar-alt" aria-hidden="true"></i> Kalendar</button>';
     h += '</div>';
 
     // #10 Quick search
     h += '<div class="dist-search-box">';
-    h += '<i class="fas fa-search"></i>';
+    h += '<i class="fas fa-search" aria-hidden="true"></i>';
     h += '<input type="text" id="dist-search-input" placeholder="Kërko në shpërndarje (dyqan, produkt, faturë...)" oninput="distFilterSearch(this.value)">';
     h += '</div>';
 
@@ -21096,7 +21094,7 @@ function renderDistributionPage() {
     ];
     h += '<div class="dist-tabs">';
     tabs.forEach(function(tab) {
-        h += '<button class="dist-tab' + (distActiveTab === tab.id ? ' active' : '') + '" onclick="distSwitchTab(\'' + tab.id + '\')"><i class="fas ' + tab.icon + '"></i> ' + tab.label + '</button>';
+        h += '<button type="button" class="dist-tab' + (distActiveTab === tab.id ? ' active' : '') + '" onclick="distSwitchTab(\'' + tab.id + '\')"><i class="fas ' + tab.icon + '" aria-hidden="true"></i> ' + tab.label + '</button>';
     });
     h += '</div>';
 
@@ -21129,7 +21127,7 @@ var distDateFilterTo = '';
 
 function renderDistDeliveriesTab() {
     var deliveries = (state.distDeliveries || []).slice().sort(function(a, b) { return b.date.localeCompare(a.date); });
-    var h = '<h3 class="dist-section-title"><i class="fas fa-truck"></i> Te gjitha Dërgesat</h3>';
+    var h = '<h3 class="dist-section-title"><i class="fas fa-truck" aria-hidden="true"></i> Te gjitha Dërgesat</h3>';
 
     // Overdue invoices alert
     try {
@@ -21143,7 +21141,7 @@ function renderDistDeliveriesTab() {
             h += '<div style="font-weight:700;color:#c0392b;font-size:1.05em;">' + overdueList.length + ' fatura të vonuara — ' + totalOver + ' den</div>';
             h += '<div style="font-size:0.85em;color:#666;">Më e vonuara: ' + worstDays + ' ditë. Kliko për detaje + kujtesë WhatsApp.</div>';
             h += '</div>';
-            h += '<button class="btn btn-sm" style="background:#c0392b;color:white;"><i class="fas fa-eye"></i> Shiko</button>';
+            h += '<button type="button" class="btn btn-sm" style="background:#c0392b;color:white;"><i class="fas fa-eye" aria-hidden="true"></i> Shiko</button>';
             h += '</div>';
         }
     } catch(e) {}
@@ -21162,7 +21160,7 @@ function renderDistDeliveriesTab() {
             h += '<div style="background:' + rateColor + ';height:100%;width:' + podRate.rate + '%;"></div>';
             h += '</div></div>';
             if (podRate.rate < 80 && (podRate.total - podRate.withPOD) > 0) {
-                h += '<button class="btn btn-sm" style="background:#e67e22;color:white;" onclick="showMissingPODDeliveries()"><i class="fas fa-exclamation-triangle"></i> ' + (podRate.total - podRate.withPOD) + ' pa POD</button>';
+                h += '<button type="button" class="btn btn-sm" style="background:#e67e22;color:white;" onclick="showMissingPODDeliveries()"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i> ' + (podRate.total - podRate.withPOD) + ' pa POD</button>';
             }
             h += '</div>';
         }
@@ -21172,7 +21170,7 @@ function renderDistDeliveriesTab() {
     h += '<div class="dist-date-filter">';
     h += '<label>Nga: <input type="date" id="dist-filter-from" value="' + distDateFilterFrom + '" onchange="distDateFilterFrom=this.value;renderDistributionPage();"></label>';
     h += '<label>Deri: <input type="date" id="dist-filter-to" value="' + distDateFilterTo + '" onchange="distDateFilterTo=this.value;renderDistributionPage();"></label>';
-    h += '<button class="btn btn-sm" onclick="distDateFilterFrom=\'\';distDateFilterTo=\'\';renderDistributionPage();">Pastro</button>';
+    h += '<button type="button" class="btn btn-sm" onclick="distDateFilterFrom=\'\';distDateFilterTo=\'\';renderDistributionPage();">Pastro</button>';
     h += '</div>';
 
     // Apply date filter
@@ -21209,16 +21207,16 @@ function renderDistDeliveriesTab() {
         h += '<td><span class="dist-badge ' + statusClass + '">' + statusText + '</span></td>';
         // POD column
         var podInfo = d.pod ? ('<span title="POD: ' + (d.pod.receiverName || '—') + ', ' + (d.pod.photos || []).length + ' foto' + (d.pod.signature ? ', nënshkrim' : '') + '" style="color:#27ae60;cursor:pointer;" onclick="openDistPODGallery(\'' + d.id + '\')">' +
-            (d.pod.condition === 'damaged' ? '<i class="fas fa-exclamation-triangle" style="color:#c0392b;"></i>' : d.pod.condition === 'partial' ? '<i class="fas fa-exclamation" style="color:#e67e22;"></i>' : '<i class="fas fa-check-circle"></i>') +
-            ' ' + ((d.pod.photos || []).length > 0 ? '<i class="fas fa-camera"></i>' : '') + (d.pod.signature ? ' <i class="fas fa-signature"></i>' : '') + '</span>') : '<span style="color:#bbb;">—</span>';
+            (d.pod.condition === 'damaged' ? '<i class="fas fa-exclamation-triangle" style="color:#c0392b;" aria-hidden="true"></i>' : d.pod.condition === 'partial' ? '<i class="fas fa-exclamation" style="color:#e67e22;" aria-hidden="true"></i>' : '<i class="fas fa-check-circle" aria-hidden="true"></i>') +
+            ' ' + ((d.pod.photos || []).length > 0 ? '<i class="fas fa-camera" aria-hidden="true"></i>' : '') + (d.pod.signature ? ' <i class="fas fa-signature" aria-hidden="true"></i>' : '') + '</span>') : '<span style="color:#bbb;">—</span>';
         h += '<td>' + podInfo + '</td>';
         h += '<td>';
-        h += '<button class="btn btn-sm" onclick="viewDistDeliveryInvoice(\'' + d.id + '\')" title="Faturë"><i class="fas fa-file-invoice"></i></button> ';
-        h += '<button class="btn btn-sm" style="background:#2980b9;color:white;" onclick="openDistPODGallery(\'' + d.id + '\')" title="Prove Dorëzimi"><i class="fas fa-camera"></i></button> ';
-        if (d.pod) h += '<button class="btn btn-sm" style="background:#c0392b;color:white;" onclick="distPODGeneratePDF(\'' + d.id + '\')" title="PDF i POD"><i class="fas fa-file-pdf"></i></button> ';
-        if (!d.paid) h += '<button class="btn btn-sm btn-success" onclick="openDistCollectPaymentModal(\'' + d.id + '\')" title="Pagesë"><i class="fas fa-money-bill"></i></button> ';
-        h += '<button class="btn btn-sm" style="background:#25d366;color:white;" onclick="distSendInvoiceWhatsApp(\'' + d.id + '\')" title="WhatsApp"><i class="fab fa-whatsapp"></i></button> ';
-        h += '<button class="btn btn-sm btn-danger" onclick="deleteDistDelivery(\'' + d.id + '\')" title="Fshij"><i class="fas fa-trash"></i></button>';
+        h += '<button type="button" class="btn btn-sm" onclick="viewDistDeliveryInvoice(\'' + d.id + '\')" title="Faturë" aria-label="Faturë"><i class="fas fa-file-invoice" aria-hidden="true"></i></button> ';
+        h += '<button type="button" class="btn btn-sm" style="background:#2980b9;color:white;" onclick="openDistPODGallery(\'' + d.id + '\')" title="Prove Dorëzimi" aria-label="Prove Dorëzimi"><i class="fas fa-camera" aria-hidden="true"></i></button> ';
+        if (d.pod) h += '<button type="button" class="btn btn-sm" style="background:#c0392b;color:white;" onclick="distPODGeneratePDF(\'' + d.id + '\')" title="PDF i POD" aria-label="PDF i POD"><i class="fas fa-file-pdf" aria-hidden="true"></i></button> ';
+        if (!d.paid) h += '<button type="button" class="btn btn-sm btn-success" onclick="openDistCollectPaymentModal(\'' + d.id + '\')" title="Pagesë" aria-label="Pagesë"><i class="fas fa-money-bill" aria-hidden="true"></i></button> ';
+        h += '<button type="button" class="btn btn-sm" style="background:#25d366;color:white;" onclick="distSendInvoiceWhatsApp(\'' + d.id + '\')" title="WhatsApp" aria-label="WhatsApp"><i class="fab fa-whatsapp" aria-hidden="true"></i></button> ';
+        h += '<button type="button" class="btn btn-sm btn-danger" onclick="deleteDistDelivery(\'' + d.id + '\')" title="Fshij" aria-label="Fshij"><i class="fas fa-trash" aria-hidden="true"></i></button>';
         h += '</td>';
         h += '</tr>';
     });
@@ -21230,8 +21228,8 @@ function renderDistDeliveriesTab() {
 // ===== SHOPS TAB =====
 function renderDistShopsTab() {
     var shops = state.distShops || [];
-    var h = '<h3 class="dist-section-title"><i class="fas fa-store"></i> Dyqanet e Shpërndarjes</h3>';
-    h += '<button class="btn dist-btn-receive" onclick="openDistShopModal()" style="margin-bottom:15px;"><i class="fas fa-plus"></i> Shto Dyqan</button>';
+    var h = '<h3 class="dist-section-title"><i class="fas fa-store" aria-hidden="true"></i> Dyqanet e Shpërndarjes</h3>';
+    h += '<button type="button" class="btn dist-btn-receive" onclick="openDistShopModal()" style="margin-bottom:15px;"><i class="fas fa-plus" aria-hidden="true"></i> Shto Dyqan</button>';
 
     if (shops.length === 0) {
         h += '<p style="color:#999;padding:20px;">Asnjë dyqan ende.</p>';
@@ -21254,16 +21252,16 @@ function renderDistShopsTab() {
         h += '<tr>';
         h += '<td><strong><span class="dist-shop-link" onclick="openDistShop360(\'' + s.id + '\')">' + s.name + '</span></strong></td>';
         h += '<td>' + (s.address || '-') + '</td>';
-        h += '<td>' + (s.phone || '-') + (s.phone ? ' <a href="tel:' + s.phone + '" class="dist-contact-icon" title="Telefono"><i class="fas fa-phone"></i></a>' : '') + '</td>';
+        h += '<td>' + (s.phone || '-') + (s.phone ? ' <a href="tel:' + s.phone + '" class="dist-contact-icon" title="Telefono"><i class="fas fa-phone" aria-hidden="true"></i></a>' : '') + '</td>';
         h += '<td>' + (s.contact || '-') + '</td>';
         h += '<td>' + (s.category || '-') + '</td>';
         h += '<td>' + deliveryCount + '</td>';
         h += '<td>' + (debt > 0 ? '<span class="dist-badge dist-badge-unpaid">' + debt + ' den</span>' : '<span class="dist-badge dist-badge-paid">0</span>') + '</td>';
         h += '<td>';
-        h += '<button class="btn btn-sm" onclick="openDistShop360(\'' + s.id + '\')" title="Profili 360"><i class="fas fa-chart-pie"></i></button> ';
-        h += '<button class="btn btn-sm" onclick="openDistShopModal(\'' + s.id + '\')" title="Ndrysho"><i class="fas fa-edit"></i></button> ';
-        h += '<button class="btn btn-sm btn-danger" onclick="deleteDistShop(\'' + s.id + '\')" title="Fshij"><i class="fas fa-trash"></i></button>';
-        if (s.phone) h += ' <button class="btn btn-sm" style="background:#25d366;color:white;" onclick="sendWhatsApp(\'' + s.phone + '\',\'Përshëndetje nga Hurma App\')" title="WhatsApp"><i class="fab fa-whatsapp"></i></button>';
+        h += '<button type="button" class="btn btn-sm" onclick="openDistShop360(\'' + s.id + '\')" title="Profili 360" aria-label="Profili 360"><i class="fas fa-chart-pie" aria-hidden="true"></i></button> ';
+        h += '<button type="button" class="btn btn-sm" onclick="openDistShopModal(\'' + s.id + '\')" title="Ndrysho" aria-label="Ndrysho"><i class="fas fa-edit" aria-hidden="true"></i></button> ';
+        h += '<button type="button" class="btn btn-sm btn-danger" onclick="deleteDistShop(\'' + s.id + '\')" title="Fshij" aria-label="Fshij"><i class="fas fa-trash" aria-hidden="true"></i></button>';
+        if (s.phone) h += ' <button type="button" class="btn btn-sm" style="background:#25d366;color:white;" onclick="sendWhatsApp(\'' + s.phone + '\',\'Përshëndetje nga Hurma App\')" title="WhatsApp" aria-label="WhatsApp"><i class="fab fa-whatsapp" aria-hidden="true"></i></button>';
         h += '</td>';
         h += '</tr>';
     });
@@ -21275,7 +21273,7 @@ function renderDistShopsTab() {
 // ===== STOCK TAB =====
 function renderDistStockTab() {
     var stock = calcDistStock();
-    var h = '<h3 class="dist-section-title"><i class="fas fa-boxes-stacked"></i> Stoku i Fatonit te Elezi</h3>';
+    var h = '<h3 class="dist-section-title"><i class="fas fa-boxes-stacked" aria-hidden="true"></i> Stoku i Fatonit te Elezi</h3>';
 
     h += '<div class="table-container"><table class="dist-table"><thead><tr>';
     h += '<th>Produkti</th><th>Pesha</th><th>Sasia ne Stok</th><th>Cmimi (blerje)</th><th>Vlera Totale</th><th>Statusi</th>';
@@ -21306,8 +21304,8 @@ function renderDistStockTab() {
 // ===== RECEIVED TAB =====
 function renderDistReceivedTab() {
     var received = (state.distReceived || []).slice().sort(function(a, b) { return b.date.localeCompare(a.date); });
-    var h = '<h3 class="dist-section-title"><i class="fas fa-box-open"></i> Pranimi i Mallit nga Fatoni</h3>';
-    h += '<button class="btn dist-btn-receive" onclick="openDistReceiveModal()" style="margin-bottom:15px;"><i class="fas fa-plus"></i> Regjistro Pranim</button>';
+    var h = '<h3 class="dist-section-title"><i class="fas fa-box-open" aria-hidden="true"></i> Pranimi i Mallit nga Fatoni</h3>';
+    h += '<button type="button" class="btn dist-btn-receive" onclick="openDistReceiveModal()" style="margin-bottom:15px;"><i class="fas fa-plus" aria-hidden="true"></i> Regjistro Pranim</button>';
 
     if (received.length === 0) {
         h += '<p style="color:#999;padding:20px;">Asnjë pranim ende.</p>';
@@ -21327,7 +21325,7 @@ function renderDistReceivedTab() {
         h += '<td>' + r.price + ' den</td>';
         h += '<td><strong>' + (r.quantity * r.price) + ' den</strong></td>';
         h += '<td>' + (r.note || '-') + '</td>';
-        h += '<td><button class="btn btn-sm btn-danger" onclick="deleteDistReceived(\'' + r.id + '\')"><i class="fas fa-trash"></i></button></td>';
+        h += '<td><button type="button" class="btn btn-sm btn-danger" onclick="deleteDistReceived(\'' + r.id + '\')" aria-label="Delete dist received"><i class="fas fa-trash" aria-hidden="true"></i></button></td>';
         h += '</tr>';
     });
 
@@ -21337,7 +21335,7 @@ function renderDistReceivedTab() {
 
 // ===== DEBTS TAB =====
 function renderDistDebtsTab() {
-    var h = '<h3 class="dist-section-title"><i class="fas fa-file-invoice-dollar"></i> Borxhet e Dyqaneve</h3>';
+    var h = '<h3 class="dist-section-title"><i class="fas fa-file-invoice-dollar" aria-hidden="true"></i> Borxhet e Dyqaneve</h3>';
 
     var shopDebts = {};
     (state.distDeliveries || []).forEach(function(d) {
@@ -21378,8 +21376,8 @@ function renderDistDebtsTab() {
         h += '<td><span class="dist-badge dist-badge-unpaid">' + data.total + ' den</span></td>';
         h += '<td>' + (data.overdue > 0 ? '<span class="dist-badge dist-badge-warn">' + data.overdue + ' den</span>' : '-') + '</td>';
         h += '<td>' + data.deliveries.length + '</td>';
-        h += '<td><button class="btn btn-sm btn-success" onclick="openDistCollectPaymentModal(null, \'' + shopId + '\')"><i class="fas fa-money-bill"></i> Mblidh</button>';
-        h += ' <button class="btn btn-sm" style="background:#25d366;color:white;" onclick="distSendDebtReminder(\'' + shopId + '\')" title="Kujtesë WhatsApp"><i class="fab fa-whatsapp"></i> Kujtesë</button>';
+        h += '<td><button type="button" class="btn btn-sm btn-success" onclick="openDistCollectPaymentModal(null, \'' + shopId + '\')"><i class="fas fa-money-bill" aria-hidden="true"></i> Mblidh</button>';
+        h += ' <button type="button" class="btn btn-sm" style="background:#25d366;color:white;" onclick="distSendDebtReminder(\'' + shopId + '\')" title="Kujtesë WhatsApp"><i class="fab fa-whatsapp" aria-hidden="true"></i> Kujtesë</button>';
         h += '</td>';
         h += '</tr>';
     });
@@ -21395,15 +21393,15 @@ function renderDistCashFatonTab() {
     var givenToFaton = stats.givenToFaton;
     var cashReady = stats.cashReady;
 
-    var h = '<h3 class="dist-section-title"><i class="fas fa-coins"></i> Gjurmimi i Cash-it per Fatonin</h3>';
+    var h = '<h3 class="dist-section-title"><i class="fas fa-coins" aria-hidden="true"></i> Gjurmimi i Cash-it per Fatonin</h3>';
 
     // Reminder banner
     var rem = distFatonReminderStatus();
     if (rem.active) {
         h += '<div class="dist-alarm-banner dist-alarm-faton" style="margin-bottom:15px;">';
-        h += '<i class="fas fa-bell"></i> <strong>KUJTESË:</strong> ' + rem.message;
-        h += ' <button class="btn btn-sm" onclick="openDistPayFatonModal()" style="margin-left:10px;">Dorëzo tani</button>';
-        h += ' <button class="btn btn-sm" onclick="dismissDistFatonReminder()" style="margin-left:5px;background:#95a5a6;color:white;">Shty 1 ditë</button>';
+        h += '<i class="fas fa-bell" aria-hidden="true"></i> <strong>KUJTESË:</strong> ' + rem.message;
+        h += ' <button type="button" class="btn btn-sm" onclick="openDistPayFatonModal()" style="margin-left:10px;">Dorëzo tani</button>';
+        h += ' <button type="button" class="btn btn-sm" onclick="dismissDistFatonReminder()" style="margin-left:5px;background:#95a5a6;color:white;">Shty 1 ditë</button>';
         h += '</div>';
     }
 
@@ -21420,7 +21418,7 @@ function renderDistCashFatonTab() {
 
     // Balance detail
     h += '<div class="dist-report-summary" style="margin-bottom:15px;">';
-    h += '<h4><i class="fas fa-balance-scale"></i> Bilanci i Plotë</h4>';
+    h += '<h4><i class="fas fa-balance-scale" aria-hidden="true"></i> Bilanci i Plotë</h4>';
     h += '<div class="dist-report-row"><span>Mall i pranuar nga Fatoni (vlera shitjes):</span><strong>' + stats.totalReceivedValue + ' den</strong></div>';
     h += '<div class="dist-report-row"><span>Mall i shitur dyqaneve:</span><strong>' + stats.totalDelivered + ' den</strong></div>';
     h += '<div class="dist-report-row"><span>Cash i arkëtuar nga dyqanet:</span><strong style="color:#27ae60;">+' + cashCollected + ' den</strong></div>';
@@ -21432,7 +21430,7 @@ function renderDistCashFatonTab() {
     // Projection
     if (stats.projectionEndOfMonth !== null) {
         h += '<div class="dist-report-summary" style="margin-bottom:15px;background:#eef7ff;border-left:4px solid #3498db;">';
-        h += '<h4><i class="fas fa-chart-line"></i> Parashikim</h4>';
+        h += '<h4><i class="fas fa-chart-line" aria-hidden="true"></i> Parashikim</h4>';
         h += '<div class="dist-report-row"><span>Me tempon aktuale, në fund të muajit do t\'i dorëzosh Fatonit:</span><strong style="color:#2980b9;">' + Math.round(stats.projectionEndOfMonth) + ' den</strong></div>';
         h += '<div class="dist-report-row"><span>Mesatarja ditore e dorëzimit:</span><strong>' + Math.round(stats.dailyAvg) + ' den/ditë</strong></div>';
         if (stats.bestMonth) {
@@ -21446,27 +21444,27 @@ function renderDistCashFatonTab() {
 
     // Action buttons
     h += '<div class="dist-actions" style="margin-bottom:20px;flex-wrap:wrap;">';
-    h += '<button class="btn dist-btn-pay" onclick="openDistPayFatonModal()"><i class="fas fa-plus"></i> Regjistro Dorëzim</button>';
-    h += '<button class="btn" style="background:#3498db;color:white;" onclick="showDistFatonMonthlyChart()"><i class="fas fa-chart-bar"></i> Grafik Mujor</button>';
-    h += '<button class="btn" style="background:#9b59b6;color:white;" onclick="showDistFatonCashFlowChart()"><i class="fas fa-chart-line"></i> Cash Flow</button>';
-    h += '<button class="btn" style="background:#16a085;color:white;" onclick="showDistFatonMethodChart()"><i class="fas fa-chart-pie"></i> Cash vs Bankë</button>';
-    h += '<button class="btn" style="background:#e67e22;color:white;" onclick="openDistFatonReminderSettings()"><i class="fas fa-bell"></i> Kujtesë</button>';
-    h += '<button class="btn" style="background:#27ae60;color:white;" onclick="distFatonExportHistory(\'excel\')"><i class="fas fa-file-excel"></i> Excel</button>';
-    h += '<button class="btn" style="background:#c0392b;color:white;" onclick="distFatonExportHistory(\'pdf\')"><i class="fas fa-file-pdf"></i> PDF Historiku</button>';
-    h += '<button class="btn" style="background:#2c3e50;color:white;" onclick="distFatonFullStatementPDF()"><i class="fas fa-file-invoice"></i> Deklaratë e Plotë</button>';
+    h += '<button type="button" class="btn dist-btn-pay" onclick="openDistPayFatonModal()"><i class="fas fa-plus" aria-hidden="true"></i> Regjistro Dorëzim</button>';
+    h += '<button type="button" class="btn" style="background:#3498db;color:white;" onclick="showDistFatonMonthlyChart()"><i class="fas fa-chart-bar" aria-hidden="true"></i> Grafik Mujor</button>';
+    h += '<button type="button" class="btn" style="background:#9b59b6;color:white;" onclick="showDistFatonCashFlowChart()"><i class="fas fa-chart-line" aria-hidden="true"></i> Cash Flow</button>';
+    h += '<button type="button" class="btn" style="background:#16a085;color:white;" onclick="showDistFatonMethodChart()"><i class="fas fa-chart-pie" aria-hidden="true"></i> Cash vs Bankë</button>';
+    h += '<button type="button" class="btn" style="background:#e67e22;color:white;" onclick="openDistFatonReminderSettings()"><i class="fas fa-bell" aria-hidden="true"></i> Kujtesë</button>';
+    h += '<button type="button" class="btn" style="background:#27ae60;color:white;" onclick="distFatonExportHistory(\'excel\')"><i class="fas fa-file-excel" aria-hidden="true"></i> Excel</button>';
+    h += '<button type="button" class="btn" style="background:#c0392b;color:white;" onclick="distFatonExportHistory(\'pdf\')"><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF Historiku</button>';
+    h += '<button type="button" class="btn" style="background:#2c3e50;color:white;" onclick="distFatonFullStatementPDF()"><i class="fas fa-file-invoice" aria-hidden="true"></i> Deklaratë e Plotë</button>';
     h += '</div>';
 
     // Filter
     h += '<div class="dist-report-summary" style="margin-bottom:10px;">';
-    h += '<h4 style="margin-bottom:8px;"><i class="fas fa-filter"></i> Filtro sipas datës</h4>';
+    h += '<h4 style="margin-bottom:8px;"><i class="fas fa-filter" aria-hidden="true"></i> Filtro sipas datës</h4>';
     h += '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;">';
     h += '<div class="form-group" style="margin:0;"><label>Nga:</label><input type="date" id="dist-faton-filter-from" onchange="refreshDistribution()"></div>';
     h += '<div class="form-group" style="margin:0;"><label>Deri:</label><input type="date" id="dist-faton-filter-to" onchange="refreshDistribution()"></div>';
-    h += '<button class="btn btn-sm" onclick="clearDistFatonFilter()" style="background:#95a5a6;color:white;height:40px;">Pastro</button>';
+    h += '<button type="button" class="btn btn-sm" onclick="clearDistFatonFilter()" style="background:#95a5a6;color:white;height:40px;">Pastro</button>';
     h += '</div></div>';
 
     // Payments table
-    h += '<h4 style="margin:15px 0 10px;"><i class="fas fa-history"></i> Historiku i Dorëzimeve të Fatonit</h4>';
+    h += '<h4 style="margin:15px 0 10px;"><i class="fas fa-history" aria-hidden="true"></i> Historiku i Dorëzimeve të Fatonit</h4>';
 
     var payments = distFatonFilteredPayments();
     if (payments.length === 0) {
@@ -21492,13 +21490,13 @@ function renderDistCashFatonTab() {
             h += '<td><strong>' + p.amount + ' den</strong></td>';
             h += '<td>' + pct + '%</td>';
             h += '<td>' + (gap === null ? '—' : gap + ' ditë') + '</td>';
-            h += '<td>' + (p.method === 'bank' ? '<i class="fas fa-university"></i> Bankë' : '<i class="fas fa-money-bill"></i> Cash') + '</td>';
-            h += '<td>' + (p.signature ? '<span style="color:#27ae60;"><i class="fas fa-check-circle"></i> Po</span>' : '<span style="color:#c0392b;">—</span>') + '</td>';
+            h += '<td>' + (p.method === 'bank' ? '<i class="fas fa-university" aria-hidden="true"></i> Bankë' : '<i class="fas fa-money-bill" aria-hidden="true"></i> Cash') + '</td>';
+            h += '<td>' + (p.signature ? '<span style="color:#27ae60;"><i class="fas fa-check-circle" aria-hidden="true"></i> Po</span>' : '<span style="color:#c0392b;">—</span>') + '</td>';
             h += '<td>' + (p.note || '-') + '</td>';
             h += '<td style="white-space:nowrap;">';
-            h += '<button class="btn btn-sm" style="background:#16a085;color:white;margin-right:3px;" title="Vërtetim PDF" onclick="distFatonReceiptPDF(\'' + p.id + '\')"><i class="fas fa-file-pdf"></i></button>';
-            h += '<button class="btn btn-sm" style="background:#2980b9;color:white;margin-right:3px;" title="' + (p.signature ? 'Ndrysho nënshkrim' : 'Shto nënshkrim') + '" onclick="openDistFatonSignatureModal(\'' + p.id + '\')"><i class="fas fa-signature"></i></button>';
-            h += '<button class="btn btn-sm btn-danger" title="Fshi" onclick="deleteDistPayToFaton(\'' + p.id + '\')"><i class="fas fa-trash"></i></button>';
+            h += '<button type="button" class="btn btn-sm" style="background:#16a085;color:white;margin-right:3px;" title="Vërtetim PDF" onclick="distFatonReceiptPDF(\'' + p.id + '\')" aria-label="Vërtetim PDF"><i class="fas fa-file-pdf" aria-hidden="true"></i></button>';
+            h += '<button type="button" class="btn btn-sm" style="background:#2980b9;color:white;margin-right:3px;" title="' + (p.signature ? 'Ndrysho nënshkrim' : 'Shto nënshkrim') + '" onclick="openDistFatonSignatureModal(\'' + p.id + '\')" aria-label="' + (p.signature ? 'Ndrysho nënshkrim' : 'Shto nënshkrim') + '"><i class="fas fa-signature" aria-hidden="true"></i></button>';
+            h += '<button type="button" class="btn btn-sm btn-danger" title="Fshi" onclick="deleteDistPayToFaton(\'' + p.id + '\')" aria-label="Fshi"><i class="fas fa-trash" aria-hidden="true"></i></button>';
             h += '</td>';
             h += '</tr>';
         });
@@ -21510,21 +21508,21 @@ function renderDistCashFatonTab() {
 
 // ===== REPORTS TAB =====
 function renderDistReportsTab() {
-    var h = '<h3 class="dist-section-title"><i class="fas fa-chart-bar"></i> Raporte per Fatonin</h3>';
+    var h = '<h3 class="dist-section-title"><i class="fas fa-chart-bar" aria-hidden="true"></i> Raporte per Fatonin</h3>';
 
     h += '<div class="dist-actions" style="margin-bottom:20px;flex-wrap:wrap;">';
-    h += '<button class="btn dist-btn-receive" onclick="distReportDaily()"><i class="fas fa-calendar-day"></i> Raporti Ditor</button>';
-    h += '<button class="btn dist-btn-deliver" onclick="distReportWeekly()"><i class="fas fa-calendar-week"></i> Raporti Javor</button>';
-    h += '<button class="btn dist-btn-collect" onclick="distReportMonthly()"><i class="fas fa-calendar-alt"></i> Raporti Mujor</button>';
-    h += '<button class="btn dist-btn-pay" onclick="distReportPerShop()"><i class="fas fa-store"></i> Sipas Dyqanit</button>';
-    h += '<button class="btn" style="background:#8e44ad;color:white;" onclick="distReportPerProduct()"><i class="fas fa-box"></i> Sipas Produktit</button>';
-    h += '<button class="btn" style="background:#2c3e50;color:white;" onclick="distReportFinancial()"><i class="fas fa-coins"></i> Permbledhje Financiare</button>';
-    h += '<button class="btn" style="background:#27ae60;color:white;" onclick="distWhatsAppReport()"><i class="fab fa-whatsapp"></i> Dërgo Raport Fatonit</button>';
-    h += '<button class="btn" style="background:#e74c3c;color:white;" onclick="distReportComparison()"><i class="fas fa-exchange-alt"></i> Krahasim Mujor</button>';
-    h += '<button class="btn" style="background:#f39c12;color:white;" onclick="distReportTopShops()"><i class="fas fa-trophy"></i> Top Dyqanet</button>';
-    h += '<button class="btn" style="background:#3498db;color:white;" onclick="distReportCashFlow()"><i class="fas fa-chart-line"></i> Cash Flow</button>';
-    h += '<button class="btn" style="background:#1abc9c;color:white;" onclick="distReportAverages()"><i class="fas fa-calculator"></i> Mesatare</button>';
-    h += '<button class="btn" style="background:#9b59b6;color:white;" onclick="distReportDetailedPDF()"><i class="fas fa-file-pdf"></i> Raport i Plote PDF</button>';
+    h += '<button type="button" class="btn dist-btn-receive" onclick="distReportDaily()"><i class="fas fa-calendar-day" aria-hidden="true"></i> Raporti Ditor</button>';
+    h += '<button type="button" class="btn dist-btn-deliver" onclick="distReportWeekly()"><i class="fas fa-calendar-week" aria-hidden="true"></i> Raporti Javor</button>';
+    h += '<button type="button" class="btn dist-btn-collect" onclick="distReportMonthly()"><i class="fas fa-calendar-alt" aria-hidden="true"></i> Raporti Mujor</button>';
+    h += '<button type="button" class="btn dist-btn-pay" onclick="distReportPerShop()"><i class="fas fa-store" aria-hidden="true"></i> Sipas Dyqanit</button>';
+    h += '<button type="button" class="btn" style="background:#8e44ad;color:white;" onclick="distReportPerProduct()"><i class="fas fa-box" aria-hidden="true"></i> Sipas Produktit</button>';
+    h += '<button type="button" class="btn" style="background:#2c3e50;color:white;" onclick="distReportFinancial()"><i class="fas fa-coins" aria-hidden="true"></i> Permbledhje Financiare</button>';
+    h += '<button type="button" class="btn" style="background:#27ae60;color:white;" onclick="distWhatsAppReport()"><i class="fab fa-whatsapp" aria-hidden="true"></i> Dërgo Raport Fatonit</button>';
+    h += '<button type="button" class="btn" style="background:#e74c3c;color:white;" onclick="distReportComparison()"><i class="fas fa-exchange-alt" aria-hidden="true"></i> Krahasim Mujor</button>';
+    h += '<button type="button" class="btn" style="background:#f39c12;color:white;" onclick="distReportTopShops()"><i class="fas fa-trophy" aria-hidden="true"></i> Top Dyqanet</button>';
+    h += '<button type="button" class="btn" style="background:#3498db;color:white;" onclick="distReportCashFlow()"><i class="fas fa-chart-line" aria-hidden="true"></i> Cash Flow</button>';
+    h += '<button type="button" class="btn" style="background:#1abc9c;color:white;" onclick="distReportAverages()"><i class="fas fa-calculator" aria-hidden="true"></i> Mesatare</button>';
+    h += '<button type="button" class="btn" style="background:#9b59b6;color:white;" onclick="distReportDetailedPDF()"><i class="fas fa-file-pdf" aria-hidden="true"></i> Raport i Plote PDF</button>';
     h += '</div>';
 
     // Financial summary always visible
@@ -21638,7 +21636,7 @@ function openDistDeliveryModal() {
     h += '<div style="display:flex;gap:8px;"><div class="form-group" style="flex:1;"><label>Sasia</label><input type="number" class="dist-del-qty" min="1" value="1" required></div>';
     h += '<div class="form-group" style="flex:1;"><label>Cmimi</label><input type="number" class="dist-del-price" min="0" required></div></div>';
     h += '</div></div>';
-    h += '<button type="button" class="btn btn-secondary" onclick="distAddDeliveryItem()" style="margin:8px 0;"><i class="fas fa-plus"></i> Shto Produkt</button>';
+    h += '<button type="button" class="btn btn-secondary" onclick="distAddDeliveryItem()" style="margin:8px 0;"><i class="fas fa-plus" aria-hidden="true"></i> Shto Produkt</button>';
 
     h += '<div class="form-group"><label>Lloji Pageses</label><select id="dist-del-payment" required onchange="distPaymentTypeChanged()">';
     h += '<option value="cash">Cash</option>';
@@ -21650,7 +21648,7 @@ function openDistDeliveryModal() {
 
     // ===== PROVË DORËZIMI (POD) =====
     h += '<div style="border:1px solid #e0e0e0;border-radius:8px;padding:12px;margin:12px 0;background:#fafcff;">';
-    h += '<h4 style="margin:0 0 10px;color:#2980b9;"><i class="fas fa-camera"></i> Provë Dorëzimi <small style="font-weight:normal;color:#888;">(opsionale)</small></h4>';
+    h += '<h4 style="margin:0 0 10px;color:#2980b9;"><i class="fas fa-camera" aria-hidden="true"></i> Provë Dorëzimi <small style="font-weight:normal;color:#888;">(opsionale)</small></h4>';
     h += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
     h += '<div class="form-group" style="flex:1;min-width:180px;"><label>Emri i pranuesit</label><input type="text" id="dist-pod-receiver" placeholder="P.sh. Agimi"></div>';
     h += '<div class="form-group" style="flex:1;min-width:180px;"><label>Gjendja e mallit</label><select id="dist-pod-condition">';
@@ -21661,7 +21659,7 @@ function openDistDeliveryModal() {
     h += '<div class="form-group"><label>Fotografi (max 6)</label>';
     h += '<input type="file" id="dist-pod-photos-input" accept="image/*" capture="environment" multiple style="display:none;" onchange="distPODAttachPhotos(this)">';
     h += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
-    h += '<button type="button" class="btn" style="background:#2980b9;color:white;" onclick="document.getElementById(\'dist-pod-photos-input\').click();"><i class="fas fa-camera"></i> Shto Foto</button>';
+    h += '<button type="button" class="btn" style="background:#2980b9;color:white;" onclick="document.getElementById(\'dist-pod-photos-input\').click();"><i class="fas fa-camera" aria-hidden="true"></i> Shto Foto</button>';
     h += '<small style="align-self:center;color:#888;">Foto kompresohen automatikisht</small>';
     h += '</div>';
     h += '<div id="dist-pod-preview" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;"></div>';
@@ -21670,7 +21668,7 @@ function openDistDeliveryModal() {
     h += '<div style="border:2px dashed #bbb;border-radius:8px;padding:6px;background:white;">';
     h += '<canvas id="dist-pod-sign-canvas" width="420" height="120" style="width:100%;height:120px;background:white;border-radius:4px;touch-action:none;display:block;"></canvas>';
     h += '<div style="display:flex;gap:8px;margin-top:6px;">';
-    h += '<button type="button" class="btn btn-sm" style="background:#95a5a6;color:white;" onclick="distFatonSignClear(\'dist-pod-sign-canvas\')"><i class="fas fa-eraser"></i> Pastro</button>';
+    h += '<button type="button" class="btn btn-sm" style="background:#95a5a6;color:white;" onclick="distFatonSignClear(\'dist-pod-sign-canvas\')"><i class="fas fa-eraser" aria-hidden="true"></i> Pastro</button>';
     h += '<small style="color:#777;align-self:center;">Nënshkruaj me gisht ose mouse</small>';
     h += '</div></div></div>';
     h += '</div>';
@@ -21710,7 +21708,7 @@ function distAddDeliveryItem() {
     h += '</select></div>';
     h += '<div style="display:flex;gap:8px;"><div class="form-group" style="flex:1;"><label>Sasia</label><input type="number" class="dist-del-qty" min="1" value="1" required></div>';
     h += '<div class="form-group" style="flex:1;"><label>Cmimi</label><input type="number" class="dist-del-price" min="0" required></div></div>';
-    h += '<button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.remove()" style="margin-top:4px;"><i class="fas fa-times"></i> Hiq</button>';
+    h += '<button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.remove()" style="margin-top:4px;"><i class="fas fa-times" aria-hidden="true"></i> Hiq</button>';
     div.innerHTML = h;
     container.appendChild(div);
 
@@ -21947,7 +21945,7 @@ function openDistPayFatonModal() {
     h += '<div style="border:2px dashed #bbb;border-radius:8px;padding:6px;background:#fafafa;">';
     h += '<canvas id="dist-faton-sign-canvas" width="420" height="140" style="width:100%;height:140px;background:white;border-radius:4px;touch-action:none;display:block;"></canvas>';
     h += '<div style="display:flex;gap:8px;margin-top:6px;">';
-    h += '<button type="button" class="btn btn-sm" style="background:#95a5a6;color:white;" onclick="distFatonSignClear(\'dist-faton-sign-canvas\')"><i class="fas fa-eraser"></i> Pastro</button>';
+    h += '<button type="button" class="btn btn-sm" style="background:#95a5a6;color:white;" onclick="distFatonSignClear(\'dist-faton-sign-canvas\')"><i class="fas fa-eraser" aria-hidden="true"></i> Pastro</button>';
     h += '<small style="color:#777;align-self:center;">Nënshkruaj me gisht ose mouse</small>';
     h += '</div></div></div>';
     h += '<button type="submit" class="btn dist-btn-pay" style="width:100%;margin-top:10px;">Dorëzo Cash Fatonit</button>';
@@ -22112,9 +22110,9 @@ function viewDistDeliveryInvoice(deliveryId) {
 
     // Action buttons
     h += '<div style="display:flex;gap:8px;margin-top:15px;flex-wrap:wrap;">';
-    h += '<button class="btn btn-sm" onclick="exportDistInvoiceWord(\'' + deliveryId + '\')"><i class="fas fa-file-word"></i> Word</button>';
-    h += '<button class="btn btn-sm" onclick="exportDistInvoicePDF(\'' + deliveryId + '\')"><i class="fas fa-file-pdf"></i> PDF</button>';
-    h += '<button class="btn btn-sm btn-success" onclick="distSendInvoiceWhatsApp(\'' + deliveryId + '\')"><i class="fab fa-whatsapp"></i> WhatsApp</button>';
+    h += '<button type="button" class="btn btn-sm" onclick="exportDistInvoiceWord(\'' + deliveryId + '\')"><i class="fas fa-file-word" aria-hidden="true"></i> Word</button>';
+    h += '<button type="button" class="btn btn-sm" onclick="exportDistInvoicePDF(\'' + deliveryId + '\')"><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</button>';
+    h += '<button type="button" class="btn btn-sm btn-success" onclick="distSendInvoiceWhatsApp(\'' + deliveryId + '\')"><i class="fab fa-whatsapp" aria-hidden="true"></i> WhatsApp</button>';
     h += '</div>';
 
     h += '</div>';
@@ -22245,9 +22243,9 @@ function distReportDaily() {
     h += '</div>';
 
     h += '<div style="margin-top:15px;display:flex;gap:8px;">';
-    h += '<button class="btn btn-sm" onclick="exportDistReport(\'daily\',\'excel\')"><i class="fas fa-file-excel"></i> Excel</button>';
-    h += '<button class="btn btn-sm" onclick="exportDistReport(\'daily\',\'pdf\')"><i class="fas fa-file-pdf"></i> PDF</button>';
-    h += '<button class="btn btn-sm" onclick="exportDistReport(\'daily\',\'word\')"><i class="fas fa-file-word"></i> Word</button>';
+    h += '<button type="button" class="btn btn-sm" onclick="exportDistReport(\'daily\',\'excel\')"><i class="fas fa-file-excel" aria-hidden="true"></i> Excel</button>';
+    h += '<button type="button" class="btn btn-sm" onclick="exportDistReport(\'daily\',\'pdf\')"><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</button>';
+    h += '<button type="button" class="btn btn-sm" onclick="exportDistReport(\'daily\',\'word\')"><i class="fas fa-file-word" aria-hidden="true"></i> Word</button>';
     h += '</div>';
 
     openModal('Raporti Ditor', h);
@@ -22272,9 +22270,9 @@ function distReportWeekly() {
     h += '</div>';
 
     h += '<div style="margin-top:15px;display:flex;gap:8px;">';
-    h += '<button class="btn btn-sm" onclick="exportDistReport(\'weekly\',\'excel\')"><i class="fas fa-file-excel"></i> Excel</button>';
-    h += '<button class="btn btn-sm" onclick="exportDistReport(\'weekly\',\'pdf\')"><i class="fas fa-file-pdf"></i> PDF</button>';
-    h += '<button class="btn btn-sm" onclick="exportDistReport(\'weekly\',\'word\')"><i class="fas fa-file-word"></i> Word</button>';
+    h += '<button type="button" class="btn btn-sm" onclick="exportDistReport(\'weekly\',\'excel\')"><i class="fas fa-file-excel" aria-hidden="true"></i> Excel</button>';
+    h += '<button type="button" class="btn btn-sm" onclick="exportDistReport(\'weekly\',\'pdf\')"><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</button>';
+    h += '<button type="button" class="btn btn-sm" onclick="exportDistReport(\'weekly\',\'word\')"><i class="fas fa-file-word" aria-hidden="true"></i> Word</button>';
     h += '</div>';
 
     openModal('Raporti Javor', h);
@@ -22301,9 +22299,9 @@ function distReportMonthly() {
     h += '</div>';
 
     h += '<div style="margin-top:15px;display:flex;gap:8px;">';
-    h += '<button class="btn btn-sm" onclick="exportDistReport(\'monthly\',\'excel\')"><i class="fas fa-file-excel"></i> Excel</button>';
-    h += '<button class="btn btn-sm" onclick="exportDistReport(\'monthly\',\'pdf\')"><i class="fas fa-file-pdf"></i> PDF</button>';
-    h += '<button class="btn btn-sm" onclick="exportDistReport(\'monthly\',\'word\')"><i class="fas fa-file-word"></i> Word</button>';
+    h += '<button type="button" class="btn btn-sm" onclick="exportDistReport(\'monthly\',\'excel\')"><i class="fas fa-file-excel" aria-hidden="true"></i> Excel</button>';
+    h += '<button type="button" class="btn btn-sm" onclick="exportDistReport(\'monthly\',\'pdf\')"><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</button>';
+    h += '<button type="button" class="btn btn-sm" onclick="exportDistReport(\'monthly\',\'word\')"><i class="fas fa-file-word" aria-hidden="true"></i> Word</button>';
     h += '</div>';
 
     openModal('Raporti Mujor', h);
@@ -22329,8 +22327,8 @@ function distReportPerShop() {
     if ((state.distShops || []).length === 0) h += '<p style="color:#999;">Asnjë dyqan.</p>';
 
     h += '<div style="margin-top:15px;display:flex;gap:8px;">';
-    h += '<button class="btn btn-sm" onclick="exportDistReport(\'pershop\',\'excel\')"><i class="fas fa-file-excel"></i> Excel</button>';
-    h += '<button class="btn btn-sm" onclick="exportDistReport(\'pershop\',\'pdf\')"><i class="fas fa-file-pdf"></i> PDF</button>';
+    h += '<button type="button" class="btn btn-sm" onclick="exportDistReport(\'pershop\',\'excel\')"><i class="fas fa-file-excel" aria-hidden="true"></i> Excel</button>';
+    h += '<button type="button" class="btn btn-sm" onclick="exportDistReport(\'pershop\',\'pdf\')"><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</button>';
     h += '</div>';
 
     openModal('Raporti sipas Dyqanit', h);
@@ -22355,8 +22353,8 @@ function distReportPerProduct() {
     });
 
     h += '<div style="margin-top:15px;display:flex;gap:8px;">';
-    h += '<button class="btn btn-sm" onclick="exportDistReport(\'perproduct\',\'excel\')"><i class="fas fa-file-excel"></i> Excel</button>';
-    h += '<button class="btn btn-sm" onclick="exportDistReport(\'perproduct\',\'pdf\')"><i class="fas fa-file-pdf"></i> PDF</button>';
+    h += '<button type="button" class="btn btn-sm" onclick="exportDistReport(\'perproduct\',\'excel\')"><i class="fas fa-file-excel" aria-hidden="true"></i> Excel</button>';
+    h += '<button type="button" class="btn btn-sm" onclick="exportDistReport(\'perproduct\',\'pdf\')"><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</button>';
     h += '</div>';
 
     openModal('Raporti sipas Produktit', h);
@@ -22382,9 +22380,9 @@ function distReportFinancial() {
     h += '</div>';
 
     h += '<div style="margin-top:15px;display:flex;gap:8px;">';
-    h += '<button class="btn btn-sm" onclick="exportDistReport(\'financial\',\'excel\')"><i class="fas fa-file-excel"></i> Excel</button>';
-    h += '<button class="btn btn-sm" onclick="exportDistReport(\'financial\',\'pdf\')"><i class="fas fa-file-pdf"></i> PDF</button>';
-    h += '<button class="btn btn-sm" onclick="exportDistReport(\'financial\',\'word\')"><i class="fas fa-file-word"></i> Word</button>';
+    h += '<button type="button" class="btn btn-sm" onclick="exportDistReport(\'financial\',\'excel\')"><i class="fas fa-file-excel" aria-hidden="true"></i> Excel</button>';
+    h += '<button type="button" class="btn btn-sm" onclick="exportDistReport(\'financial\',\'pdf\')"><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</button>';
+    h += '<button type="button" class="btn btn-sm" onclick="exportDistReport(\'financial\',\'word\')"><i class="fas fa-file-word" aria-hidden="true"></i> Word</button>';
     h += '</div>';
 
     openModal('Permbledhje Financiare', h);
@@ -22571,15 +22569,15 @@ function renderDistDashboardWidget() {
 
         var h = '<div class="dist-dashboard-widget-box" onclick="navigateTo(\'distribution\')" style="cursor:pointer;">';
         h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">';
-        h += '<h3 style="margin:0;"><i class="fas fa-truck" style="color:#e67e22;"></i> Shpërndarja Fatoni</h3>';
-        h += '<button class="btn btn-sm" style="background:#e67e22;color:white;" onclick="event.stopPropagation();navigateTo(\'distribution\')">Hape</button>';
+        h += '<h3 style="margin:0;"><i class="fas fa-truck" style="color:#e67e22;" aria-hidden="true"></i> Shpërndarja Fatoni</h3>';
+        h += '<button type="button" class="btn btn-sm" style="background:#e67e22;color:white;" onclick="event.stopPropagation();navigateTo(\'distribution\')">Hape</button>';
         h += '</div>';
         h += '<div class="stats-grid" style="margin:0;">';
-        h += '<div class="stat-card"><i class="fas fa-money-bill-wave" style="color:#27ae60;"></i><div><h3>Cash gati</h3><p style="color:#e67e22;font-weight:bold;">' + cashReady + ' den</p></div></div>';
-        h += '<div class="stat-card"><i class="fas fa-truck" style="color:#3498db;"></i><div><h3>Dërgesa sot</h3><p>' + todayDel + '</p></div></div>';
-        h += '<div class="stat-card"><i class="fas fa-file-invoice-dollar" style="color:#e74c3c;"></i><div><h3>Papaguara</h3><p>' + unpaidCount + '</p></div></div>';
+        h += '<div class="stat-card"><i class="fas fa-money-bill-wave" style="color:#27ae60;" aria-hidden="true"></i><div><h3>Cash gati</h3><p style="color:#e67e22;font-weight:bold;">' + cashReady + ' den</p></div></div>';
+        h += '<div class="stat-card"><i class="fas fa-truck" style="color:#3498db;" aria-hidden="true"></i><div><h3>Dërgesa sot</h3><p>' + todayDel + '</p></div></div>';
+        h += '<div class="stat-card"><i class="fas fa-file-invoice-dollar" style="color:#e74c3c;" aria-hidden="true"></i><div><h3>Papaguara</h3><p>' + unpaidCount + '</p></div></div>';
         if (overdueDebts > 0) {
-            h += '<div class="stat-card" style="border-left:3px solid #e74c3c;"><i class="fas fa-exclamation-triangle" style="color:#e74c3c;"></i><div><h3>Borxhe vonuara</h3><p style="color:#e74c3c;">' + overdueDebts + ' den</p></div></div>';
+            h += '<div class="stat-card" style="border-left:3px solid #e74c3c;"><i class="fas fa-exclamation-triangle" style="color:#e74c3c;" aria-hidden="true"></i><div><h3>Borxhe vonuara</h3><p style="color:#e74c3c;">' + overdueDebts + ' den</p></div></div>';
         }
         h += '</div>';
         h += '</div>';
@@ -22613,12 +22611,12 @@ function openDistShop360(shopId) {
 
     var h = '<div class="dist-shop-360">';
     h += '<div class="dist-shop-360-header">';
-    h += '<h2><i class="fas fa-store"></i> ' + shop.name + '</h2>';
+    h += '<h2><i class="fas fa-store" aria-hidden="true"></i> ' + shop.name + '</h2>';
     h += '<div class="dist-shop-360-info">';
-    if (shop.address) h += '<p><i class="fas fa-map-marker-alt"></i> ' + shop.address + '</p>';
-    if (shop.phone) h += '<p><i class="fas fa-phone"></i> ' + shop.phone + ' <a href="tel:' + shop.phone + '" class="dist-contact-icon"><i class="fas fa-phone-alt"></i></a> <a href="https://wa.me/' + shop.phone.replace(/[^0-9]/g, '') + '" target="_blank" class="dist-contact-icon" style="color:#25d366;"><i class="fab fa-whatsapp"></i></a></p>';
-    if (shop.contact) h += '<p><i class="fas fa-user"></i> ' + shop.contact + '</p>';
-    if (shop.category) h += '<p><i class="fas fa-tag"></i> ' + shop.category + '</p>';
+    if (shop.address) h += '<p><i class="fas fa-map-marker-alt" aria-hidden="true"></i> ' + shop.address + '</p>';
+    if (shop.phone) h += '<p><i class="fas fa-phone" aria-hidden="true"></i> ' + shop.phone + ' <a href="tel:' + shop.phone + '" class="dist-contact-icon"><i class="fas fa-phone-alt" aria-hidden="true"></i></a> <a href="https://wa.me/' + shop.phone.replace(/[^0-9]/g, '') + '" target="_blank" class="dist-contact-icon" style="color:#25d366;"><i class="fab fa-whatsapp" aria-hidden="true"></i></a></p>';
+    if (shop.contact) h += '<p><i class="fas fa-user" aria-hidden="true"></i> ' + shop.contact + '</p>';
+    if (shop.category) h += '<p><i class="fas fa-tag" aria-hidden="true"></i> ' + shop.category + '</p>';
     h += '</div></div>';
 
     // Summary cards
@@ -22701,7 +22699,7 @@ function openDistPaymentHistory(deliveryId) {
     }
 
     if (!del.paid) {
-        h += '<hr><button class="btn dist-btn-collect" onclick="closeModal();openDistCollectPaymentModal(\'' + deliveryId + '\');" style="width:100%;margin-top:10px;"><i class="fas fa-money-bill"></i> Shto Pagesë te Re</button>';
+        h += '<hr><button type="button" class="btn dist-btn-collect" onclick="closeModal();openDistCollectPaymentModal(\'' + deliveryId + '\');" style="width:100%;margin-top:10px;"><i class="fas fa-money-bill" aria-hidden="true"></i> Shto Pagesë te Re</button>';
     }
     openModal('Historiku i Pagesave', h);
 }
@@ -22711,7 +22709,7 @@ function openDistDailyRoute() {
     var today = new Date().toISOString().split('T')[0];
     var todayDeliveries = (state.distDeliveries || []).filter(function(d) { return d.date === today; });
 
-    var h = '<h3><i class="fas fa-route"></i> Plani i ditës - ' + today + '</h3>';
+    var h = '<h3><i class="fas fa-route" aria-hidden="true"></i> Plani i ditës - ' + today + '</h3>';
 
     if (todayDeliveries.length === 0) {
         h += '<p style="color:#999;padding:20px;">Asnjë dërgesë per sot.</p>';
@@ -22744,8 +22742,8 @@ function openDistDailyRoute() {
             h += '</div></div>';
             h += '<div class="dist-route-actions">';
             if (shop.phone) {
-                h += '<a href="tel:' + shop.phone + '" class="btn btn-sm"><i class="fas fa-phone"></i></a> ';
-                h += '<a href="https://wa.me/' + shop.phone.replace(/[^0-9]/g, '') + '" target="_blank" class="btn btn-sm" style="background:#25d366;color:white;"><i class="fab fa-whatsapp"></i></a>';
+                h += '<a href="tel:' + shop.phone + '" class="btn btn-sm"><i class="fas fa-phone" aria-hidden="true"></i></a> ';
+                h += '<a href="https://wa.me/' + shop.phone.replace(/[^0-9]/g, '') + '" target="_blank" class="btn btn-sm" style="background:#25d366;color:white;"><i class="fab fa-whatsapp" aria-hidden="true"></i></a>';
             }
             h += '</div>';
             h += '</div>';
@@ -22755,7 +22753,7 @@ function openDistDailyRoute() {
     }
 
     // Add new delivery button
-    h += '<button class="btn dist-btn-deliver" onclick="closeModal();openDistDeliveryModal();" style="width:100%;margin-top:15px;"><i class="fas fa-plus"></i> Shto Dërgesë te Re</button>';
+    h += '<button type="button" class="btn dist-btn-deliver" onclick="closeModal();openDistDeliveryModal();" style="width:100%;margin-top:15px;"><i class="fas fa-plus" aria-hidden="true"></i> Shto Dërgesë te Re</button>';
     openModal('Plani i ditës', h);
 }
 
@@ -22777,7 +22775,7 @@ function openDistCalendarView() {
         }
     });
 
-    var h = '<h3><i class="fas fa-calendar-alt"></i> Kalendari - ' + monthNames[month] + ' ' + year + '</h3>';
+    var h = '<h3><i class="fas fa-calendar-alt" aria-hidden="true"></i> Kalendari - ' + monthNames[month] + ' ' + year + '</h3>';
     h += '<div class="dist-calendar">';
     h += '<div class="dist-cal-header"><div>Hën</div><div>Mar</div><div>Mër</div><div>Enj</div><div>Pre</div><div>Sht</div><div>Dje</div></div>';
     h += '<div class="dist-cal-body">';
@@ -22848,7 +22846,7 @@ function distCheckDashboardAlerts() {
                 alertDiv.className = 'dist-dashboard-alert';
                 widget.appendChild(alertDiv);
             }
-            alertDiv.innerHTML = '<div class="dist-alarm-banner dist-alarm-overdue" style="margin-top:8px;"><i class="fas fa-exclamation-triangle"></i> Shpërndarja: Borxhe te vonuara <strong>' + overdueDebts + ' den</strong> <button class="btn btn-sm" onclick="navigateTo(\'distribution\')" style="margin-left:8px;">Shiko</button></div>';
+            alertDiv.innerHTML = '<div class="dist-alarm-banner dist-alarm-overdue" style="margin-top:8px;"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i> Shpërndarja: Borxhe te vonuara <strong>' + overdueDebts + ' den</strong> <button type="button" class="btn btn-sm" onclick="navigateTo(\'distribution\')" style="margin-left:8px;">Shiko</button></div>';
         }
     } catch(e) {}
 }
@@ -22895,7 +22893,7 @@ function distReportComparison() {
     h += '</div>';
 
     h += '<div style="margin-top:15px;display:flex;gap:8px;">';
-    h += '<button class="btn btn-sm" onclick="exportDistReport(\'financial\',\'pdf\')"><i class="fas fa-file-pdf"></i> PDF</button>';
+    h += '<button type="button" class="btn btn-sm" onclick="exportDistReport(\'financial\',\'pdf\')"><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</button>';
     h += '</div>';
     openModal('Krahasim Mujor', h);
 }
@@ -22911,7 +22909,7 @@ function distReportTopShops() {
     var sorted = Object.keys(shopTotals).sort(function(a, b) { return shopTotals[b] - shopTotals[a]; });
     var maxVal = sorted.length > 0 ? shopTotals[sorted[0]] : 1;
 
-    var h = '<h3><i class="fas fa-trophy"></i> Top Dyqanet sipas Blerjeve</h3>';
+    var h = '<h3><i class="fas fa-trophy" aria-hidden="true"></i> Top Dyqanet sipas Blerjeve</h3>';
     if (sorted.length === 0) {
         h += '<p style="color:#999;">Asnjë te dhënë.</p>';
     } else {
@@ -22934,7 +22932,7 @@ function distReportTopShops() {
 
 // #18 Cash Flow Chart
 function distReportCashFlow() {
-    var h = '<h3><i class="fas fa-chart-line"></i> Cash Flow - 30 ditët e fundit</h3>';
+    var h = '<h3><i class="fas fa-chart-line" aria-hidden="true"></i> Cash Flow - 30 ditët e fundit</h3>';
 
     var days = [];
     var now = new Date();
@@ -23057,7 +23055,7 @@ function distReportAverages() {
     // Average per shop
     var avgPerShop = (state.distShops || []).length > 0 ? Math.round(totalValue / (state.distShops || []).length) : 0;
 
-    var h = '<h3><i class="fas fa-calculator"></i> Statistika Mesatare</h3>';
+    var h = '<h3><i class="fas fa-calculator" aria-hidden="true"></i> Statistika Mesatare</h3>';
     h += '<div class="dist-report-summary">';
     h += '<div class="dist-report-row"><span>Mesatarja e dërgesës:</span><strong>' + avgDeliverySize + ' den</strong></div>';
     h += '<div class="dist-report-row"><span>Kohëzgjatja mesatare e borxhit:</span><strong>' + avgDebtDuration + ' ditë</strong></div>';
@@ -23123,17 +23121,17 @@ function _proceedImportAnyway() {
         '<div style="font-size:3em;margin-bottom:10px;">📦</div>' +
         '<h3 style="margin-bottom:15px;">Skedari: ' + fileName + '</h3>' +
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;text-align:left;background:var(--bg-secondary);padding:15px;border-radius:10px;">' +
-        '<div><i class="fas fa-shopping-cart"></i> Shitje: <strong>' + salesCount + '</strong></div>' +
-        '<div><i class="fas fa-users"></i> Klientë: <strong>' + clientsCount + '</strong></div>' +
-        '<div><i class="fas fa-boxes"></i> Produkte stok: <strong>' + stockCount + '</strong></div>' +
-        '<div><i class="fas fa-money-bill"></i> Pagesa: <strong>' + paymentsCount + '</strong></div>' +
+        '<div><i class="fas fa-shopping-cart" aria-hidden="true"></i> Shitje: <strong>' + salesCount + '</strong></div>' +
+        '<div><i class="fas fa-users" aria-hidden="true"></i> Klientë: <strong>' + clientsCount + '</strong></div>' +
+        '<div><i class="fas fa-boxes" aria-hidden="true"></i> Produkte stok: <strong>' + stockCount + '</strong></div>' +
+        '<div><i class="fas fa-money-bill" aria-hidden="true"></i> Pagesa: <strong>' + paymentsCount + '</strong></div>' +
         '</div>' +
         '<div style="background:#fff3e0;padding:12px;border-radius:8px;margin-bottom:15px;color:#e65100;">' +
-        '<i class="fas fa-exclamation-triangle"></i> <strong>KUJDES:</strong> Të dhënat aktuale do të zëvendësohen!' +
+        '<i class="fas fa-exclamation-triangle" aria-hidden="true"></i> <strong>KUJDES:</strong> Të dhënat aktuale do të zëvendësohen!' +
         '</div>' +
         '<div style="display:flex;gap:10px;">' +
-        '<button onclick="closeModal()" style="flex:1;padding:12px;border:2px solid var(--border);background:var(--bg);color:var(--text-primary);border-radius:8px;cursor:pointer;font-size:1em;"><i class="fas fa-times"></i> Anulo</button>' +
-        '<button onclick="_confirmRestore()" style="flex:1;padding:12px;border:none;background:var(--success);color:white;border-radius:8px;cursor:pointer;font-size:1em;font-weight:bold;"><i class="fas fa-check"></i> Konfirmo Rikthimin</button>' +
+        '<button type="button" onclick="closeModal()" style="flex:1;padding:12px;border:2px solid var(--border);background:var(--bg);color:var(--text-primary);border-radius:8px;cursor:pointer;font-size:1em;"><i class="fas fa-times" aria-hidden="true"></i> Anulo</button>' +
+        '<button type="button" onclick="_confirmRestore()" style="flex:1;padding:12px;border:none;background:var(--success);color:white;border-radius:8px;cursor:pointer;font-size:1em;font-weight:bold;"><i class="fas fa-check" aria-hidden="true"></i> Konfirmo Rikthimin</button>' +
         '</div></div>');
 }
 
@@ -23329,10 +23327,10 @@ function openDistFatonSignatureModal(paymentId) {
     h += '<div style="border:2px dashed #bbb;border-radius:8px;padding:6px;background:#fafafa;">';
     h += '<canvas id="dist-faton-sign-edit" width="420" height="140" style="width:100%;height:140px;background:white;border-radius:4px;touch-action:none;display:block;"></canvas>';
     h += '<div style="display:flex;gap:8px;margin-top:6px;">';
-    h += '<button type="button" class="btn btn-sm" style="background:#95a5a6;color:white;" onclick="distFatonSignClear(\'dist-faton-sign-edit\')"><i class="fas fa-eraser"></i> Pastro</button>';
+    h += '<button type="button" class="btn btn-sm" style="background:#95a5a6;color:white;" onclick="distFatonSignClear(\'dist-faton-sign-edit\')"><i class="fas fa-eraser" aria-hidden="true"></i> Pastro</button>';
     h += '<small style="color:#777;align-self:center;">Nënshkruaj nga Fatoni</small>';
     h += '</div></div>';
-    h += '<button class="btn dist-btn-pay" style="width:100%;margin-top:12px;" onclick="saveDistFatonSignature(\'' + paymentId + '\')">Ruaj Nënshkrimin</button>';
+    h += '<button type="button" class="btn dist-btn-pay" style="width:100%;margin-top:12px;" onclick="saveDistFatonSignature(\'' + paymentId + '\')">Ruaj Nënshkrimin</button>';
     openModal('Nënshkrim i Dorëzimit', h);
     setTimeout(function() {
         distFatonSignInit('dist-faton-sign-edit');
@@ -23713,8 +23711,8 @@ function showDistFatonMethodChart() {
     var html = '<canvas id="dist-faton-method-chart" width="400" height="300"></canvas>';
     var total = cash + bank;
     html += '<div style="margin-top:15px;">';
-    html += '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #eee;"><span><i class="fas fa-money-bill"></i> Cash</span><strong>' + cash + ' den (' + (total > 0 ? ((cash/total)*100).toFixed(1) : 0) + '%)</strong></div>';
-    html += '<div style="display:flex;justify-content:space-between;padding:6px 0;"><span><i class="fas fa-university"></i> Bankë</span><strong>' + bank + ' den (' + (total > 0 ? ((bank/total)*100).toFixed(1) : 0) + '%)</strong></div>';
+    html += '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #eee;"><span><i class="fas fa-money-bill" aria-hidden="true"></i> Cash</span><strong>' + cash + ' den (' + (total > 0 ? ((cash/total)*100).toFixed(1) : 0) + '%)</strong></div>';
+    html += '<div style="display:flex;justify-content:space-between;padding:6px 0;"><span><i class="fas fa-university" aria-hidden="true"></i> Bankë</span><strong>' + bank + ' den (' + (total > 0 ? ((bank/total)*100).toFixed(1) : 0) + '%)</strong></div>';
     html += '</div>';
     openModal('Cash vs Bankë', html);
     setTimeout(function() {
@@ -23989,29 +23987,29 @@ function openDistPODGallery(deliveryId) {
     h += '</select></div></div>';
 
     // Photos section
-    h += '<h4 style="margin:15px 0 8px;"><i class="fas fa-camera"></i> Fotografitë (' + (pod.photos || []).length + '/6)</h4>';
+    h += '<h4 style="margin:15px 0 8px;"><i class="fas fa-camera" aria-hidden="true"></i> Fotografitë (' + (pod.photos || []).length + '/6)</h4>';
     h += '<input type="file" id="dist-pod-edit-photos-input" accept="image/*" capture="environment" multiple style="display:none;" onchange="distPODGalleryAddPhotos(this)">';
-    h += '<button type="button" class="btn" style="background:#2980b9;color:white;margin-bottom:8px;" onclick="document.getElementById(\'dist-pod-edit-photos-input\').click();"><i class="fas fa-plus"></i> Shto Foto</button>';
+    h += '<button type="button" class="btn" style="background:#2980b9;color:white;margin-bottom:8px;" onclick="document.getElementById(\'dist-pod-edit-photos-input\').click();"><i class="fas fa-plus" aria-hidden="true"></i> Shto Foto</button>';
     h += '<div id="dist-pod-gallery-preview" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;"></div>';
 
     // Signature section
-    h += '<h4 style="margin:15px 0 8px;"><i class="fas fa-signature"></i> Nënshkrimi</h4>';
+    h += '<h4 style="margin:15px 0 8px;"><i class="fas fa-signature" aria-hidden="true"></i> Nënshkrimi</h4>';
     h += '<div style="border:2px dashed #bbb;border-radius:8px;padding:6px;background:white;">';
     h += '<canvas id="dist-pod-edit-sign" width="420" height="120" style="width:100%;height:120px;background:white;border-radius:4px;touch-action:none;display:block;"></canvas>';
     h += '<div style="display:flex;gap:8px;margin-top:6px;">';
-    h += '<button type="button" class="btn btn-sm" style="background:#95a5a6;color:white;" onclick="distFatonSignClear(\'dist-pod-edit-sign\')"><i class="fas fa-eraser"></i> Pastro</button>';
+    h += '<button type="button" class="btn btn-sm" style="background:#95a5a6;color:white;" onclick="distFatonSignClear(\'dist-pod-edit-sign\')"><i class="fas fa-eraser" aria-hidden="true"></i> Pastro</button>';
     h += '</div></div>';
 
     // Action buttons
     h += '<div style="display:flex;gap:8px;margin-top:15px;flex-wrap:wrap;">';
-    h += '<button class="btn btn-primary" style="flex:1;" onclick="saveDistPOD(\'' + deliveryId + '\')"><i class="fas fa-save"></i> Ruaj Ndryshimet</button>';
-    h += '<button class="btn" style="background:#25d366;color:white;" onclick="distPODWhatsApp(\'' + deliveryId + '\')"><i class="fab fa-whatsapp"></i> Dërgo POD</button>';
-    h += '<button class="btn" style="background:#c0392b;color:white;" onclick="distPODGeneratePDF(\'' + deliveryId + '\')"><i class="fas fa-file-pdf"></i> PDF</button>';
+    h += '<button type="button" class="btn btn-primary" style="flex:1;" onclick="saveDistPOD(\'' + deliveryId + '\')"><i class="fas fa-save" aria-hidden="true"></i> Ruaj Ndryshimet</button>';
+    h += '<button type="button" class="btn" style="background:#25d366;color:white;" onclick="distPODWhatsApp(\'' + deliveryId + '\')"><i class="fab fa-whatsapp" aria-hidden="true"></i> Dërgo POD</button>';
+    h += '<button type="button" class="btn" style="background:#c0392b;color:white;" onclick="distPODGeneratePDF(\'' + deliveryId + '\')"><i class="fas fa-file-pdf" aria-hidden="true"></i> PDF</button>';
     if (pod.photos && pod.photos.length > 0) {
-        h += '<button class="btn" style="background:#27ae60;color:white;" onclick="distPODDownloadAll(\'' + deliveryId + '\')"><i class="fas fa-download"></i> Shkarko Fotot</button>';
+        h += '<button type="button" class="btn" style="background:#27ae60;color:white;" onclick="distPODDownloadAll(\'' + deliveryId + '\')"><i class="fas fa-download" aria-hidden="true"></i> Shkarko Fotot</button>';
     }
     if (del.pod) {
-        h += '<button class="btn btn-danger" onclick="clearDistPOD(\'' + deliveryId + '\')"><i class="fas fa-trash"></i> Hiq POD</button>';
+        h += '<button type="button" class="btn btn-danger" onclick="clearDistPOD(\'' + deliveryId + '\')"><i class="fas fa-trash" aria-hidden="true"></i> Hiq POD</button>';
     }
     h += '</div>';
     if (pod.timestamp) h += '<small style="color:#888;display:block;margin-top:10px;">Regjistruar: ' + new Date(pod.timestamp).toLocaleString('sq-AL') + '</small>';
@@ -24274,7 +24272,7 @@ function computeStorageStats() {
 
 // ========================= DISTRIBUTION ANALYTICS =========================
 function renderDistAnalyticsTab() {
-    var h = '<h3 class="dist-section-title"><i class="fas fa-chart-line"></i> Analitika e Shpërndarjes</h3>';
+    var h = '<h3 class="dist-section-title"><i class="fas fa-chart-line" aria-hidden="true"></i> Analitika e Shpërndarjes</h3>';
     var deliveries = state.distDeliveries || [];
     if (deliveries.length === 0) {
         return h + '<p style="color:#999;padding:20px;">Asnjë dërgesë ende — analitika do të shfaqet kur të fillosh regjistrimet.</p>';
@@ -24314,17 +24312,17 @@ function renderDistAnalyticsTab() {
 
     // Action bar
     h += '<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">';
-    h += '<button class="btn btn-sm" style="background:#27ae60;color:white;" onclick="distExportDeliveriesExcel()"><i class="fas fa-file-excel"></i> Eksport Excel (të gjitha)</button>';
-    h += '<button class="btn btn-sm" style="background:#27ae60;color:white;" onclick="distExportDeliveriesExcel(\'thisMonth\')"><i class="fas fa-file-excel"></i> Excel (ky muaj)</button>';
-    h += '<button class="btn btn-sm" style="background:#8e44ad;color:white;" onclick="showDistPODMap()"><i class="fas fa-map-marked-alt"></i> Hartë POD</button>';
+    h += '<button type="button" class="btn btn-sm" style="background:#27ae60;color:white;" onclick="distExportDeliveriesExcel()"><i class="fas fa-file-excel" aria-hidden="true"></i> Eksport Excel (të gjitha)</button>';
+    h += '<button type="button" class="btn btn-sm" style="background:#27ae60;color:white;" onclick="distExportDeliveriesExcel(\'thisMonth\')"><i class="fas fa-file-excel" aria-hidden="true"></i> Excel (ky muaj)</button>';
+    h += '<button type="button" class="btn btn-sm" style="background:#8e44ad;color:white;" onclick="showDistPODMap()"><i class="fas fa-map-marked-alt" aria-hidden="true"></i> Hartë POD</button>';
     h += '</div>';
 
     // Charts grid
     h += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;">';
-    h += '<div style="background:white;padding:14px;border-radius:10px;border:1px solid #e2e8f0;"><h4 style="margin:0 0 10px;"><i class="fas fa-chart-line"></i> Të ardhurat 6 muajt e fundit</h4><canvas id="dist-chart-monthly" style="max-height:260px;"></canvas></div>';
-    h += '<div style="background:white;padding:14px;border-radius:10px;border:1px solid #e2e8f0;"><h4 style="margin:0 0 10px;"><i class="fas fa-trophy"></i> Top 5 dyqane (ky muaj)</h4><canvas id="dist-chart-topshops" style="max-height:260px;"></canvas></div>';
-    h += '<div style="background:white;padding:14px;border-radius:10px;border:1px solid #e2e8f0;"><h4 style="margin:0 0 10px;"><i class="fas fa-box"></i> Top produktet (ky muaj)</h4><canvas id="dist-chart-topproducts" style="max-height:260px;"></canvas></div>';
-    h += '<div style="background:white;padding:14px;border-radius:10px;border:1px solid #e2e8f0;"><h4 style="margin:0 0 10px;"><i class="fas fa-money-bill-wave"></i> Lloji i pagesës</h4><canvas id="dist-chart-payment" style="max-height:260px;"></canvas></div>';
+    h += '<div style="background:white;padding:14px;border-radius:10px;border:1px solid #e2e8f0;"><h4 style="margin:0 0 10px;"><i class="fas fa-chart-line" aria-hidden="true"></i> Të ardhurat 6 muajt e fundit</h4><canvas id="dist-chart-monthly" style="max-height:260px;"></canvas></div>';
+    h += '<div style="background:white;padding:14px;border-radius:10px;border:1px solid #e2e8f0;"><h4 style="margin:0 0 10px;"><i class="fas fa-trophy" aria-hidden="true"></i> Top 5 dyqane (ky muaj)</h4><canvas id="dist-chart-topshops" style="max-height:260px;"></canvas></div>';
+    h += '<div style="background:white;padding:14px;border-radius:10px;border:1px solid #e2e8f0;"><h4 style="margin:0 0 10px;"><i class="fas fa-box" aria-hidden="true"></i> Top produktet (ky muaj)</h4><canvas id="dist-chart-topproducts" style="max-height:260px;"></canvas></div>';
+    h += '<div style="background:white;padding:14px;border-radius:10px;border:1px solid #e2e8f0;"><h4 style="margin:0 0 10px;"><i class="fas fa-money-bill-wave" aria-hidden="true"></i> Lloji i pagesës</h4><canvas id="dist-chart-payment" style="max-height:260px;"></canvas></div>';
     h += '</div>';
 
     // Use requestAnimationFrame + setTimeout to ensure the DOM is fully painted
@@ -24457,7 +24455,7 @@ function showDistPODMap() {
 
     var h = '<div style="padding:5px;">';
     if (items.length === 0) {
-        h += '<p style="color:#999;padding:20px;text-align:center;"><i class="fas fa-map-marker-alt fa-2x"></i><br>Asnjë dërgesë me GPS ende.<br><small>Kur të shtosh foto POD në modalin e dërgesës, GPS kapet automatikisht.</small></p>';
+        h += '<p style="color:#999;padding:20px;text-align:center;"><i class="fas fa-map-marker-alt fa-2x" aria-hidden="true"></i><br>Asnjë dërgesë me GPS ende.<br><small>Kur të shtosh foto POD në modalin e dërgesës, GPS kapet automatikisht.</small></p>';
         h += '</div>';
         openModal('Hartë POD', h);
         return;
@@ -24502,7 +24500,7 @@ function showDistPODMap() {
             popupH += '<small>Total: <b>' + total + ' den</b></small><br>';
             if (d.paid) popupH += '<small style="color:#27ae60;">✅ Paguar</small>';
             else popupH += '<small style="color:#c0392b;">⏳ Borxh: ' + (total - (d.paidAmount || 0)) + ' den</small>';
-            popupH += '<br><button class="btn btn-sm" style="background:#2980b9;color:white;margin-top:6px;width:100%;" onclick="closeModal();openDistPODGallery(\'' + d.id + '\');">Hap POD</button>';
+            popupH += '<br><button type="button" class="btn btn-sm" style="background:#2980b9;color:white;margin-top:6px;width:100%;" onclick="closeModal();openDistPODGallery(\'' + d.id + '\');">Hap POD</button>';
             popupH += '</div>';
             marker.bindPopup(popupH);
             bounds.push([it.gps.lat, it.gps.lng]);
@@ -24612,7 +24610,7 @@ function showOverdueDeliveriesModal() {
     var overdue = computeOverdueDeliveries();
     var h = '<div style="padding:5px;">';
     if (overdue.length === 0) {
-        h += '<p style="color:#27ae60;padding:20px;text-align:center;"><i class="fas fa-check-circle fa-2x"></i><br>Asnjë faturë e vonuar! 🎉</p>';
+        h += '<p style="color:#27ae60;padding:20px;text-align:center;"><i class="fas fa-check-circle fa-2x" aria-hidden="true"></i><br>Asnjë faturë e vonuar! 🎉</p>';
     } else {
         var totalOverdue = overdue.reduce(function(s,o){ return s + o.remaining; }, 0);
         h += '<div style="background:#ffeaea;border-left:4px solid #c0392b;padding:10px;border-radius:6px;margin-bottom:10px;">';
@@ -24632,8 +24630,8 @@ function showOverdueDeliveriesModal() {
             h += '<td><span style="background:' + severityColor + ';color:white;padding:2px 8px;border-radius:10px;font-weight:bold;">' + o.daysOverdue + ' ditë</span></td>';
             h += '<td><strong style="color:#c0392b;">' + o.remaining + ' den</strong></td>';
             h += '<td>';
-            h += '<button class="btn btn-sm btn-success" onclick="closeModal();openDistCollectPaymentModal(\'' + o.delivery.id + '\')" title="Arkëto"><i class="fas fa-money-bill"></i></button> ';
-            h += '<button class="btn btn-sm" style="background:#25d366;color:white;" onclick="sendOverdueReminderWhatsApp(\'' + o.delivery.id + '\')" title="Kujtesë WhatsApp"><i class="fab fa-whatsapp"></i></button>';
+            h += '<button type="button" class="btn btn-sm btn-success" onclick="closeModal();openDistCollectPaymentModal(\'' + o.delivery.id + '\')" title="Arkëto" aria-label="Arkëto"><i class="fas fa-money-bill" aria-hidden="true"></i></button> ';
+            h += '<button type="button" class="btn btn-sm" style="background:#25d366;color:white;" onclick="sendOverdueReminderWhatsApp(\'' + o.delivery.id + '\')" title="Kujtesë WhatsApp" aria-label="Kujtesë WhatsApp"><i class="fab fa-whatsapp" aria-hidden="true"></i></button>';
             h += '</td>';
             h += '</tr>';
         });
@@ -24846,7 +24844,7 @@ function showMissingPODDeliveries() {
 
     var h = '<div style="padding:5px;">';
     if (missing.length === 0) {
-        h += '<p style="color:#27ae60;padding:20px;text-align:center;"><i class="fas fa-check-circle fa-2x"></i><br>Të gjitha dërgesat kanë POD! 🎉</p>';
+        h += '<p style="color:#27ae60;padding:20px;text-align:center;"><i class="fas fa-check-circle fa-2x" aria-hidden="true"></i><br>Të gjitha dërgesat kanë POD! 🎉</p>';
     } else {
         h += '<p style="color:#666;margin-bottom:10px;">Këto dërgesa nuk kanë provë dorëzimi. Shtoji për dokumentim të plotë:</p>';
         h += '<div class="table-container"><table class="dist-table"><thead><tr>';
@@ -24860,7 +24858,7 @@ function showMissingPODDeliveries() {
             h += '<td>' + d.date + '</td>';
             h += '<td>' + shop.name + '</td>';
             h += '<td>' + total + ' den</td>';
-            h += '<td><button class="btn btn-sm" style="background:#2980b9;color:white;" onclick="closeModal();openDistPODGallery(\'' + d.id + '\')"><i class="fas fa-camera"></i> Shto POD</button></td>';
+            h += '<td><button type="button" class="btn btn-sm" style="background:#2980b9;color:white;" onclick="closeModal();openDistPODGallery(\'' + d.id + '\')"><i class="fas fa-camera" aria-hidden="true"></i> Shto POD</button></td>';
             h += '</tr>';
         });
         h += '</tbody></table></div>';
