@@ -2142,9 +2142,9 @@
     (function buttonDoctor() {
 
         var ATTACHED_KEY = '__hurmaBtnDoctorAttached__';
-        // Regex to extract the function name from an onclick attribute,
-        // e.g. `foo('x')` → `foo`, `bar.baz(1)` → `bar` (top-level only).
-        var FN_NAME_RE = /^\s*([a-zA-Z_$][a-zA-Z0-9_$]*)/;
+        // Match `name(` only — skip `name.x(`, `name[…]`, etc. so we don't
+        // false-flag patterns like `state.foo()` or `e.preventDefault()`.
+        var FN_NAME_RE = /^\s*([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(/;
 
         function extractFunctionName(onclickAttr) {
             if (!onclickAttr) return null;
@@ -2289,6 +2289,41 @@
                 } catch (e) {}
                 if (reports >= 3) clearInterval(iv); // check 3 times, 2s apart
             }, 2000);
+
+            // P24: also re-scan whenever new buttons appear in the DOM so the
+            // report stays accurate for dynamically-added buttons (modals,
+            // menus, table rows, etc.). Debounced to avoid spam.
+            try {
+                if (typeof MutationObserver === 'function') {
+                    var pending = 0;
+                    var observer = new MutationObserver(function (muts) {
+                        var hasNewBtn = false;
+                        for (var i = 0; i < muts.length && !hasNewBtn; i++) {
+                            var added = muts[i].addedNodes || [];
+                            for (var j = 0; j < added.length; j++) {
+                                var n = added[j];
+                                if (n && n.nodeType === 1 &&
+                                    (n.matches && n.matches('[onclick]') ||
+                                     n.querySelector && n.querySelector('[onclick]'))) {
+                                    hasNewBtn = true; break;
+                                }
+                            }
+                        }
+                        if (!hasNewBtn) return;
+                        clearTimeout(pending);
+                        pending = setTimeout(function () {
+                            try {
+                                var r = scanButtons();
+                                if (r.broken.length) {
+                                    console.warn('[hurma-polish] button doctor (dyn): ' +
+                                                 r.broken.length + ' buton të prishur');
+                                }
+                            } catch (e) {}
+                        }, 800);
+                    });
+                    observer.observe(document.body, { childList: true, subtree: true });
+                }
+            } catch (e) {}
         }
 
         if (typeof document === 'undefined') return;

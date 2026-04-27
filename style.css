@@ -8324,14 +8324,14 @@ select {
     border-radius: 16px;
 }
 
-/* D43: Better mobile tap targets */
+/* D43: Better mobile tap targets — WCAG AA (44×44) */
 @media (max-width: 768px) {
-    .btn { min-height: 42px; padding: 10px 16px; }
-    .btn-sm { min-height: 34px; padding: 6px 12px; }
+    .btn { min-height: 44px; padding: 10px 16px; }
+    .btn-sm { min-height: 44px; padding: 8px 12px; }
 }
 
-/* D44: Button with icon only — square ratio */
-.btn-icon { width: 38px; height: 38px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+/* D44: Button with icon only — WCAG AA touch target 44×44 */
+.btn-icon { min-width: 44px; min-height: 44px; width: 44px; height: 44px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
 
 /* D45: Card title spacing */
 .stat-card h3, .stock-card h4 { margin: 0 0 6px; font-size: 0.82em; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary, #888); font-weight: 700; }
@@ -9636,3 +9636,103 @@ a:not(.btn):hover {
     color: var(--text-secondary);
     line-height: 1.4;
 }
+
+/* ==========================================================================
+   BUTTON A11Y/TOUCH HARDENING (v110) — fixes P13, P15, P31, P36, P38,
+   P40, P41, P43, P44, P45
+   ========================================================================== */
+/* P40, P41, P43: global tap behaviour for any clickable */
+.btn,
+button,
+[role="button"],
+.btn-icon,
+.btn-fab,
+a.btn {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* P31, P32: minimum target size on desktop too (was only mobile) */
+.btn { min-height: 36px; }
+.btn-sm { min-height: 32px; }
+
+/* P13, P36: disabled — cursor + clarity always */
+.btn[disabled],
+.btn:disabled,
+.btn.is-disabled,
+button[disabled],
+button:disabled,
+[role="button"][aria-disabled="true"] {
+    cursor: not-allowed !important;
+    pointer-events: auto !important; /* still need cursor */
+    opacity: 0.5;
+    transform: none !important;
+    box-shadow: none !important;
+}
+.btn[disabled]:hover,
+.btn:disabled:hover,
+button[disabled]:hover,
+button:disabled:hover {
+    background: inherit;
+    transform: none !important;
+}
+
+/* P38: consistent focus-visible ring on every button-like element */
+.btn:focus-visible,
+.btn-icon:focus-visible,
+.btn-fab:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible {
+    outline: 2px solid var(--primary, #e17055);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 3px rgba(225, 112, 85, 0.28);
+}
+
+/* P34, P35: pressed feedback */
+.btn:active:not(:disabled) {
+    filter: brightness(0.96);
+}
+
+/* P39: prevent text overflow on narrow buttons */
+.btn {
+    max-width: 100%;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+/* P44: keep tap targets safe on tiny screens */
+@media (max-width: 380px) {
+    .page-actions { gap: 8px; }
+    .page-actions .btn { flex: 1 1 auto; min-width: 44px; }
+}
+
+/* P45: FAB — 48×48 with focus ring */
+.btn-fab,
+.fab,
+.floating-action-btn {
+    min-width: 48px;
+    min-height: 48px;
+}
+
+/* P05, P07: icon-only modal/panel close buttons should still be obvious */
+.modal-close,
+.side-panel-close,
+.close-btn {
+    min-width: 44px;
+    min-height: 44px;
+    cursor: pointer;
+}
+.modal-close:hover,
+.side-panel-close:hover,
+.close-btn:hover {
+    background: rgba(0, 0, 0, 0.06);
+    border-radius: 8px;
+}
+[data-theme="dark"] .modal-close:hover,
+[data-theme="dark"] .side-panel-close:hover,
+[data-theme="dark"] .close-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+/* === end BUTTON A11Y/TOUCH HARDENING === */
