@@ -1113,22 +1113,68 @@ function openSaleModal(editId) {
             </div>
         </div>
         ` : ''}
-        <button type="button" class="btn btn-primary" id="sale-submit-btn" style="width:100%;margin-top:10px;">
-            ${isEdit ? t('edit') : t('add_sale')}
+        <button type="button" class="btn btn-primary" id="sale-submit-btn" data-no-guard style="width:100%;margin-top:10px;" aria-label="${isEdit ? (t('edit') || 'Modifiko') : (t('add_sale') || 'Shto shitje')}">
+            ${isEdit ? (t('edit') || 'Modifiko') : (t('add_sale') || 'Shto shitje')}
         </button>
     `;
-    openModal(isEdit ? t('edit') : t('new_sale'), html);
-    setTimeout(function() {
-        var submitBtn = document.getElementById('sale-submit-btn');
-        if (submitBtn) {
-            submitBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
+    openModal(isEdit ? (t('edit') || 'Modifiko') : (t('new_sale') || 'Shitje e re'), html);
+    // Fix #3: bind submit immediately — no setTimeout race. The element
+    // exists right after openModal() injects the HTML.
+    var submitBtn = document.getElementById('sale-submit-btn');
+    if (submitBtn) {
+        var origText = submitBtn.textContent;
+        // Helper: release the busy state. Called from both _bail() (via
+        // window) and after the handler completes.
+        var _release = function () {
+            submitBtn.classList.remove('is-busy');
+            submitBtn.textContent = origText;
+            submitBtn.disabled = false;
+            window.__saleSubmitting = false;
+        };
+        // Expose so addSale's _bail() can also release us on validation failure
+        window.__saleReleaseBtn = _release;
+
+        var _saleSubmit = function (e) {
+            if (e) { e.preventDefault(); e.stopPropagation(); }
+            // Fix #10 + #6: idempotent guard — single source of truth on window
+            if (window.__saleSubmitting) return;
+            window.__saleSubmitting = true;
+            submitBtn.classList.add('is-busy');
+            submitBtn.textContent = '⏳ Duke ruajtur...'; // Fix #12
+            try {
                 if (isEdit) { updateSale(editId); } else { addSale(); }
+                // Successful path: addSale closes the modal & destroys btn.
+                // If the modal is still open, validation likely bailed and
+                // _release() was already called by _bail.
+                if (document.getElementById('sale-submit-btn') === submitBtn) {
+                    // Belt-and-suspenders: ensure release if neither path ran
+                    setTimeout(function () {
+                        if (window.__saleSubmitting) _release();
+                    }, 50);
+                } else {
+                    window.__saleSubmitting = false; // modal gone → done
+                }
+            } catch (err) {
+                console.error('Sale save failed:', err);
+                if (typeof showToast === 'function') {
+                    showToast('Gabim te ruajtja: ' + (err && err.message ? err.message : err), 'error');
+                }
+                _release();
+            }
+        };
+        submitBtn.addEventListener('click', _saleSubmit);
+        // Fix #13: Ctrl+Enter / Cmd+Enter to submit
+        var modalBody = document.getElementById('modal-body');
+        if (modalBody) {
+            modalBody.addEventListener('keydown', function (e) {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    _saleSubmit();
+                }
             });
         }
-        if (typeof addLiveCalculation === 'function') addLiveCalculation();
-    }, 100);
+    }
+    if (typeof addLiveCalculation === 'function') addLiveCalculation();
 }
 
 function togglePartialPayment() {
@@ -1177,7 +1223,22 @@ function addSale() {
     const date = (document.getElementById('sale-date') || {}).value;
     const note = (document.getElementById('sale-note') || {}).value;
     const isDebt = (document.getElementById('sale-is-debt') || {}).checked;
-    const paymentType = (document.getElementById('sale-payment-type') || {}).value;
+    const paymentType = (document.getElementById('sale-payment-type') || {}).value || 'cash'; // Fix #8
+
+    // Fix #1, #4, #7: clear validation with toast feedback (no more silent fails)
+    function _bail(msg) {
+        if (typeof showToast === 'function') showToast(msg, 'warning');
+        // Release the submit-button lock so the user can correct & retry
+        if (typeof window.__saleReleaseBtn === 'function') {
+            try { window.__saleReleaseBtn(); } catch (e) {}
+        }
+        return false;
+    }
+    if (!productId) return _bail('Zgjidh një produkt para se të ruash.');
+    if (!quantity || quantity <= 0) return _bail('Sasia duhet të jetë më e madhe se 0.');
+    const product = getProduct(productId);
+    if (!product) return _bail('Produkti nuk u gjet. Rifresko faqen dhe provo sërish.'); // Fix #2
+
     let dueDate = '';
     var _invDaysMap = { 'invoice_30': 30, 'invoice_60': 60, 'invoice_90': 90 };
     if (_invDaysMap[paymentType]) {
@@ -1190,13 +1251,10 @@ function addSale() {
         }
     }
 
-    if (quantity <= 0) return;
-
     // Feature 2: Custom sell price
     const customSellPriceEl = document.getElementById('sale-custom-price');
     const customSellPrice = customSellPriceEl ? parseFloat(customSellPriceEl.value) : null;
 
-    const product = getProduct(productId);
     const effectiveSellPrice = customSellPrice && customSellPrice > 0 ? customSellPrice : product.sellPrice;
     const sellTotal = effectiveSellPrice * quantity * (1 - discount / 100);
     const buyTotal = product.buyPrice * quantity;
