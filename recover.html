@@ -20,7 +20,7 @@ body {
     padding: 20px;
     text-align: center;
 }
-.container { max-width: 460px; }
+.container { max-width: 460px; width: 100%; }
 .icon { font-size: 64px; margin-bottom: 16px; }
 h1 { font-size: 28px; font-weight: 800; margin-bottom: 12px; letter-spacing: -0.02em; }
 p { font-size: 16px; opacity: 0.85; margin-bottom: 8px; line-height: 1.5; }
@@ -28,6 +28,7 @@ p { font-size: 16px; opacity: 0.85; margin-bottom: 8px; line-height: 1.5; }
 .step { display: flex; align-items: center; gap: 12px; padding: 8px 0; opacity: 0.6; transition: opacity 0.3s, color 0.3s; }
 .step.active { opacity: 1; color: #fff; font-weight: 600; }
 .step.done { opacity: 1; color: #4caf50; }
+.step.skipped { opacity: 0.7; color: #ffc107; }
 .step .icon-small { width: 22px; text-align: center; }
 .btn {
     display: inline-block;
@@ -39,11 +40,12 @@ p { font-size: 16px; opacity: 0.85; margin-bottom: 8px; line-height: 1.5; }
     font-size: 16px;
     font-weight: 700;
     cursor: pointer;
-    margin-top: 14px;
+    margin-top: 10px;
     text-decoration: none;
     box-shadow: 0 4px 14px rgba(0,0,0,0.2);
 }
-.btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,0,0,0.3); }
+.btn:hover { transform: translateY(-1px); }
+.btn-danger { background: #d32f2f; color: #fff; }
 .spinner {
     border: 3px solid rgba(255,255,255,0.2);
     border-top-color: #fff;
@@ -53,7 +55,8 @@ p { font-size: 16px; opacity: 0.85; margin-bottom: 8px; line-height: 1.5; }
     margin: 14px auto;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-.note { font-size: 13px; opacity: 0.6; margin-top: 14px; }
+.note { font-size: 13px; opacity: 0.6; margin-top: 14px; line-height: 1.5; }
+.actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
 </style>
 </head>
 <body>
@@ -80,78 +83,135 @@ p { font-size: 16px; opacity: 0.85; margin-bottom: 8px; line-height: 1.5; }
 
     <div class="spinner" id="spinner"></div>
     <p id="status">Prit pak sekonda...</p>
-    <p class="note">Nëse s'zhduket pas 10 sekondash, klikoji butonin poshtë.</p>
-    <a href="/?_recovered=1" class="btn" id="manual-btn" style="display:none;">Hap Hurma App</a>
+
+    <div class="actions">
+        <a href="/?_recovered=1&_t=now" class="btn" id="manual-btn" style="display:none;">Hap Hurma App</a>
+        <button class="btn btn-danger" id="force-btn" style="display:none;" onclick="forceReset()">🔥 Reset i fortë</button>
+    </div>
+
+    <p class="note">Pas 3 sekondash, butonat manualë do të shfaqen.</p>
 </div>
 
 <script>
-(async function() {
-    function setStep(stepId, status) {
-        var el = document.getElementById(stepId);
+// BULLET-PROOF V2: çdo hap me timeout, paralelizëm, fallback agresiv
+(function() {
+    var DONE_REDIRECT = '/?_recovered=1&_t=' + Date.now();
+
+    function setStep(id, status) {
+        var el = document.getElementById(id);
         if (!el) return;
-        if (status === 'done') {
-            el.classList.remove('active');
-            el.classList.add('done');
-            el.querySelector('.icon-small').textContent = '✓';
-        } else if (status === 'active') {
-            el.classList.add('active');
+        el.className = 'step ' + status;
+        var icon = el.querySelector('.icon-small');
+        if (icon) {
+            if (status === 'done') icon.textContent = '✓';
+            else if (status === 'skipped') icon.textContent = '⚠';
+            else if (status === 'active') icon.textContent = '⏳';
         }
     }
-    function setStatus(text) {
+    function setStatus(t) {
         var s = document.getElementById('status');
-        if (s) s.textContent = text;
+        if (s) s.textContent = t;
+    }
+    function showButtons() {
+        var b = document.getElementById('manual-btn');
+        var f = document.getElementById('force-btn');
+        var sp = document.getElementById('spinner');
+        if (b) b.style.display = 'inline-block';
+        if (f) f.style.display = 'inline-block';
+        if (sp) sp.style.display = 'none';
     }
 
-    try {
-        // 1. Pastro tërë cache-t
-        if (window.caches) {
-            try {
-                var keys = await caches.keys();
-                await Promise.all(keys.map(function(k) { return caches.delete(k); }));
-                setStep('step1', 'done');
-                setStep('step2', 'active');
-            } catch (e) { console.warn('cache delete:', e); }
-        } else {
-            setStep('step1', 'done');
-            setStep('step2', 'active');
-        }
-
-        // 2. De-instalo të gjitha SW-të
-        if ('serviceWorker' in navigator) {
-            try {
-                var regs = await navigator.serviceWorker.getRegistrations();
-                await Promise.all(regs.map(function(r) { return r.unregister(); }));
-                setStep('step2', 'done');
-                setStep('step3', 'active');
-            } catch (e) { console.warn('SW unregister:', e); }
-        } else {
-            setStep('step2', 'done');
-            setStep('step3', 'active');
-        }
-
-        // 3. Redirect te app-i (me cache-buster)
-        setStatus('App-i është gati! Duke u hapur...');
-        setStep('step3', 'done');
-        setTimeout(function() {
-            window.location.href = '/?_recovered=1&_t=' + Date.now();
-        }, 800);
-
-    } catch (err) {
-        // Nëse gjithçka dështon, shfaq butonin manual
-        setStatus('Klikoji butonin poshtë për të vazhduar.');
-        var spinner = document.getElementById('spinner');
-        if (spinner) spinner.style.display = 'none';
-        var btn = document.getElementById('manual-btn');
-        if (btn) btn.style.display = 'inline-block';
+    // Wraps any promise with timeout — racing against a hard deadline
+    function withTimeout(promise, ms, fallback) {
+        return Promise.race([
+            promise,
+            new Promise(function(resolve) {
+                setTimeout(function() { resolve(fallback); }, ms);
+            })
+        ]);
     }
 
-    // Failsafe: pas 10s, shfaq butonin manual gjithsesi
+    // Hard force reset — bypass everything, just redirect
+    window.forceReset = function() {
+        // Clear localStorage too (last resort)
+        try { sessionStorage.clear(); } catch(e) {}
+        // Hard navigate that bypasses all caches
+        window.location.replace(DONE_REDIRECT);
+    };
+
+    // Show buttons after 3s no matter what
+    setTimeout(showButtons, 3000);
+    // Auto-redirect after 8s if not done
     setTimeout(function() {
-        var btn = document.getElementById('manual-btn');
-        var spinner = document.getElementById('spinner');
-        if (btn) btn.style.display = 'inline-block';
-        if (spinner) spinner.style.display = 'none';
-    }, 10000);
+        setStatus('Auto-redirect...');
+        window.location.replace(DONE_REDIRECT);
+    }, 8000);
+
+    // PARALEL cleanup with timeouts
+    Promise.all([
+        // Step 1: Clear caches (max 3s)
+        withTimeout(
+            (async function() {
+                try {
+                    if (window.caches && caches.keys) {
+                        var keys = await caches.keys();
+                        await Promise.all(keys.map(function(k) {
+                            return withTimeout(caches.delete(k), 1000, false);
+                        }));
+                    }
+                    setStep('step1', 'done');
+                } catch (e) {
+                    setStep('step1', 'skipped');
+                }
+            })(),
+            3000,
+            null
+        ).then(function() { setStep('step1', 'done'); }),
+
+        // Step 2: Unregister SW (max 3s)
+        withTimeout(
+            (async function() {
+                try {
+                    if ('serviceWorker' in navigator) {
+                        var regs = await withTimeout(
+                            navigator.serviceWorker.getRegistrations(),
+                            2000,
+                            []
+                        );
+                        if (regs && regs.length) {
+                            await Promise.all(regs.map(function(r) {
+                                return withTimeout(r.unregister(), 1500, false);
+                            }));
+                        }
+                    }
+                    setStep('step2', 'done');
+                } catch (e) {
+                    setStep('step2', 'skipped');
+                }
+            })(),
+            3000,
+            null
+        ).then(function() {
+            // Even if hung, mark as done/skipped to move on
+            var s = document.getElementById('step2');
+            if (s && !s.classList.contains('done')) setStep('step2', 'skipped');
+        })
+    ]).then(function() {
+        // Step 3: Always redirect, even if previous steps failed
+        setStep('step3', 'done');
+        setStatus('App-i është gati!');
+        setTimeout(function() {
+            window.location.replace(DONE_REDIRECT);
+        }, 600);
+    });
+
+    // Failsafe: force redirect after 5s no matter what
+    setTimeout(function() {
+        if (!window._redirected) {
+            window._redirected = true;
+            window.location.replace(DONE_REDIRECT);
+        }
+    }, 5000);
 })();
 </script>
 </body>
