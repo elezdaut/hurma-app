@@ -127,7 +127,7 @@
                 '<div class="hurma-palette__backdrop" data-close="1"></div>' +
                 '<div class="hurma-palette__panel">' +
                     '<div class="hurma-palette__search">' +
-                        '<i class="fas fa-search"></i>' +
+                        '<i class="fas fa-search" aria-hidden="true"></i>' +
                         '<input type="text" id="hurma-palette-input" placeholder="Kërko faqe, klient, produkt…" autocomplete="off" spellcheck="false">' +
                         '<kbd>esc</kbd>' +
                     '</div>' +
@@ -227,7 +227,7 @@
                             '<div class="hurma-palette__item-label">' + escapeHtml(it.label) + '</div>' +
                             (it.sub ? '<div class="hurma-palette__item-sub">' + escapeHtml(it.sub) + '</div>' : '') +
                         '</div>' +
-                        '<i class="fas fa-arrow-right hurma-palette__item-arrow"></i>' +
+                        '<i class="fas fa-arrow-right hurma-palette__item-arrow" aria-hidden="true"></i>' +
                     '</div>';
             });
             list.innerHTML = html;
@@ -384,7 +384,7 @@
         var toast = document.createElement('div');
         toast.className = 'hurma-toast hurma-toast--' + kind;
         var icon = ({ success: 'fa-check-circle', error: 'fa-times-circle', warn: 'fa-exclamation-triangle', info: 'fa-info-circle' })[kind] || 'fa-info-circle';
-        toast.innerHTML = '<i class="fas ' + icon + '"></i><span>' + String(message == null ? '' : message).replace(/</g, '&lt;') + '</span>';
+        toast.innerHTML = '<i class="fas ' + icon + '" aria-hidden="true"></i><span>' + String(message == null ? '' : message).replace(/</g, '&lt;') + '</span>';
         container.appendChild(toast);
         // Haptic feedback matching kind.
         if (kind === 'success') haptic.success();
@@ -491,8 +491,8 @@
                         '<p id="hurma-ob-body"></p>' +
                         '<div class="hurma-onboarding__dots" id="hurma-ob-dots"></div>' +
                         '<div class="hurma-onboarding__actions">' +
-                            '<button class="hurma-onboarding__skip" id="hurma-ob-skip">Kalo</button>' +
-                            '<button class="hurma-onboarding__next" id="hurma-ob-next">Vazhdo</button>' +
+                            '<button type="button" class="hurma-onboarding__skip" id="hurma-ob-skip">Kalo</button>' +
+                            '<button type="button" class="hurma-onboarding__next" id="hurma-ob-next">Vazhdo</button>' +
                         '</div>' +
                     '</div>';
                 document.body.appendChild(root);
@@ -659,7 +659,7 @@
             html += '<div class="hurma-ctxmenu__group">';
             actions.forEach(function (a, idx) {
                 html += '<button class="hurma-ctxmenu__item ' + (a.destructive ? 'is-destructive' : '') + '" data-idx="' + idx + '" type="button">' +
-                            (a.icon ? '<i class="' + a.icon + '"></i>' : '<i class="fas fa-circle"></i>') +
+                            (a.icon ? '<i class="' + a.icon + '"></i>' : '<i class="fas fa-circle" aria-hidden="true"></i>') +
                             '<span>' + escapeHtml(a.label) + '</span>' +
                         '</button>';
             });
@@ -1076,7 +1076,7 @@
             active.style.transform = 'translateX(' + dx + 'px)';
             if (!active.querySelector('.hurma-swipe-actions')) {
                 var html = '<div class="hurma-swipe-actions">' +
-                              '<button class="hurma-swipe-btn hurma-swipe-btn--delete" type="button" aria-label="Fshi"><i class="fas fa-trash"></i></button>' +
+                              '<button class="hurma-swipe-btn hurma-swipe-btn--delete" type="button" aria-label="Fshi"><i class="fas fa-trash" aria-hidden="true"></i></button>' +
                            '</div>';
                 active.insertAdjacentHTML('beforeend', html);
                 var btn = active.querySelector('.hurma-swipe-btn--delete');
@@ -1784,7 +1784,7 @@
                                      '<span class="hurma-actions-panel__title">' + _escapeHtml(title) + '</span>' +
                                    '</div>' +
                                    '<div class="hurma-actions-panel__empty">' +
-                                     '<i class="fas fa-info-circle"></i>' +
+                                     '<i class="fas fa-info-circle" aria-hidden="true"></i>' +
                                      '<span>Motori i inteligjencës nuk është aktiv</span>' +
                                    '</div>';
                     return;
@@ -1798,7 +1798,7 @@
 
                 if (!actions.length) {
                     html += '<div class="hurma-actions-panel__empty">' +
-                              '<i class="fas fa-check-circle"></i>' +
+                              '<i class="fas fa-check-circle" aria-hidden="true"></i>' +
                               '<span>Gjithçka në rregull — asnjë veprim urgjent</span>' +
                             '</div>';
                 } else {

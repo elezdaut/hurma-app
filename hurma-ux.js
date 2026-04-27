@@ -99,7 +99,7 @@
         // Krijo indicator nëse mungon
         ptrEl = document.createElement('div');
         ptrEl.className = 'pull-to-refresh';
-        ptrEl.innerHTML = '<i class="fas fa-arrow-down"></i>';
+        ptrEl.innerHTML = '<i class="fas fa-arrow-down" aria-hidden="true"></i>';
         main.appendChild(ptrEl);
 
         main.addEventListener('touchstart', (e) => {
@@ -242,9 +242,9 @@
             <h4>${step.title}</h4>
             <p>${step.text}</p>
             <div class="ot-actions">
-                <button class="btn btn-sm btn-secondary" onclick="skipOnboardingTour()">Anashkalo</button>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="skipOnboardingTour()">Anashkalo</button>
                 <span class="ot-progress">${tourStep + 1} / ${TOUR_STEPS.length}</span>
-                <button class="btn btn-sm btn-primary" onclick="window._tourNext()">${tourStep + 1 === TOUR_STEPS.length ? 'Mbaroj ✓' : 'Vazhdo →'}</button>
+                <button type="button" class="btn btn-sm btn-primary" onclick="window._tourNext()">${tourStep + 1 === TOUR_STEPS.length ? 'Mbaroj ✓' : 'Vazhdo →'}</button>
             </div>
         `;
         document.body.appendChild(tourTooltip);
@@ -304,22 +304,22 @@
             <p class="welcome-sub">Aplikacioni yt për menaxhimin e dyqanit shumicë. Fillo me 3 hapa të thjeshtë:</p>
             <div class="welcome-actions">
                 <a class="welcome-action-card" onclick="navigateTo('clients'); setTimeout(()=>{ if (typeof openClientModal==='function') openClientModal(); }, 200);">
-                    <div class="wac-icon"><i class="fas fa-user-plus"></i></div>
+                    <div class="wac-icon"><i class="fas fa-user-plus" aria-hidden="true"></i></div>
                     <div class="wac-title">1. Shto klientin e parë</div>
                     <div class="wac-desc">Emri, telefoni, adresa</div>
                 </a>
                 <a class="welcome-action-card" onclick="navigateTo('stock');">
-                    <div class="wac-icon"><i class="fas fa-boxes-stacked"></i></div>
+                    <div class="wac-icon"><i class="fas fa-boxes-stacked" aria-hidden="true"></i></div>
                     <div class="wac-title">2. Konfiguro stokun</div>
                     <div class="wac-desc">Sa nga çdo produkt ke në dyqan</div>
                 </a>
                 <a class="welcome-action-card" onclick="navigateTo('sales'); setTimeout(()=>{ if (typeof openSaleModal==='function') openSaleModal(); }, 200);">
-                    <div class="wac-icon"><i class="fas fa-cash-register"></i></div>
+                    <div class="wac-icon"><i class="fas fa-cash-register" aria-hidden="true"></i></div>
                     <div class="wac-title">3. Regjistro shitjen e parë</div>
                     <div class="wac-desc">Klient + produkt = fitim 🎉</div>
                 </a>
             </div>
-            <button class="btn btn-secondary" onclick="document.getElementById('welcome-screen').style.display='none'; localStorage.setItem('hurma-welcome-dismissed','1');">Anashkalo për tani</button>
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('welcome-screen').style.display='none'; localStorage.setItem('hurma-welcome-dismissed','1');">Anashkalo për tani</button>
         `;
         dash.prepend(wrap);
     };
@@ -363,7 +363,7 @@
                 <div class="empty-state-illustration">${emoji}</div>
                 <h3>${title}</h3>
                 <p>${text}</p>
-                ${action ? `<button class="btn btn-primary" onclick="${action.onclick}">${action.label}</button>` : ''}
+                ${action ? `<button type="button" class="btn btn-primary" onclick="${action.onclick}">${action.label}</button>` : ''}
             </div>
         `;
     };

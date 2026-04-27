@@ -656,20 +656,20 @@ Kur ka kuptim, mund të shtosh **butona veprimi** në përgjigjen tënde që Ele
         const msgEl = document.createElement('div');
         msgEl.className = 'ai-msg ' + (role === 'user' ? 'ai-msg-user' : 'ai-msg-bot');
         const avatar = role === 'user'
-            ? '<i class="fas fa-user"></i>'
-            : '<i class="fas fa-wand-magic-sparkles"></i>';
+            ? '<i class="fas fa-user" aria-hidden="true"></i>'
+            : '<i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>';
         msgEl.innerHTML = `
             <div class="ai-msg-avatar">${avatar}</div>
             <div class="ai-msg-bubble">${role === 'user' ? escapeHtml(content) : renderMarkdown(content)}</div>
-            <button class="ai-msg-copy" title="Kopjo"><i class="fas fa-copy"></i></button>
+            <button type="button" class="ai-msg-copy" title="Kopjo" aria-label="Kopjo"><i class="fas fa-copy" aria-hidden="true"></i></button>
         `;
         const copyBtn = msgEl.querySelector('.ai-msg-copy');
         if (copyBtn) {
             copyBtn.onclick = () => {
                 if (navigator.clipboard) {
                     navigator.clipboard.writeText(content).then(() => {
-                        copyBtn.innerHTML = '<i class="fas fa-check"></i>';
-                        setTimeout(() => { copyBtn.innerHTML = '<i class="fas fa-copy"></i>'; }, 1500);
+                        copyBtn.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i>';
+                        setTimeout(() => { copyBtn.innerHTML = '<i class="fas fa-copy" aria-hidden="true"></i>'; }, 1500);
                     });
                 }
             };
@@ -701,7 +701,7 @@ Kur ka kuptim, mund të shtosh **butona veprimi** në përgjigjen tënde që Ele
             shënime: (state.notes || []).length
         };
         el.innerHTML = `
-            <i class="fas fa-database"></i>
+            <i class="fas fa-database" aria-hidden="true"></i>
             <span><strong>${counts.klientë}</strong> klientë</span>
             <span class="ai-ci-sep">·</span>
             <span><strong>${counts.produkte}</strong> produkte</span>
@@ -887,20 +887,20 @@ Kur ka kuptim, mund të shtosh **butona veprimi** në përgjigjen tënde që Ele
             <div class="ai-sm-section">
                 <label class="ai-sm-toggle">
                     <input type="checkbox" id="ai-sm-tts" ${getTtsEnabled() ? 'checked' : ''}>
-                    <span><i class="fas fa-volume-high"></i> Lexo me zë (Text-to-Speech)</span>
+                    <span><i class="fas fa-volume-high" aria-hidden="true"></i> Lexo me zë (Text-to-Speech)</span>
                 </label>
             </div>
             <div class="ai-sm-section">
-                <button class="ai-sm-btn" id="ai-sm-whisper">
-                    <i class="fas fa-microphone"></i> ${getOpenAIKey() ? 'Voice (Whisper) ✓ aktiv' : 'Konfiguro Voice (Whisper)'}
+                <button type="button" class="ai-sm-btn" id="ai-sm-whisper">
+                    <i class="fas fa-microphone" aria-hidden="true"></i> ${getOpenAIKey() ? 'Voice (Whisper) ✓ aktiv' : 'Konfiguro Voice (Whisper)'}
                 </button>
             </div>
             <div class="ai-sm-section">
-                <button class="ai-sm-btn ai-sm-btn-danger" id="ai-sm-clear-key">
-                    <i class="fas fa-key"></i> Hiq çelësin API
+                <button type="button" class="ai-sm-btn ai-sm-btn-danger" id="ai-sm-clear-key">
+                    <i class="fas fa-key" aria-hidden="true"></i> Hiq çelësin API
                 </button>
-                <button class="ai-sm-btn" id="ai-sm-export-conv">
-                    <i class="fas fa-download"></i> Eksporto bisedën
+                <button type="button" class="ai-sm-btn" id="ai-sm-export-conv">
+                    <i class="fas fa-download" aria-hidden="true"></i> Eksporto bisedën
                 </button>
             </div>
         `;
@@ -1553,7 +1553,7 @@ Kur ka kuptim, mund të shtosh **butona veprimi** në përgjigjen tënde që Ele
         overlay.innerHTML = `
             <div class="mh-backdrop"></div>
             <div class="mh-card" style="max-width:500px;">
-                <button class="mh-close" aria-label="Mbyll">×</button>
+                <button type="button" class="mh-close" aria-label="Mbyll">×</button>
                 <div class="mh-icon">🎙️</div>
                 <h3>Konfiguro Voice (Whisper)</h3>
                 <p class="mh-sub" style="margin-bottom:12px;">${introText || 'Whisper transkripton zërin tënd në çdo browser, edhe Safari pa Dictation.'}</p>
@@ -1569,7 +1569,7 @@ Kur ka kuptim, mund të shtosh **butona veprimi** në përgjigjen tënde që Ele
                     💰 <strong>Kosto:</strong> ~$0.006 për minutë audio (~0.3 ден). Top-up minimal $5 → mjafton për ~14.000 pyetje voice. Krejt e ekonomshme.
                 </div>
                 <div class="svh-actions">
-                    <button class="svh-btn svh-btn-primary" id="whisper-save-key">Ruaj çelësin</button>
+                    <button type="button" class="svh-btn svh-btn-primary" id="whisper-save-key">Ruaj çelësin</button>
                 </div>
             </div>
         `;
@@ -1601,7 +1601,7 @@ Kur ka kuptim, mund të shtosh **butona veprimi** në përgjigjen tënde që Ele
         if (os === 'mac') {
             osBlock = '<div class="mh-key-cue"><kbd class="mh-kbd-big">fn</kbd><span class="mh-plus">+</span><kbd class="mh-kbd-big">fn</kbd></div><p class="mh-hint">Shtyp <strong>fn dy herë radhazi</strong></p><p class="mh-sub">Alternativisht: aktivizo Dictation te System Settings → Keyboard → Dictation</p>';
         } else if (os === 'ios') {
-            osBlock = '<div class="mh-key-cue"><i class="fas fa-microphone mh-ios-mic"></i></div><p class="mh-hint">Klikoji 🎤 te tastiera iOS</p>';
+            osBlock = '<div class="mh-key-cue"><i class="fas fa-microphone mh-ios-mic" aria-hidden="true"></i></div><p class="mh-hint">Klikoji 🎤 te tastiera iOS</p>';
         } else if (os === 'windows') {
             osBlock = '<div class="mh-key-cue"><kbd class="mh-kbd-big">⊞ Win</kbd><span class="mh-plus">+</span><kbd class="mh-kbd-big">H</kbd></div><p class="mh-hint">Shtyp <strong>Win + H</strong></p>';
         } else {
@@ -1613,12 +1613,12 @@ Kur ka kuptim, mund të shtosh **butona veprimi** në përgjigjen tënde që Ele
         overlay.innerHTML = `
             <div class="mh-backdrop"></div>
             <div class="mh-card">
-                <button class="mh-close" aria-label="Mbyll">×</button>
+                <button type="button" class="mh-close" aria-label="Mbyll">×</button>
                 <div class="mh-icon">🎤</div>
                 <h3>Voice nuk funksionon këtu</h3>
                 <p class="mh-sub" style="margin-bottom:16px;">Browser-i bllokoi njohjen e zërit. Përdor dictation të sistemit:</p>
                 ${osBlock}
-                <div class="mh-actions"><button class="mh-btn mh-btn-cancel" id="mh-cancel">E kuptova</button></div>
+                <div class="mh-actions"><button type="button" class="mh-btn mh-btn-cancel" id="mh-cancel">E kuptova</button></div>
             </div>`;
         document.body.appendChild(overlay);
         const close = () => overlay.remove();
@@ -1696,7 +1696,7 @@ Kur ka kuptim, mund të shtosh **butona veprimi** në përgjigjen tënde që Ele
         } else if (os === 'ios') {
             osBlock = `
                 <div class="mh-key-cue">
-                    <i class="fas fa-microphone mh-ios-mic"></i>
+                    <i class="fas fa-microphone mh-ios-mic" aria-hidden="true"></i>
                 </div>
                 <p class="mh-hint">Klikoji ikonën <strong>🎤</strong> në tastierën tënde</p>
                 <p class="mh-sub">Është mes hapësirës dhe emoji-ve te tastiera iOS</p>`;
@@ -1712,7 +1712,7 @@ Kur ka kuptim, mund të shtosh **butona veprimi** në përgjigjen tënde që Ele
         } else if (os === 'android') {
             osBlock = `
                 <div class="mh-key-cue">
-                    <i class="fas fa-microphone mh-ios-mic"></i>
+                    <i class="fas fa-microphone mh-ios-mic" aria-hidden="true"></i>
                 </div>
                 <p class="mh-hint">Klikoji <strong>🎤</strong> në tastierën Gboard/Android</p>
                 <p class="mh-sub">Zakonisht në krye të tastierës ose pranë space</p>`;
@@ -1725,14 +1725,14 @@ Kur ka kuptim, mund të shtosh **butona veprimi** në përgjigjen tënde që Ele
         overlay.innerHTML = `
             <div class="mh-backdrop"></div>
             <div class="mh-card">
-                <button class="mh-close" aria-label="Mbyll">×</button>
+                <button type="button" class="mh-close" aria-label="Mbyll">×</button>
                 <div class="mh-icon">🎤</div>
                 <h3>Pyet me zë</h3>
                 ${osBlock}
                 <div class="mh-live-text" id="mic-live-text">Po pres ta dëgjoj zërin tënd...</div>
                 <p class="mh-tip">💡 <strong>Sapo mbaron së foluri</strong>, AI dërgon automatikisht pyetjen pas 1.5 sekondash heshtjeje.</p>
                 <div class="mh-actions">
-                    <button class="mh-btn mh-btn-cancel" id="mh-cancel">Anulo</button>
+                    <button type="button" class="mh-btn mh-btn-cancel" id="mh-cancel">Anulo</button>
                 </div>
             </div>
         `;
@@ -1807,7 +1807,7 @@ Kur ka kuptim, mund të shtosh **butona veprimi** në përgjigjen tënde që Ele
         overlay.innerHTML = `
             <div class="svh-backdrop"></div>
             <div class="svh-card">
-                <button class="svh-close" aria-label="Mbyll">×</button>
+                <button type="button" class="svh-close" aria-label="Mbyll">×</button>
                 <div class="svh-icon">🎤</div>
                 <h2>Aktivizo Dictation për Safari</h2>
                 <p class="svh-intro">Safari përdor <strong>Dictation</strong> e macOS për të dëgjuar zërin. Duhet ta ndezësh një herë në cilësimet e Mac-ut:</p>
@@ -1848,7 +1848,7 @@ Kur ka kuptim, mund të shtosh **butona veprimi** në përgjigjen tënde që Ele
                     <strong>Alternativa më e thjeshtë:</strong> Hape app-in në <strong>Chrome</strong> ose <strong>Edge</strong> — punon menjëherë pa cilësime shtesë.
                 </div>
                 <div class="svh-actions">
-                    <button class="svh-btn svh-btn-primary" id="svh-ok">E kuptova</button>
+                    <button type="button" class="svh-btn svh-btn-primary" id="svh-ok">E kuptova</button>
                 </div>
             </div>
         `;
@@ -1937,8 +1937,8 @@ Kur ka kuptim, mund të shtosh **butona veprimi** në përgjigjen tënde që Ele
             return;
         }
         popup.innerHTML = matches.map((c, i) => `
-            <button class="ai-slash-item ${i === 0 ? 'ai-slash-active' : ''}" data-cmd="${c.cmd}">
-                <i class="fas ${c.icon}"></i>
+            <button type="button" class="ai-slash-item ${i === 0 ? 'ai-slash-active' : ''}" data-cmd="${c.cmd}">
+                <i class="fas ${c.icon}" aria-hidden="true"></i>
                 <span class="ai-slash-cmd">${c.cmd}</span>
                 <span class="ai-slash-label">${c.label}</span>
             </button>
@@ -1984,8 +1984,8 @@ Kur ka kuptim, mund të shtosh **butona veprimi** në përgjigjen tënde që Ele
             if (!SAFE_ACTIONS[action]) return match;
             const argList = (args || '').split('|').map(a => a.trim());
             const argsJson = encodeURIComponent(JSON.stringify(argList));
-            return `<button class="ai-action-btn" data-action="${escapeHtml(action)}" data-args="${argsJson}">
-                <i class="fas fa-bolt"></i> ${escapeHtml(label)}
+            return `<button type="button" class="ai-action-btn" data-action="${escapeHtml(action)}" data-args="${argsJson}">
+                <i class="fas fa-bolt" aria-hidden="true"></i> ${escapeHtml(label)}
             </button>`;
         });
     }
