@@ -46,8 +46,8 @@
     <!-- ARIA live region për toast/njoftime -->
     <div id="aria-live-region" aria-live="polite" aria-atomic="true" class="visually-hidden"></div>
 
-    <!-- iOS-style Launch Splash (self-dismisses after first paint) -->
-    <div id="hurma-splash" role="status" aria-label="Duke ngarkuar Hurma">
+    <!-- iOS-style Launch Splash — bullet-proof: CSS-only fade + click-anywhere + 300ms JS -->
+    <div id="hurma-splash" role="status" aria-label="Duke ngarkuar Hurma" onclick="this.classList.add('hurma-splash-hide');setTimeout(()=>{try{this.remove();}catch(e){}},600);" tabindex="0" onkeydown="if(event.key==='Escape'||event.key==='Enter'||event.key===' ')this.click()" style="cursor:pointer;">
         <svg class="hurma-splash-mark" width="108" height="108" viewBox="0 0 32 32" aria-hidden="true">
             <defs>
                 <linearGradient id="hm-splash" x1="0" y1="0" x2="0" y2="1">
@@ -59,9 +59,26 @@
             <path d="M7 16 C 11 14.5, 21 14.5, 25 16 C 21 17.5, 11 17.5, 7 16 Z" fill="#3A2410" opacity="0.55"/>
         </svg>
         <div class="hurma-splash-name">Hurma</div>
-        <div class="hurma-splash-tagline">Menaxhim i hurmave · App Store ready</div>
+        <div class="hurma-splash-tagline">Klikoji kudo nëse s'zhduket</div>
         <div class="hurma-splash-ring" aria-hidden="true"></div>
     </div>
+    <!-- CSS-only auto-hide: zhduket pas 1.2s edhe pa JS -->
+    <style>
+        @keyframes hurmaSplashAutoHide {
+            0%, 60% { opacity: 1; visibility: visible; }
+            100% { opacity: 0; visibility: hidden; pointer-events: none; }
+        }
+        #hurma-splash {
+            animation: hurmaSplashAutoHide 2s ease forwards;
+        }
+        #hurma-splash.hurma-splash-hide {
+            animation: none !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+    </style>
 
     <!-- Sidebar (sugjerimi #18: nav landmark me ARIA label) -->
     <nav id="sidebar" class="sidebar" role="navigation" aria-label="Menyja kryesore e aplikacionit">
@@ -1400,7 +1417,7 @@
     </nav>
 
     <script src="i18n.js"></script>
-    <script src="app.js?v=95"></script>
+    <script src="app.js?v=96"></script>
     <script src="hurma-polish.js?v=6" defer></script>
     <script src="hurma-ai.js?v=11" defer></script>
     <script src="hurma-ux.js?v=2" defer></script>
@@ -1427,14 +1444,22 @@
         // Minimum 450ms so the brand mark is actually visible; hide after
         // the page has rendered (load) — but never wait longer than 3.5s,
         // even if something below fails.
-        var MIN_SPLASH_MS = 200;
-        var MAX_SPLASH_MS = 1500; // shkurtuar nga 3500 — failsafe agresiv
+        var MIN_SPLASH_MS = 100;
+        var MAX_SPLASH_MS = 800; // ULTRA-AGRESIV: maksimum 800ms
         var t0 = Date.now();
-        // Failsafe i pavarur: edhe nëse logjika poshtë dështon, splash do fshihet pas 2s
+        // Failsafe TRIPLE — i pavarur nga gjithçka tjetër
         setTimeout(function() {
             var s = document.getElementById('hurma-splash');
-            if (s) { s.classList.add('hurma-splash-hide'); setTimeout(function(){ try{s.remove();}catch(e){} }, 600); }
-        }, 2000);
+            if (s) { s.classList.add('hurma-splash-hide'); setTimeout(function(){ try{s.remove();}catch(e){} }, 400); }
+        }, 1200);
+        // Reload kur SW kill-switch dërgon mesazh
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.addEventListener('message', function(e) {
+                if (e && e.data && e.data.type === 'SW_UNINSTALLED_RELOAD') {
+                    window.location.reload();
+                }
+            });
+        }
         function scheduleHide() {
             var elapsed = Date.now() - t0;
             var wait = Math.max(0, MIN_SPLASH_MS - elapsed);

@@ -4,13 +4,36 @@ services:
     runtime: static
     staticPublishPath: .
     headers:
-      - path: /*
+      # HTML & SW: zero cache (kritike që user-i të marrë gjithmonë versionin e fundit)
+      - path: /index.html
         name: Cache-Control
-        value: no-cache
+        value: no-cache, no-store, must-revalidate, max-age=0
+      - path: /
+        name: Cache-Control
+        value: no-cache, no-store, must-revalidate, max-age=0
+      - path: /recover.html
+        name: Cache-Control
+        value: no-cache, no-store, must-revalidate, max-age=0
+      - path: /sw.js
+        name: Cache-Control
+        value: no-cache, no-store, must-revalidate, max-age=0
       - path: /sw.js
         name: Service-Worker-Allowed
         value: /
+      # Manifest
+      - path: /manifest.json
+        name: Cache-Control
+        value: no-cache, must-revalidate
+      # JS/CSS: short cache + must-revalidate (versionet kanë ?v= për cache busting)
+      - path: /*
+        name: Cache-Control
+        value: public, max-age=60, must-revalidate
     routes:
+      # Recovery page: rrugë e veçantë pa rewrite
+      - type: rewrite
+        source: /recover
+        destination: /recover.html
+      # SPA fallback për gjithçka tjetër
       - type: rewrite
         source: /*
         destination: /index.html

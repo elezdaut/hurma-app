@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Hurma — Riparim</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(160deg, #B8731A 0%, #3A2410 95%);
+    color: #FBF6EE;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    text-align: center;
+}
+.container { max-width: 460px; }
+.icon { font-size: 64px; margin-bottom: 16px; }
+h1 { font-size: 28px; font-weight: 800; margin-bottom: 12px; letter-spacing: -0.02em; }
+p { font-size: 16px; opacity: 0.85; margin-bottom: 8px; line-height: 1.5; }
+.steps { background: rgba(0,0,0,0.2); border-radius: 12px; padding: 16px 20px; margin: 22px 0; text-align: left; }
+.step { display: flex; align-items: center; gap: 12px; padding: 8px 0; opacity: 0.6; transition: opacity 0.3s, color 0.3s; }
+.step.active { opacity: 1; color: #fff; font-weight: 600; }
+.step.done { opacity: 1; color: #4caf50; }
+.step .icon-small { width: 22px; text-align: center; }
+.btn {
+    display: inline-block;
+    background: #fff;
+    color: #B8731A;
+    border: none;
+    padding: 14px 28px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 14px;
+    text-decoration: none;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+}
+.btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,0,0,0.3); }
+.spinner {
+    border: 3px solid rgba(255,255,255,0.2);
+    border-top-color: #fff;
+    border-radius: 50%;
+    width: 32px; height: 32px;
+    animation: spin 0.8s linear infinite;
+    margin: 14px auto;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.note { font-size: 13px; opacity: 0.6; margin-top: 14px; }
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="icon">🔧</div>
+    <h1>Po riparoj Hurma...</h1>
+    <p>Po pastrohet cache i vjetër dhe app-i do hapet i pastër.</p>
+    <p><strong>Të dhënat e tua janë të sigurta.</strong></p>
+
+    <div class="steps">
+        <div class="step active" id="step1">
+            <span class="icon-small">⏳</span>
+            <span>Po pastroj cache-in...</span>
+        </div>
+        <div class="step" id="step2">
+            <span class="icon-small">⏳</span>
+            <span>Po de-instaloj Service Worker...</span>
+        </div>
+        <div class="step" id="step3">
+            <span class="icon-small">⏳</span>
+            <span>Po hap app-in e ri...</span>
+        </div>
+    </div>
+
+    <div class="spinner" id="spinner"></div>
+    <p id="status">Prit pak sekonda...</p>
+    <p class="note">Nëse s'zhduket pas 10 sekondash, klikoji butonin poshtë.</p>
+    <a href="/?_recovered=1" class="btn" id="manual-btn" style="display:none;">Hap Hurma App</a>
+</div>
+
+<script>
+(async function() {
+    function setStep(stepId, status) {
+        var el = document.getElementById(stepId);
+        if (!el) return;
+        if (status === 'done') {
+            el.classList.remove('active');
+            el.classList.add('done');
+            el.querySelector('.icon-small').textContent = '✓';
+        } else if (status === 'active') {
+            el.classList.add('active');
+        }
+    }
+    function setStatus(text) {
+        var s = document.getElementById('status');
+        if (s) s.textContent = text;
+    }
+
+    try {
+        // 1. Pastro tërë cache-t
+        if (window.caches) {
+            try {
+                var keys = await caches.keys();
+                await Promise.all(keys.map(function(k) { return caches.delete(k); }));
+                setStep('step1', 'done');
+                setStep('step2', 'active');
+            } catch (e) { console.warn('cache delete:', e); }
+        } else {
+            setStep('step1', 'done');
+            setStep('step2', 'active');
+        }
+
+        // 2. De-instalo të gjitha SW-të
+        if ('serviceWorker' in navigator) {
+            try {
+                var regs = await navigator.serviceWorker.getRegistrations();
+                await Promise.all(regs.map(function(r) { return r.unregister(); }));
+                setStep('step2', 'done');
+                setStep('step3', 'active');
+            } catch (e) { console.warn('SW unregister:', e); }
+        } else {
+            setStep('step2', 'done');
+            setStep('step3', 'active');
+        }
+
+        // 3. Redirect te app-i (me cache-buster)
+        setStatus('App-i është gati! Duke u hapur...');
+        setStep('step3', 'done');
+        setTimeout(function() {
+            window.location.href = '/?_recovered=1&_t=' + Date.now();
+        }, 800);
+
+    } catch (err) {
+        // Nëse gjithçka dështon, shfaq butonin manual
+        setStatus('Klikoji butonin poshtë për të vazhduar.');
+        var spinner = document.getElementById('spinner');
+        if (spinner) spinner.style.display = 'none';
+        var btn = document.getElementById('manual-btn');
+        if (btn) btn.style.display = 'inline-block';
+    }
+
+    // Failsafe: pas 10s, shfaq butonin manual gjithsesi
+    setTimeout(function() {
+        var btn = document.getElementById('manual-btn');
+        var spinner = document.getElementById('spinner');
+        if (btn) btn.style.display = 'inline-block';
+        if (spinner) spinner.style.display = 'none';
+    }, 10000);
+})();
+</script>
+</body>
+</html>

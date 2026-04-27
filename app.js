@@ -308,6 +308,39 @@ try { window.state = state; } catch(e) {}
 
 // ===================== INIT =====================
 function init() {
+    // (BULLET-PROOF) Detekto URL parametrat e recovery
+    try {
+        var qs = window.location.search || '';
+        // ?clean=1 → pastrim total para inicimit
+        if (qs.indexOf('clean=1') >= 0 || qs.indexOf('_clean=1') >= 0) {
+            // Async cleanup, pastaj redirect te /recover.html
+            (async function() {
+                try {
+                    if (window.caches) {
+                        var keys = await caches.keys();
+                        await Promise.all(keys.map(function(k) { return caches.delete(k); }));
+                    }
+                    if ('serviceWorker' in navigator) {
+                        var regs = await navigator.serviceWorker.getRegistrations();
+                        await Promise.all(regs.map(function(r) { return r.unregister(); }));
+                    }
+                } catch(e) {}
+                window.location.replace('/?_recovered=1&_t=' + Date.now());
+            })();
+            return; // mos vazhdo init
+        }
+        // ?_recovered=1 → trego konfirmim
+        if (qs.indexOf('_recovered=1') >= 0) {
+            setTimeout(function() {
+                if (typeof showToast === 'function') {
+                    showToast('✅ App-i u rifreskua me sukses!', 'success');
+                }
+                // Pastro URL parametrat
+                try { window.history.replaceState({}, '', window.location.pathname); } catch(e) {}
+            }, 800);
+        }
+    } catch(e) {}
+
     loadState();
     // Feature 12: PIN lock check
     if (state.pinEnabled && state.pinCode) {
@@ -19304,9 +19337,14 @@ let _swRegistration = null;       // Referencë tek SW registration
 let _pwaInstallPrompt = null;     // Eventi beforeinstallprompt i ruajtur
 let _pwaNotifInterval = null;     // Intervali i kontrolleve periodike
 
-// ---- Pikë hyrëse: regjistron SW dhe nis gjithçka ----
+// ---- Pikë hyrëse: nis PWA (pa SW të ri — kill-switch po heq SW të vjetër) ----
 function initPWA() {
-    _registerServiceWorker();
+    // (Bullet-proof v100) NUK regjistrojmë më SW të ri.
+    // SW kill-switch (sw.js) instalohet automatikisht nëse user-i kishte SW të vjetër
+    // dhe e fshin atë + tërë cache-in. Pas reload, app-i punon nga rrjeti drejtpërsëdrejti
+    // (me Cache-Control: no-cache te HTML nga Render).
+    // Kjo eliminon plotësisht problemin e cache-it të vjetër.
+    // _registerServiceWorker(); — DEAKTIVIZUAR
     _setupInstallPrompt();
     _listenForSWMessages();
     _handleStartupParams();

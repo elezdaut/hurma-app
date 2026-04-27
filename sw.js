@@ -1,215 +1,46 @@
-// ===================== HURMA APP — SERVICE WORKER =====================
-// Versioni i cache-it. Ndrysho këtë vlerë kur publikon update të ri.
-const CACHE_VERSION = 'hurma-v95';
+// ═══════════════════════════════════════════════════════════════════
+// HURMA APP — Service Worker KILL-SWITCH (v100)
+// ═══════════════════════════════════════════════════════════════════
+// Pse "kill-switch": Versionet e mëparshme të SW-së (v75-v95) cache-uan
+// HTML/JS me strategjinë network-first. Por kur browser-i ngec në SW
+// të vjetër, faqja s'merr update. Tani SW-ja e re VETË-DEINSTALOHET dhe
+// pastron tërë cache-in. Pas reload-it, app-i punon pa SW (nga rrjeti
+// drejtpërsëdrejti, me Cache-Control: no-cache te HTML).
+//
+// User-ët në v75-v99: Sapo update-i tjetër ngarkohet (nga ndonjë vizitë),
+// SW-ja e re instalohet → aktivizohet → fshin caches → unregister →
+// klientët reload → faqja punon nga rrjeti drejtpërdrejt. PROBLEMI ZGJIDHET.
+// ═══════════════════════════════════════════════════════════════════
 
-// Skedarët lokalë që kachojmë për punë offline
-const CORE_ASSETS = [
-    '/',
-    '/index.html',
-    '/app.js',
-    '/i18n.js',
-    '/hurma-polish.js',
-    '/hurma-ai.js',
-    '/hurma-ux.js',
-    '/style.css',
-    '/icons/icon-192.svg',
-    '/icons/icon-512.svg',
-    '/manifest.json'
-];
-
-// ===================== INSTALL =====================
-// Kur SW instalohet, kachon të gjitha skedarët kryesorë
 self.addEventListener('install', event => {
-    event.waitUntil(
-        caches.open(CACHE_VERSION)
-            .then(cache => cache.addAll(CORE_ASSETS))
-            .then(() => self.skipWaiting())
-    );
+    // Skip waiting menjëherë — nuk ka pse të presim
+    self.skipWaiting();
 });
 
-// ===================== ACTIVATE =====================
-// Fshi cache-t e vjetra kur aktivizohet versioni i ri
 self.addEventListener('activate', event => {
-    event.waitUntil(
-        caches.keys()
-            .then(keys => Promise.all(
-                keys
-                    .filter(key => key !== CACHE_VERSION)
-                    .map(key => caches.delete(key))
-            ))
-            .then(() => self.clients.claim())
-    );
+    event.waitUntil((async () => {
+        try {
+            // 1. Fshi TË GJITHA cache-t (përfshirë hurma-v* të vjetër)
+            const cacheKeys = await caches.keys();
+            await Promise.all(cacheKeys.map(k => caches.delete(k)));
+
+            // 2. Vetë-deinstalim — ky SW heq veten përfundimisht
+            await self.registration.unregister();
+
+            // 3. Njofto klientët që SW u fshi (ata do reload-en vetë sipas mesazhit)
+            const clientList = await self.clients.matchAll({ type: 'window' });
+            for (const client of clientList) {
+                try { client.postMessage({ type: 'SW_UNINSTALLED_RELOAD' }); } catch(_) {}
+            }
+        } catch (e) {
+            // Edhe nëse diçka dështon, vazhdojmë
+            try { console.warn('[SW kill-switch] Cleanup error (ignored):', e); } catch(_){}
+        }
+    })());
 });
 
-// ===================== FETCH (Offline-first) =====================
-// Strategjia: Cache-first për skedarët lokalë, Network-first për CDN
+// Fetch handler MINIMAL: gjithçka nga rrjeti, asgjë nga cache
 self.addEventListener('fetch', event => {
-    const url = new URL(event.request.url);
-    const req = event.request;
-
-    // ⚠️ EXCLUDE: API streaming endpoints — SW NUK duhet të prek këto.
-    // Streaming responses (SSE) thyhen kur clone-ohen ose cache-ohen.
-    // Lista bardhë: domain-et e njohura të API streaming që po përdorim.
-    const STREAMING_HOSTS = [
-        'api.anthropic.com',
-        'api.openai.com',
-        'generativelanguage.googleapis.com'
-    ];
-    if (STREAMING_HOSTS.some(host => url.hostname === host || url.hostname.endsWith('.' + host))) {
-        return; // lëre browser-in ta menaxhojë normalisht
-    }
-    // Mos prek POST/PUT/PATCH/DELETE — ato shpesh janë mutuese ose streaming.
-    if (req.method !== 'GET' && req.method !== 'HEAD') {
-        return;
-    }
-    // Mos prek kërkesat me Range header (video/audio streaming).
-    if (req.headers.get('range')) {
-        return;
-    }
-
-    // Kërkesat CDN: provo rrjetin, nëse dështon kthe nga cache
-    if (url.origin !== self.location.origin) {
-        event.respondWith(
-            fetch(req)
-                .then(response => {
-                    // Vetëm përgjigjet bazike + të suksesshme cache-ohen
-                    if (response && response.ok && response.type !== 'opaque') {
-                        try {
-                            const clone = response.clone();
-                            caches.open(CACHE_VERSION).then(cache => cache.put(req, clone)).catch(() => {});
-                        } catch(e) { /* ignore */ }
-                    }
-                    return response;
-                })
-                .catch(() => caches.match(req))
-        );
-        return;
-    }
-
-    // Skedarët lokalë: network-first për HTML dhe app.js (që të marrin gjithmonë versionin e fundit),
-    // cache-first për asetet statike (ikona, manifest).
-    const pathname = url.pathname;
-    const isCriticalFile = pathname === '/' ||
-                           pathname.endsWith('.html') ||
-                           pathname.endsWith('.js') ||
-                           pathname.endsWith('.css');
-
-    if (isCriticalFile) {
-        // Network-first me cache-busting për HTML/JS/CSS: shto timestamp në kërkesë
-        // që të mos marrim kurrë versionin e cache-uar të browserit vetë.
-        const bustUrl = event.request.url + (event.request.url.includes('?') ? '&' : '?') + '__sw=' + Date.now();
-        const bustReq = new Request(bustUrl, {
-            method: event.request.method,
-            headers: event.request.headers,
-            mode: 'same-origin',
-            credentials: event.request.credentials,
-            redirect: event.request.redirect,
-            cache: 'no-store'
-        });
-        event.respondWith(
-            fetch(bustReq)
-                .then(response => {
-                    if (response && response.ok) {
-                        const clone = response.clone();
-                        caches.open(CACHE_VERSION).then(cache => cache.put(event.request, clone));
-                    }
-                    return response;
-                })
-                .catch(() => caches.match(event.request, { ignoreSearch: true })
-                    .then(cached => cached || caches.match('/index.html', { ignoreSearch: true })))
-        );
-        return;
-    }
-
-    // Asete statike: cache-first me ignoreSearch (që ?v=X të mos krijojë cache të panevojshme)
-    event.respondWith(
-        caches.match(event.request, { ignoreSearch: true })
-            .then(cached => {
-                if (cached) return cached;
-                return fetch(event.request).then(response => {
-                    if (response && response.ok) {
-                        const clone = response.clone();
-                        caches.open(CACHE_VERSION).then(cache => cache.put(event.request, clone));
-                    }
-                    return response;
-                });
-            })
-            .catch(() => caches.match('/index.html', { ignoreSearch: true }))
-    );
-});
-
-// ===================== PUSH NOTIFICATIONS =====================
-// Merr njoftimet nga serveri (e ardhmja — kur të ketë backend)
-self.addEventListener('push', event => {
-    let data = { title: '🌴 Hurma App', body: 'Ke një njoftim të ri.', tag: 'hurma-generic' };
-
-    if (event.data) {
-        try { data = { ...data, ...event.data.json() }; } catch (e) { data.body = event.data.text(); }
-    }
-
-    event.waitUntil(
-        self.registration.showNotification(data.title, {
-            body: data.body,
-            icon: '/icons/icon-192.svg',
-            badge: '/icons/icon-192.svg',
-            tag: data.tag || 'hurma-push',
-            vibrate: [200, 100, 200],
-            requireInteraction: data.requireInteraction || false,
-            data: data.url ? { url: data.url } : {}
-        })
-    );
-});
-
-// ===================== NOTIFICATION CLICK =====================
-// Kur përdoruesi klikon një njoftim, hap app-in
-self.addEventListener('notificationclick', event => {
-    event.notification.close();
-
-    const targetUrl = (event.notification.data && event.notification.data.url)
-        ? event.notification.data.url
-        : '/';
-
-    event.waitUntil(
-        self.clients.matchAll({ type: 'window', includeUncontrolled: true })
-            .then(clients => {
-                // Nëse app-i është i hapur, fokusohet
-                for (const client of clients) {
-                    if (client.url.includes(self.location.origin) && 'focus' in client) {
-                        client.postMessage({ type: 'NOTIFICATION_CLICK', url: targetUrl });
-                        return client.focus();
-                    }
-                }
-                // Nëse app-i është i mbyllur, hap tab të ri
-                if (self.clients.openWindow) {
-                    return self.clients.openWindow(targetUrl);
-                }
-            })
-    );
-});
-
-// ===================== MESAZHE NGA APP =====================
-// App-i mund të dërgojë mesazhe te SW (p.sh. për të shfaqur njoftime)
-self.addEventListener('message', event => {
-    if (!event.data) return;
-
-    switch (event.data.type) {
-
-        // App-i kërkon të shfaqë një njoftim lokal
-        case 'SHOW_NOTIFICATION':
-            self.registration.showNotification(event.data.title, {
-                body: event.data.body,
-                icon: '/icons/icon-192.svg',
-                badge: '/icons/icon-192.svg',
-                tag: event.data.tag || 'hurma-local',
-                vibrate: [150, 75, 150],
-                requireInteraction: event.data.requireInteraction || false,
-                data: event.data.url ? { url: event.data.url } : {}
-            });
-            break;
-
-        // App-i kërkon skip waiting (update i ri i disponueshëm)
-        case 'SKIP_WAITING':
-            self.skipWaiting();
-            break;
-    }
+    // Lëre browser-in ta menaxhojë — mos thirr respondWith fare
+    return;
 });
