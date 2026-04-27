@@ -131,6 +131,32 @@
         } catch(e) { return dateStr; }
     };
 
+    // Safe invoker: parse "funcName(arg1, arg2)" → window.funcName(arg1, arg2)
+    // Replaces eval() to eliminate code-injection risk if action strings ever
+    // contain user-controlled data.
+    function _safeInvoke(s) {
+        if (typeof s !== 'string') return;
+        var m = /^([A-Za-z_$][\w$]*)\s*\((.*)\)\s*;?\s*$/.exec(s.trim());
+        if (!m) { console.warn('Row action: invalid call', s); return; }
+        var name = m[1];
+        var argStr = m[2].trim();
+        var args = [];
+        if (argStr) {
+            try { args = JSON.parse('[' + argStr + ']'); }
+            catch(e) { console.warn('Row action: invalid args', argStr); return; }
+        }
+        var fn = window[name];
+        if (typeof fn !== 'function') { console.warn('Row action: unknown function', name); return; }
+        return fn.apply(null, args);
+    }
+
+    // Helper: safely escape text for innerHTML
+    function _esc(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
     // Row context menu (3-dot dropdown) për tabelat
     window._openRowMenu = function(triggerBtn, encodedActions) {
         var existing = document.getElementById('row-context-menu');
@@ -142,9 +168,10 @@
         var menu = document.createElement('div');
         menu.id = 'row-context-menu';
         menu.className = 'row-ctx-menu';
+        menu.setAttribute('role', 'menu');
         menu.innerHTML = actions.map(function(a, i) {
             var cls = 'row-ctx-item' + (a.accent ? ' row-ctx-' + a.accent : '');
-            return '<button class="' + cls + '" data-i="' + i + '"><i class="fas ' + a.ic + '"></i><span>' + a.lbl + '</span></button>';
+            return '<button type="button" role="menuitem" class="' + _esc(cls) + '" data-i="' + i + '"><i class="fas ' + _esc(a.ic) + '" aria-hidden="true"></i><span>' + _esc(a.lbl) + '</span></button>';
         }).join('');
         document.body.appendChild(menu);
         var rect = triggerBtn.getBoundingClientRect();
@@ -152,12 +179,15 @@
         menu.style.top = (rect.bottom + 4) + 'px';
         menu.style.right = Math.max(8, window.innerWidth - rect.right) + 'px';
         menu.style.zIndex = '10000';
-        menu.querySelectorAll('.row-ctx-item').forEach(function(el, idx) {
-            el.onclick = function(e) {
-                e.stopPropagation();
-                menu.remove();
-                try { eval(actions[idx].fn); } catch(err) { console.warn('Row action failed:', err); }
-            };
+        // Event delegation — single listener instead of N
+        menu.addEventListener('click', function(e) {
+            var btn = e.target.closest('.row-ctx-item');
+            if (!btn) return;
+            e.stopPropagation();
+            var idx = parseInt(btn.dataset.i, 10);
+            menu.remove();
+            try { _safeInvoke(actions[idx] && actions[idx].fn); }
+            catch(err) { console.warn('Row action failed:', err); }
         });
         setTimeout(function() {
             var close = function(ev) {
@@ -179,10 +209,11 @@
         var menu = document.createElement('div');
         menu.id = 'export-menu';
         menu.className = 'export-menu';
+        menu.setAttribute('role', 'menu');
         menu.innerHTML = '' +
-            '<button data-fmt="excel"><i class="fas fa-file-excel" style="color:#107c41"></i> Excel</button>' +
-            '<button data-fmt="pdf"><i class="fas fa-file-pdf" style="color:#d32f2f"></i> PDF</button>' +
-            '<button data-fmt="word"><i class="fas fa-file-word" style="color:#185abd"></i> Word</button>';
+            '<button type="button" role="menuitem" data-fmt="excel"><i class="fas fa-file-excel" style="color:#107c41" aria-hidden="true"></i> Excel</button>' +
+            '<button type="button" role="menuitem" data-fmt="pdf"><i class="fas fa-file-pdf" style="color:#d32f2f" aria-hidden="true"></i> PDF</button>' +
+            '<button type="button" role="menuitem" data-fmt="word"><i class="fas fa-file-word" style="color:#185abd" aria-hidden="true"></i> Word</button>';
         document.body.appendChild(menu);
         var trigger = event && event.currentTarget;
         if (trigger) {
@@ -192,15 +223,16 @@
             menu.style.left = rect.left + 'px';
             menu.style.zIndex = '10000';
         }
-        menu.querySelectorAll('button').forEach(function(b) {
-            b.onclick = function(e) {
-                e.stopPropagation();
-                menu.remove();
-                var fmt = b.dataset.fmt;
-                if (typeof window[fnName] === 'function') {
-                    try { window[fnName](fmt); } catch(err) { console.warn('Export failed:', err); }
-                }
-            };
+        // Event delegation — single listener
+        menu.addEventListener('click', function(e) {
+            var b = e.target.closest('button[data-fmt]');
+            if (!b) return;
+            e.stopPropagation();
+            var fmt = b.dataset.fmt;
+            menu.remove();
+            if (typeof window[fnName] === 'function') {
+                try { window[fnName](fmt); } catch(err) { console.warn('Export failed:', err); }
+            }
         });
         setTimeout(function() {
             var close = function(ev) {
@@ -526,9 +558,19 @@ function navigateTo(page) {
     showFatonFAB(page === 'faton');
 }
 
-document.querySelectorAll('.nav-item').forEach(item => {
-    item.addEventListener('click', () => navigateTo(item.dataset.page));
-});
+// P19: event delegation — single listener on the menu container instead of N
+// listeners on every .nav-item. Survives dynamically-added nav items too.
+(function _bindNavOnce() {
+    if (window.__hurmaNavBound) return;
+    window.__hurmaNavBound = true;
+    var menu = document.querySelector('.nav-menu') || document;
+    menu.addEventListener('click', function (e) {
+        var item = e.target.closest('.nav-item[data-page]');
+        if (!item) return;
+        try { navigateTo(item.dataset.page); }
+        catch (err) { console.warn('navigateTo failed:', err); }
+    });
+})();
 
 function toggleSidebar() {
     // Bug #153: sidebar null-guard
@@ -7041,9 +7083,19 @@ function showToast(message, type = 'info') {
     const toast = document.createElement('div');
     const colors = { success: '#00b894', error: '#d63031', warning: '#fdcb6e', info: '#0984e3' };
     toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+    toast.setAttribute('tabindex', '0');
+    toast.setAttribute('aria-label', 'Mbyll njoftimin: ' + message);
     toast.style.cssText = `background:${colors[type] || colors.info};color:#fff;padding:12px 20px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);font-size:0.9em;max-width:350px;animation:slideIn 0.3s ease;cursor:pointer;`;
     toast.textContent = message;
-    toast.onclick = () => toast.remove();
+    // P22: addEventListener with { once: true } — auto-removes the listener
+    // when the toast is clicked or auto-dismissed, no leak.
+    toast.addEventListener('click', function _h() { try { toast.remove(); } catch(e) {} }, { once: true });
+    toast.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') {
+            e.preventDefault();
+            try { toast.remove(); } catch(err) {}
+        }
+    });
     container.appendChild(toast);
     // Anunco te aria-live region për screen readers
     try {
