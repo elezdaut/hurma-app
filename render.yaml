@@ -4,46 +4,41 @@ services:
     runtime: static
     staticPublishPath: .
     headers:
-      # CRITICAL: Render për static sites përdor LAST-MATCH-WINS, dhe wildcard /*
-      # match-on edhe /index.html. Pra catch-all duhet të jetë I PARI me cache,
-      # pastaj override-të specifike vijnë POSHTË (që fitojnë).
+      # ZGJIDHJE FINALE: PA catch-all /* — kjo shkaktonte konflikt path matching.
+      # Render për static sites zbaton DEFAULT cache për asetet me ?v= (që është OK),
+      # ndërsa ne aplikojmë rregulla EKSPLICITE vetëm për files që kërkojnë no-cache.
       #
-      # Default catch-all: cache i shkurtër (60s) për gjithçka
-      - path: /*
-        name: Cache-Control
-        value: public, max-age=60, must-revalidate
-      # OVERRIDE: HTML, SW dhe recover duhet të jenë gjithmonë të freskët
+      # HTML files & SW: zero cache, zero CDN cache
       - path: /
         name: Cache-Control
         value: no-cache, no-store, must-revalidate, max-age=0
+      - path: /
+        name: CDN-Cache-Control
+        value: no-store
       - path: /index.html
         name: Cache-Control
         value: no-cache, no-store, must-revalidate, max-age=0
+      - path: /index.html
+        name: CDN-Cache-Control
+        value: no-store
       - path: /recover.html
         name: Cache-Control
         value: no-cache, no-store, must-revalidate, max-age=0
+      - path: /recover.html
+        name: CDN-Cache-Control
+        value: no-store
       - path: /sw.js
         name: Cache-Control
         value: no-cache, no-store, must-revalidate, max-age=0
+      - path: /sw.js
+        name: CDN-Cache-Control
+        value: no-store
       - path: /sw.js
         name: Service-Worker-Allowed
         value: /
       - path: /manifest.json
         name: Cache-Control
         value: no-cache, must-revalidate
-      # Cloudflare CDN bypass — sigurohet që edge node s'cache-on HTML
-      - path: /
-        name: CDN-Cache-Control
-        value: no-store
-      - path: /index.html
-        name: CDN-Cache-Control
-        value: no-store
-      - path: /sw.js
-        name: CDN-Cache-Control
-        value: no-store
-      - path: /recover.html
-        name: CDN-Cache-Control
-        value: no-store
     routes:
       # Recovery page: rrugë e veçantë
       - type: rewrite
