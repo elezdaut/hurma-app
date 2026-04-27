@@ -905,7 +905,7 @@ function showExecutiveDashboard() {
 
 // ===================== SALES =====================
 function openSaleModal(editId) {
-    const isEdit = editId !== undefined;
+    const isEdit = editId !== undefined && state.sales && state.sales[editId];
     const sale = isEdit ? state.sales[editId] : null;
 
     let html = `
@@ -1208,6 +1208,7 @@ function updateSale(index) {
     // Bug #383: sale null-guard
     if (!state.sales || !state.sales[index]) return;
     const old = state.sales[index];
+    if (!old) { if (typeof showToast === 'function') showToast('Të dhënat nuk u gjetën', 'warning'); return; }
     const productId = (document.getElementById('sale-product') || {}).value;
     const quantity = parseInt((document.getElementById('sale-quantity') || {}).value) || 0;
     const discount = parseFloat((document.getElementById('sale-discount') || {}).value) || 0;
@@ -2428,6 +2429,7 @@ function deleteStockBatch(batchId) {
     const idx = (state.stockBatches || []).findIndex(b => b.id === batchId);
     if (idx === -1) { showToast('Ngarkesa nuk u gjet!', 'error'); return; }
     const batch = state.stockBatches[idx];
+    if (!batch) { if (typeof showToast === 'function') showToast('Të dhënat nuk u gjetën', 'warning'); return; }
     const product = getProduct(batch.productId);
     const productName = (product && product.name) ? product.name : '-';
     const msg = 'A je i sigurt që do ta fshish ngarkesën?\n\n' +
@@ -2463,6 +2465,7 @@ function deleteFatonPurchase(purchaseId) {
     const idx = (state.fatonPurchases || []).findIndex(p => p.id === purchaseId);
     if (idx === -1) { showToast('Blerja nuk u gjet!', 'error'); return; }
     const p = state.fatonPurchases[idx];
+    if (!p) { if (typeof showToast === 'function') showToast('Të dhënat nuk u gjetën', 'warning'); return; }
     const product = getProduct(p.productId);
     const productName = (product && product.name) ? product.name : '-';
     const msg = 'A je i sigurt që do ta fshish blerjen?\n\n' +
@@ -3239,7 +3242,7 @@ function calcFatonProfitCollected() {
 }
 
 function openFatonPaymentModal(editIndex) {
-    const isEdit = editIndex !== undefined;
+    const isEdit = editIndex !== undefined && state.fatonPayments && state.fatonPayments[editIndex];
     const existing = isEdit ? state.fatonPayments[editIndex] : null;
     const currentDebt = calcFatonDebt();
 
@@ -3382,6 +3385,7 @@ function deleteFatonPayment(index) {
     modalConfirm('Fshi këtë pagesë?', function() {
     if (!state.fatonPayments || !state.fatonPayments[index]) return;
     var payment = state.fatonPayments[index];
+    if (!payment) { if (typeof showToast === 'function') showToast('Të dhënat nuk u gjetën', 'warning'); return; }
     if (typeof addPaymentAudit === 'function') addPaymentAudit('FSHIRJE_PAGESE', 'Shuma: ' + (payment.amount || 0) + ' den, Data: ' + (payment.date || '-'));
     (state.fatonPayments = state.fatonPayments || []).splice(index, 1);
     saveState();
@@ -4429,6 +4433,7 @@ function showPaymentConfirmation(payment, receipt) {
 
 // ===================== PIN VERIFICATION FOR PAYMENTS =====================
 function verifyPinForPayment(callback) {
+    var _cb = arguments[arguments.length-1]; if (typeof _cb !== 'function') return;
     if (!state.pinEnabled || !state.pinCode) {
         callback();
         return;
@@ -4770,6 +4775,7 @@ function showProfitPerPersonChart() {
 // ===================== DETAILED PAYMENT REPORT =====================
 function showDetailedPaymentReport(paymentIndex) {
     const payment = state.fatonPayments[paymentIndex];
+    if (!payment) { if (typeof showToast === 'function') showToast('Të dhënat nuk u gjetën', 'warning'); return; }
     if (!payment) return;
 
     // Find sales around this payment date (same day or nearby)
@@ -6626,7 +6632,15 @@ function buildInvoiceModel(saleIndex) {
 }
 
 function renderInvoiceHtml(model) {
-    const { sale, product, client, profile, paid, remaining, status, invoiceNumber } = model;
+    model = model || {};
+    const sale = model.sale || {};
+    const product = model.product || {};
+    const client = model.client || null;
+    const profile = model.profile || {};
+    const paid = model.paid || 0;
+    const remaining = model.remaining || 0;
+    const status = model.status || '';
+    const invoiceNumber = model.invoiceNumber || '';
     const accent = profile.accentColor || '#8b5a2b';
     const dueLabel = sale.dueDate ? formatReportDate(sale.dueDate) : 'Menjëherë';
     const payDateLabel = sale.invoicePaidDate || sale.payDate ? formatReportDate(sale.invoicePaidDate || sale.payDate) : '-';
@@ -8479,6 +8493,7 @@ function sortTable(tableId, column, type) {
 
     const sortState = state.tableSortState[tableId];
 
+    if (!sortState) { if (typeof showToast === 'function') showToast('Të dhënat nuk u gjetën', 'warning'); return; }
     if (sortState.column === column) {
         sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
     } else {
@@ -10265,6 +10280,7 @@ function confirmDeletePayment(clientId, paymentId) {
 
     const payment = state.clientPayments[idx];
 
+    if (!payment) { if (typeof showToast === 'function') showToast('Të dhënat nuk u gjetën', 'warning'); return; }
     // If payment was active (not cancelled), return debt
     if (payment.status !== 'cancelled') {
         client.debt += payment.amount;
@@ -17611,6 +17627,8 @@ function restoreVersion(n) {
 // ===================== FEATURE 12: ENKRIPTIM I TE DHENAVE =====================
 
 function encryptData(data, password) {
+    password = String(password || '');
+    if (!password) return '';
     const str = typeof data === 'string' ? data : JSON.stringify(data);
     let result = '';
     for (let i = 0; i < str.length; i++) {
@@ -17620,6 +17638,8 @@ function encryptData(data, password) {
 }
 
 function decryptData(encrypted, password) {
+    password = String(password || '');
+    if (!password) return null;
     const str = decodeURIComponent(escape(atob(encrypted)));
     let result = '';
     for (let i = 0; i < str.length; i++) {
@@ -21653,6 +21673,7 @@ function distAddDeliveryItem() {
 }
 
 function distPaymentTypeChanged() {
+    var _sel = arguments[0]; if (!_sel || !_sel.parentElement) return;
     var sel = document.getElementById('dist-del-payment');
     if (!sel) return;
     var isCash = sel.value === 'cash';
@@ -23793,6 +23814,7 @@ function distCompressImage(file, maxDim, quality, watermarkText) {
 
 // Draws a semi-transparent watermark bar at the bottom of the canvas
 function distDrawWatermark(ctx, w, h, lines) {
+    if (!ctx || typeof ctx.save !== 'function') return;
     if (typeof lines === 'string') lines = [lines];
     if (!lines || !lines.length) return;
     var fontSize = Math.max(12, Math.round(Math.min(w, h) * 0.028));
@@ -23845,6 +23867,7 @@ function distPODAttachPhotos(input) {
 }
 
 function distPODRenderPreview(containerId, photos, editable, removeFn) {
+    photos = Array.isArray(photos) ? photos : [];
     var container = document.getElementById(containerId);
     if (!container) return;
     removeFn = removeFn || 'distPODRemovePendingPhoto';
