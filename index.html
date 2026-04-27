@@ -100,9 +100,9 @@
                 </svg>
                 <span>Hurma</span>
             </h2>
-            <button type="button" class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Mbyll menynë"><i class="fas fa-times" aria-hidden="true"></i></button>
+            <button type="button" class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Mbyll menynë" aria-controls="sidebar" aria-expanded="false"><i class="fas fa-times" aria-hidden="true"></i></button>
         </div>
-        <button type="button" class="sidebar-collapse-toggle" onclick="toggleSidebarCollapse()" aria-label="Kollapso sidebar" title="Kollapso/Hap sidebar"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+        <button type="button" class="sidebar-collapse-toggle" onclick="toggleSidebarCollapse()" aria-label="Kollapso sidebar" title="Kollapso/Hap sidebar" aria-pressed="false"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
         <ul class="nav-menu">
             <li class="sidebar-divider"><span>Përmbledhje</span></li>
             <li class="nav-item active" data-page="dashboard" data-label="Dashboard"><i class="fas fa-tachometer-alt" aria-hidden="true"></i> <span data-i18n="dashboard">Dashboard</span></li>
@@ -143,7 +143,7 @@
     <main id="main-content" class="main-content" role="main">
         <!-- Top Bar -->
         <header class="topbar" role="banner">
-            <button type="button" class="sidebar-toggle-open" onclick="toggleSidebar()" aria-label="Hap menynë anësore" aria-controls="sidebar"><i class="fas fa-bars" aria-hidden="true"></i></button>
+            <button type="button" class="sidebar-toggle-open" onclick="toggleSidebar()" aria-label="Hap menynë anësore" aria-controls="sidebar" aria-expanded="false"><i class="fas fa-bars" aria-hidden="true"></i></button>
             <h1 id="page-title" data-i18n="dashboard">Dashboard</h1>
             <!-- Global Search -->
             <div class="global-search" id="global-search" role="search">
@@ -173,7 +173,7 @@
                     <option value="en">English</option>
                 </select>
                 <button type="button" class="theme-toggle" onclick="forceUpdateApp()" aria-label="Rifresko aplikacionin — pastron cache" title="Rifresko (Shift+Ctrl+U)"><i class="fas fa-rotate" aria-hidden="true"></i></button>
-                <button type="button" class="theme-toggle" onclick="toggleTheme()" aria-label="Ndërro mes mode-it të ndritshëm dhe të errët" title="Light/Dark mode"><i class="fas fa-moon" aria-hidden="true"></i></button>
+                <button type="button" class="theme-toggle" onclick="toggleTheme()" aria-label="Ndërro mes mode-it të ndritshëm dhe të errët" title="Light/Dark mode" aria-pressed="false"><i class="fas fa-moon" aria-hidden="true"></i></button>
             </div>
             <!-- Sync Status Bar -->
             <div class="sync-status-bar" id="sync-status-bar">
@@ -1315,7 +1315,7 @@
                 <i class="fas fa-users" aria-hidden="true"></i>
                 <span>Klientë</span>
             </button>
-            <button type="button" class="bottom-tab-item" data-hurma-action="more" onclick="toggleSidebar()" aria-label="Më shumë">
+            <button type="button" class="bottom-tab-item sidebar-toggle-open" data-hurma-action="more" onclick="toggleSidebar()" aria-label="Më shumë" aria-controls="sidebar" aria-expanded="false">
                 <i class="fas fa-ellipsis" aria-hidden="true"></i>
                 <span>Më</span>
             </button>
