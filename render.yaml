@@ -4,11 +4,19 @@ services:
     runtime: static
     staticPublishPath: .
     headers:
-      # HTML & SW: zero cache (kritike që user-i të marrë gjithmonë versionin e fundit)
-      - path: /index.html
+      # CRITICAL: Render për static sites përdor LAST-MATCH-WINS, dhe wildcard /*
+      # match-on edhe /index.html. Pra catch-all duhet të jetë I PARI me cache,
+      # pastaj override-të specifike vijnë POSHTË (që fitojnë).
+      #
+      # Default catch-all: cache i shkurtër (60s) për gjithçka
+      - path: /*
+        name: Cache-Control
+        value: public, max-age=60, must-revalidate
+      # OVERRIDE: HTML, SW dhe recover duhet të jenë gjithmonë të freskët
+      - path: /
         name: Cache-Control
         value: no-cache, no-store, must-revalidate, max-age=0
-      - path: /
+      - path: /index.html
         name: Cache-Control
         value: no-cache, no-store, must-revalidate, max-age=0
       - path: /recover.html
@@ -20,16 +28,24 @@ services:
       - path: /sw.js
         name: Service-Worker-Allowed
         value: /
-      # Manifest
       - path: /manifest.json
         name: Cache-Control
         value: no-cache, must-revalidate
-      # JS/CSS: short cache + must-revalidate (versionet kanë ?v= për cache busting)
-      - path: /*
-        name: Cache-Control
-        value: public, max-age=60, must-revalidate
+      # Cloudflare CDN bypass — sigurohet që edge node s'cache-on HTML
+      - path: /
+        name: CDN-Cache-Control
+        value: no-store
+      - path: /index.html
+        name: CDN-Cache-Control
+        value: no-store
+      - path: /sw.js
+        name: CDN-Cache-Control
+        value: no-store
+      - path: /recover.html
+        name: CDN-Cache-Control
+        value: no-store
     routes:
-      # Recovery page: rrugë e veçantë pa rewrite
+      # Recovery page: rrugë e veçantë
       - type: rewrite
         source: /recover
         destination: /recover.html
