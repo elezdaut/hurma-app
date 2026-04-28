@@ -2381,6 +2381,7 @@
             if (!isClickable(t)) return;
             if (t.hasAttribute('data-no-guard')) return;
             if (t.hasAttribute('aria-pressed')) return; // toggles guard themselves
+            if (t.hasAttribute('aria-expanded')) return; // sidebar/menu/dropdown toggles must stay clickable
             if (t.classList.contains('is-busy')) {
                 // Already in flight — swallow the duplicate click
                 e.stopImmediatePropagation();
