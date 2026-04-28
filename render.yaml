@@ -39,6 +39,43 @@ services:
       - path: /manifest.json
         name: Cache-Control
         value: no-cache, must-revalidate
+      # JS/CSS: revalidate gjithmonë me server (mbron nga cache-stale 1 vit)
+      - path: /app.js
+        name: Cache-Control
+        value: no-cache, must-revalidate, max-age=0
+      - path: /app.js
+        name: CDN-Cache-Control
+        value: no-store
+      - path: /style.css
+        name: Cache-Control
+        value: no-cache, must-revalidate, max-age=0
+      - path: /style.css
+        name: CDN-Cache-Control
+        value: no-store
+      - path: /hurma-polish.js
+        name: Cache-Control
+        value: no-cache, must-revalidate, max-age=0
+      - path: /hurma-polish.js
+        name: CDN-Cache-Control
+        value: no-store
+      - path: /hurma-ai.js
+        name: Cache-Control
+        value: no-cache, must-revalidate, max-age=0
+      - path: /hurma-ai.js
+        name: CDN-Cache-Control
+        value: no-store
+      - path: /hurma-ux.js
+        name: Cache-Control
+        value: no-cache, must-revalidate, max-age=0
+      - path: /hurma-ux.js
+        name: CDN-Cache-Control
+        value: no-store
+      - path: /i18n.js
+        name: Cache-Control
+        value: no-cache, must-revalidate, max-age=0
+      - path: /i18n.js
+        name: CDN-Cache-Control
+        value: no-store
     routes:
       # Recovery page: rrugë e veçantë
       - type: rewrite
