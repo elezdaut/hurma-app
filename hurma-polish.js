@@ -2365,7 +2365,12 @@
         if (window.__hurmaDblGuardAttached__) return;
         window.__hurmaDblGuardAttached__ = true;
 
-        var BUSY_MS = 700;
+        var BUSY_MS = 350; // shorter window — debounce only, not loading
+
+        // Use a SILENT class (no CSS, no spinner) so users don't perceive
+        // every click as "loading". The visible .is-busy class stays
+        // reserved for explicit opt-in async ops (e.g. sale submit).
+        var THROTTLE_CLASS = '_hg-throttle';
 
         function isClickable(el) {
             if (!el || el.nodeType !== 1) return false;
@@ -2382,20 +2387,20 @@
             if (t.hasAttribute('data-no-guard')) return;
             if (t.hasAttribute('aria-pressed')) return; // toggles guard themselves
             if (t.hasAttribute('aria-expanded')) return; // sidebar/menu/dropdown toggles must stay clickable
-            if (t.classList.contains('is-busy')) {
+            if (t.classList.contains(THROTTLE_CLASS)) {
                 // Already in flight — swallow the duplicate click
                 e.stopImmediatePropagation();
                 e.preventDefault();
                 return;
             }
-            t.classList.add('is-busy');
+            t.classList.add(THROTTLE_CLASS);
             setTimeout(function () {
-                try { t.classList.remove('is-busy'); } catch (err) {}
+                try { t.classList.remove(THROTTLE_CLASS); } catch (err) {}
             }, BUSY_MS);
         }, true); // capture so we run before the inline onclick
 
         try {
-            console.log('%c[hurma-polish v3.4] dbl-click guard ON', 'color:#B8731A;');
+            console.log('%c[hurma-polish v3.5] dbl-click guard ON (silent)', 'color:#B8731A;');
         } catch (e) {}
     })();
 
