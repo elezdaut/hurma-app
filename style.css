@@ -9821,3 +9821,18 @@ button:focus-visible,
     .btn:hover, button:hover { transform: none !important; }
 }
 /* === end BUTTON VARIANT CONSISTENCY === */
+
+/* ==========================================================================
+   FIX 2/7 — iOS viewport: 100dvh në vend të 100vh + safe-area
+   ========================================================================== */
+@supports (height: 100dvh) {
+    html, body { min-height: 100dvh; }
+    .main-content { min-height: 100dvh; }
+}
+/* iOS safe-area për bottom tab bar dhe FAB-et që ngecin pas notch-ut */
+body {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+/* Sigurohu që faqja e mbush viewport-in dhe scroll-i punon në iOS */
+html { -webkit-overflow-scrolling: touch; }
+/* === end Fix 2/7 === */

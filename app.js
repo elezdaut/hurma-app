@@ -356,16 +356,29 @@ try { window.state = state; } catch(e) {}
 
 // ===================== INIT =====================
 function init() {
-    // (v107) Heq ?clean=1 / ?_recovered=1 logic — krijonte redirect loop
-    // me SW të vjetër aktiv. Përdoruesit që duan reset shkojnë te /recover.html
-    // (HTML i veçantë pa SW dependency).
-    loadState();
-    // Feature 12: PIN lock check
-    if (state.pinEnabled && state.pinCode) {
-        showPinLockScreen();
-        return;
+    // Fix 6/7: idempotent — safe to call multiple times.
+    // Nëse init ka filluar tashmë, dilim heshtas.
+    if (window.__hurmaInitDone) return;
+    window.__hurmaInitDone = true;
+    try {
+        // (v107) Heq ?clean=1 / ?_recovered=1 logic — krijonte redirect loop
+        // me SW të vjetër aktiv. Përdoruesit që duan reset shkojnë te /recover.html
+        loadState();
+        // Feature 12: PIN lock check
+        if (state.pinEnabled && state.pinCode) {
+            showPinLockScreen();
+            return;
+        }
+        initAfterAuth();
+    } catch (e) {
+        // Fix 6/7: nëse init thyhet diku, lejojmë retry
+        window.__hurmaInitDone = false;
+        console.error('[hurma] init() failed:', e);
+        if (typeof window._showErrToast === 'function') {
+            window._showErrToast('Gabim te ngarkimi: ' + (e.message || e));
+        }
+        throw e;
     }
-    initAfterAuth();
 }
 
 function initAfterAuth() {

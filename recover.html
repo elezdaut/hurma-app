@@ -133,19 +133,21 @@ p { font-size: 16px; opacity: 0.85; margin-bottom: 8px; line-height: 1.5; }
 
     // Hard force reset — bypass everything, just redirect
     window.forceReset = function() {
-        // Clear localStorage too (last resort)
         try { sessionStorage.clear(); } catch(e) {}
-        // Hard navigate that bypasses all caches
+        // Fix 3/7: NUK fshijmë localStorage — të dhënat e biznesit janë aty
         window.location.replace(DONE_REDIRECT);
     };
 
-    // Show buttons after 3s no matter what
-    setTimeout(showButtons, 3000);
-    // Auto-redirect after 8s if not done
+    // Fix 3/7: clear sessionStorage automatik (mbron nga reload-loop flag)
+    try { sessionStorage.clear(); } catch(e) {}
+
+    // Show buttons after 2s (Fix 3/7: më e shpejtë, ish 3s)
+    setTimeout(showButtons, 2000);
+    // Auto-redirect after 4s (Fix 3/7: më e shpejtë, ish 8s)
     setTimeout(function() {
         setStatus('Auto-redirect...');
         window.location.replace(DONE_REDIRECT);
-    }, 8000);
+    }, 4000);
 
     // PARALEL cleanup with timeouts
     Promise.all([
