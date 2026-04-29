@@ -9836,3 +9836,39 @@ body {
 /* Sigurohu që faqja e mbush viewport-in dhe scroll-i punon në iOS */
 html { -webkit-overflow-scrolling: touch; }
 /* === end Fix 2/7 === */
+
+/* ==========================================================================
+   FIX 3/7 (v122) — Tap feedback i dukshëm për ÇDO buton
+   Përdoruesi sheh menjëherë që klikimi u kap (jo më pyetje "a punoi?")
+   ========================================================================== */
+.btn:active:not(:disabled),
+button:active:not(:disabled),
+[role="button"]:active:not([aria-disabled="true"]),
+.nav-item:active,
+.bottom-tab-item:active {
+    transform: scale(0.97);
+    filter: brightness(0.94);
+    transition: transform 0.06s ease, filter 0.06s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+    .btn:active, button:active, [role="button"]:active,
+    .nav-item:active, .bottom-tab-item:active {
+        transform: none !important;
+    }
+}
+/* === end Fix 3/7 === */
+
+/* ==========================================================================
+   FIX 4/7 (v122) — Multi-layer iOS viewport
+   100svh = small viewport (e gjithë URL bar i dukshëm)
+   100lvh = large viewport (URL bar i fshehur, scroll-on)
+   100dvh = dynamic (kalon vetë) — më i mirë por jo kudo
+   ========================================================================== */
+@supports (height: 100svh) {
+    html, body { min-height: 100svh; }
+}
+@supports (height: 100dvh) {
+    html, body { min-height: 100dvh; }
+    .main-content { min-height: 100dvh; }
+}
+/* === end Fix 4/7 === */
