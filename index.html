@@ -34,7 +34,7 @@
     <link rel="preconnect" href="https://rsms.me/">
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
 
-    <link rel="stylesheet" href="style.css?v=127">
+    <link rel="stylesheet" href="style.css?v=128">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <!-- External CDN scripts: defer so a slow/blocked CDN can NEVER block
          page render. Each has onerror that logs but never throws.
@@ -71,7 +71,7 @@
         <!-- Self-heal v124: gjithmonë i dukshëm — link emergjence
              që punon edhe nëse JS s'ngarkohet kurrë -->
         <a href="/recover.html" style="position:absolute;bottom:24px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.7);font-size:11px;text-decoration:underline;font-family:sans-serif;" onclick="event.stopPropagation();">🔧 Pastrim total</a>
-        <div style="position:absolute;top:12px;right:14px;color:rgba(255,255,255,0.4);font-size:10px;font-family:monospace;">v127</div>
+        <div style="position:absolute;top:12px;right:14px;color:rgba(255,255,255,0.4);font-size:10px;font-family:monospace;">v128</div>
     </div>
     <!-- CSS-only auto-hide: zhduket pas 1.2s edhe pa JS -->
     <style>
@@ -150,9 +150,73 @@
                 <i class="fas fa-rotate" aria-hidden="true"></i>
                 <span>Pastro &amp; Rifresko</span>
             </a>
-            <div style="margin-top:6px;font-size:10px;opacity:0.5;" id="hurma-build-display">v127</div>
+            <div style="margin-top:6px;font-size:10px;opacity:0.5;" id="hurma-build-display">v128</div>
         </div>
     </nav>
+
+    <!-- v128 SUPER-FIX: Boot diagnostic bar — shfaq SAKTËSISHT ku ngec.
+         Përdoruesi sheh real-time çfarë po ngarkohet, pa hamendje. -->
+    <div id="hurma-boot-bar" style="position:fixed;top:0;left:0;right:0;z-index:99998;background:#3A2410;color:#FBF6EE;font:600 13px/1.4 -apple-system,BlinkMacSystemFont,sans-serif;padding:8px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 8px rgba(0,0,0,0.3);transition:transform 0.4s ease;">
+        <div style="flex:1;min-width:0;">
+            <div id="hurma-boot-status" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">⏳ Po ngarkohet HTML...</div>
+            <div style="height:3px;background:rgba(251,246,238,0.18);border-radius:2px;margin-top:5px;overflow:hidden;">
+                <div id="hurma-boot-progress" style="height:100%;width:5%;background:linear-gradient(90deg,#F4B24A,#E29A2B);transition:width 0.3s ease;border-radius:2px;"></div>
+            </div>
+        </div>
+        <a href="/recover.html" style="color:#FBF6EE;font-size:11px;text-decoration:underline;opacity:0.7;flex-shrink:0;">🔧 Pastro</a>
+        <span style="font:400 10px/1 monospace;opacity:0.5;flex-shrink:0;">v128</span>
+    </div>
+    <script>
+        // Track every boot stage
+        (function() {
+            var stages = {
+                html_done: 5, css_loading: 15, css_done: 30,
+                js_loading: 40, js_done: 75, app_init: 85, app_ready: 100
+            };
+            window.__hurmaBootStage = function(stage, txt) {
+                var bar = document.getElementById('hurma-boot-bar');
+                var prog = document.getElementById('hurma-boot-progress');
+                var status = document.getElementById('hurma-boot-status');
+                if (!bar) return;
+                var pct = stages[stage] || 0;
+                if (prog) prog.style.width = pct + '%';
+                if (status) status.textContent = txt || stage;
+                if (pct >= 100) {
+                    setTimeout(function() {
+                        bar.style.transform = 'translateY(-110%)';
+                        setTimeout(function() { try { bar.remove(); } catch(e) {} }, 500);
+                    }, 600);
+                }
+            };
+            window.__hurmaBootStage('html_done', '✓ HTML / Po ngarkohet CSS...');
+
+            // STUCK DETECTION: nëse pas 8s nuk është app_ready, ndryshojmë barin
+            // në 'STUCK' me link të madh recovery.
+            window.__hurmaStuckTimer = setTimeout(function() {
+                var bar = document.getElementById('hurma-boot-bar');
+                var status = document.getElementById('hurma-boot-status');
+                if (bar && status) {
+                    bar.style.background = '#C0392B';
+                    status.innerHTML = '⚠ Po ngec në loading. <a href="/recover.html" style="color:#fff;text-decoration:underline;font-weight:700;">PASTRO TOTAL →</a>';
+                }
+            }, 8000);
+        })();
+
+        // CSS loaded detection (cilido stylesheet i parë)
+        document.addEventListener('readystatechange', function() {
+            if (document.readyState === 'interactive') {
+                window.__hurmaBootStage && window.__hurmaBootStage('css_done', '✓ CSS / Po ngarkohet kodi...');
+            }
+        });
+        window.addEventListener('DOMContentLoaded', function() {
+            window.__hurmaBootStage && window.__hurmaBootStage('js_done', '✓ Kodi u ngarkua / Po starton app...');
+        });
+        // Listen for boot complete from app.js (initAfterAuth)
+        window.addEventListener('hurma-boot-complete', function() {
+            try { clearTimeout(window.__hurmaStuckTimer); } catch (e) {}
+            window.__hurmaBootStage && window.__hurmaBootStage('app_ready', '✓ Hurma është gati!');
+        });
+    </script>
 
     <!-- v126: Always-visible loading fallback — shfaqet nëse app.js nuk
          arrin të startojë brenda 3 sekondave. Mbron nga 'cream blank screen'. -->
@@ -161,7 +225,7 @@
         <h2 style="font-size:20px;margin:0 0 8px;font-weight:700;">Hurma po ngarkohet...</h2>
         <p style="font-size:14px;opacity:0.7;margin:0 0 24px;line-height:1.5;">Pas 5 sekondave, nëse kjo faqe vazhdon e bardhë:</p>
         <a href="/recover.html" style="display:inline-block;background:#B8731A;color:#fff;padding:12px 24px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;">🔧 Bëj Pastrim total</a>
-        <div style="margin-top:32px;font-size:11px;opacity:0.4;font-family:monospace;">v127</div>
+        <div style="margin-top:32px;font-size:11px;opacity:0.4;font-family:monospace;">v128</div>
     </div>
     <script>
         // Show fallback after 3s if main-content has no rendered children
@@ -1464,13 +1528,13 @@
         </button>
     </nav>
 
-    <script defer src="i18n.js?v=127"></script>
-    <script defer src="app.js?v=127"></script>
-    <script defer src="hurma-polish.js?v=127"></script>
-    <script defer src="hurma-ai.js?v=127"></script>
-    <script defer src="hurma-ux.js?v=127"></script>
-    <meta name="hurma-build" content="v127">
-    <script>window.__HURMA_BUILD__ = 'v127';</script>
+    <script defer src="i18n.js?v=128"></script>
+    <script defer src="app.js?v=128"></script>
+    <script defer src="hurma-polish.js?v=128"></script>
+    <script defer src="hurma-ai.js?v=128"></script>
+    <script defer src="hurma-ux.js?v=128"></script>
+    <meta name="hurma-build" content="v128">
+    <script>window.__HURMA_BUILD__ = 'v128';</script>
 
     <!-- ==========================================================================
          Hurma — App Store enhancement layer (v11)
