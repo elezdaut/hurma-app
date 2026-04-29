@@ -34,7 +34,7 @@
     <link rel="preconnect" href="https://rsms.me/">
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
 
-    <link rel="stylesheet" href="style.css?v=122">
+    <link rel="stylesheet" href="style.css?v=123">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <!-- External CDN scripts: defer so a slow/blocked CDN can NEVER block
          page render. Each has onerror that logs but never throws.
@@ -146,7 +146,7 @@
                 <i class="fas fa-rotate" aria-hidden="true"></i>
                 <span>Pastro &amp; Rifresko</span>
             </a>
-            <div style="margin-top:6px;font-size:10px;opacity:0.5;" id="hurma-build-display">v122</div>
+            <div style="margin-top:6px;font-size:10px;opacity:0.5;" id="hurma-build-display">v123</div>
         </div>
     </nav>
 
@@ -1429,13 +1429,13 @@
         </button>
     </nav>
 
-    <script defer src="i18n.js?v=122"></script>
-    <script defer src="app.js?v=122"></script>
-    <script defer src="hurma-polish.js?v=122"></script>
-    <script defer src="hurma-ai.js?v=122"></script>
-    <script defer src="hurma-ux.js?v=122"></script>
-    <meta name="hurma-build" content="v122">
-    <script>window.__HURMA_BUILD__ = 'v122';</script>
+    <script defer src="i18n.js?v=123"></script>
+    <script defer src="app.js?v=123"></script>
+    <script defer src="hurma-polish.js?v=123"></script>
+    <script defer src="hurma-ai.js?v=123"></script>
+    <script defer src="hurma-ux.js?v=123"></script>
+    <meta name="hurma-build" content="v123">
+    <script>window.__HURMA_BUILD__ = 'v123';</script>
 
     <!-- ==========================================================================
          Hurma — App Store enhancement layer (v11)
@@ -1456,6 +1456,23 @@
                 if (el && el.parentNode) el.parentNode.removeChild(el);
             }, 650);
         }
+        // ---- Stale code detector (v123): nëse browseri ka cache-uar
+        //      një version shumë të vjetër (pa `_oa`, `__HURMA_DIAG__`, etj.),
+        //      auto-redirect te /recover.html për pastrim — VETËM njëherë.
+        setTimeout(function() {
+            try {
+                var staleSignal = (
+                    typeof window._oa !== 'function' ||           // shtuar v112
+                    typeof window.__HURMA_DIAG__ !== 'function'   // shtuar v122
+                );
+                if (!staleSignal) return;
+                if (sessionStorage.getItem('__hurma_stale_recovered')) return; // anti-loop
+                sessionStorage.setItem('__hurma_stale_recovered', '1');
+                console.warn('[hurma] STALE CODE detected — redirecting to /recover.html');
+                window.location.replace('/recover.html?stale=1&_t=' + Date.now());
+            } catch (e) {}
+        }, 1500); // lejon scripts defer të mbarojnë para check-ut
+
         // Minimum 450ms so the brand mark is actually visible; hide after
         // the page has rendered (load) — but never wait longer than 3.5s,
         // even if something below fails.
