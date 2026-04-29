@@ -12,12 +12,21 @@
             if (typeof showToast === 'function') {
                 showToast('⚠️ ' + (msg || 'Ndodhi një gabim. Provo përsëri.'), 'error');
             } else {
-                // Fallback: krijo toast manual nëse showToast s'është i disponueshëm
+                // Fix 6/7 (v122): fallback toast tani përfshin link "Pastro & Rifresko"
                 var t = document.createElement('div');
-                t.textContent = '⚠️ ' + msg;
                 t.style.cssText = 'position:fixed;top:20px;right:20px;background:#d32f2f;color:#fff;padding:12px 18px;border-radius:8px;z-index:99999;box-shadow:0 4px 12px rgba(0,0,0,0.3);font-family:sans-serif;max-width:360px;';
+                var span = document.createElement('span');
+                span.textContent = '⚠️ ' + msg;
+                t.appendChild(span);
+                var br = document.createElement('br');
+                t.appendChild(br);
+                var a = document.createElement('a');
+                a.href = '/recover.html';
+                a.textContent = 'Pastro & Rifresko →';
+                a.style.cssText = 'color:#fff;text-decoration:underline;font-size:12px;display:inline-block;margin-top:6px;';
+                t.appendChild(a);
                 document.body && document.body.appendChild(t);
-                setTimeout(function(){ try { t.remove(); } catch(e){} }, 4000);
+                setTimeout(function(){ try { t.remove(); } catch(e){} }, 6000);
             }
         } catch(e) {}
         try {
@@ -66,6 +75,37 @@
     });
     // Ekspozoje për përdorim të brendshëm
     window._showErrToast = _showErrToast;
+
+    // Fix 5/7 (v122): diagnostic helper — thirre nga DevTools console:
+    //   __HURMA_DIAG__()  → kthen objekt me build/state-summary/lastErrors
+    var _recentErrors = [];
+    var _origShow = _showErrToast;
+    _showErrToast = function(m) {
+        try { _recentErrors.push({ msg: String(m).slice(0, 200), at: new Date().toISOString() }); } catch(_) {}
+        if (_recentErrors.length > 10) _recentErrors.shift();
+        return _origShow(m);
+    };
+    window._showErrToast = _showErrToast;
+    window.__HURMA_DIAG__ = function() {
+        var s = (typeof state === 'object' && state) ? state : {};
+        var info = {
+            build: window.__HURMA_BUILD__ || 'unknown',
+            initDone: !!window.__hurmaInitDone,
+            url: location.href,
+            ua: navigator.userAgent,
+            online: navigator.onLine,
+            hasState: typeof s === 'object',
+            sales: Array.isArray(s.sales) ? s.sales.length : null,
+            clients: Array.isArray(s.clients) ? s.clients.length : null,
+            stock: s.stock && typeof s.stock === 'object' ? Object.keys(s.stock).length : null,
+            products: Array.isArray(window.PRODUCTS) ? window.PRODUCTS.length : null,
+            recentErrors: _recentErrors.slice(),
+            chartLoaded: typeof Chart !== 'undefined',
+            xlsxLoaded: typeof XLSX !== 'undefined'
+        };
+        try { console.table(info); } catch(_) { console.log(info); }
+        return info;
+    };
 
     // Wrapper universal: çdo funksion i thirrur përmes kësaj kapet
     window.safeCall = function(fn /*, ...args */) {
@@ -404,6 +444,34 @@ function init() {
 }
 
 function initAfterAuth() {
+    // Fix 2/7 (v122): defensive state validation — sigurohu që fushat
+    // kritike janë tipi i pritur para se refreshXxx() t'i prekë.
+    var REQUIRED_ARRAYS = ['sales','clients','orders','returns','contacts','notes',
+        'targets','expenses','locations','notifications','weeklyReports',
+        'fatonPayments','fatonProfitCollections','fatonDebtHistory',
+        'clientTasks','clientVisits','reminderEvents','pinnedClients',
+        'cashDrawer','clientPayments','clientCategories','salePresets',
+        'expenseCategories','activityLog','trash','restoreLog','changeTimeline',
+        'hourlySnapshots','distShops','distReceived','distDeliveries','distPayToFaton'];
+    REQUIRED_ARRAYS.forEach(function(k) {
+        if (!Array.isArray(state[k])) state[k] = [];
+    });
+    var REQUIRED_OBJECTS = ['stock','distStock'];
+    REQUIRED_OBJECTS.forEach(function(k) {
+        if (!state[k] || typeof state[k] !== 'object') state[k] = {};
+    });
+
+    // Fix 7/7 (v122): verifiko çdo nav-item ka <section id="page-X"> përkatës.
+    // Loguje cilët mungojnë — mbron nga klikim i "thyer" në heshtje.
+    try {
+        var missing = [];
+        document.querySelectorAll('.nav-item[data-page], .bottom-tab-item[data-page]').forEach(function(it) {
+            var p = it.getAttribute('data-page');
+            if (p && !document.getElementById('page-' + p)) missing.push(p);
+        });
+        if (missing.length) console.warn('[hurma] missing page sections:', missing);
+    } catch (e) {}
+
     initStock();
     applyTranslations();
     populateProductSelects();
@@ -782,22 +850,37 @@ function toggleTheme() {
 
 // ===================== REFRESH =====================
 function refreshAll() {
-    refreshDashboard();
-    refreshSales();
-    refreshStock();
-    refreshClients();
-    refreshOrders();
-    refreshFaton();
-    refreshReturns();
-    refreshContacts();
-    refreshNotes();
-    refreshTargets();
-    refreshExpenses();
-    refreshLocations();
-    refreshBalance();
-    updateCharts();
-    try { refreshDistribution(); } catch(e) {}
-    try { updateTabBadges(); updateSyncStatusBar(); refreshRecentActivityBar(); refreshDashboardMiniatures(); showSmartSuggestions(); updateLiveProfitTracker(); } catch(e) {}
+    // Fix 1/7 (v122): each refresh isolated in try/catch — një refresh i thyer
+    // s'thyen gjithçka. Loguje gabimin pa thyer flow-in.
+    function _safe(name, fn) {
+        try { fn(); }
+        catch (e) {
+            try { console.warn('[hurma] ' + name + ' failed:', e && e.message || e); } catch(_){}
+        }
+    }
+    _safe('refreshDashboard', refreshDashboard);
+    _safe('refreshSales', refreshSales);
+    _safe('refreshStock', refreshStock);
+    _safe('refreshClients', refreshClients);
+    _safe('refreshOrders', refreshOrders);
+    _safe('refreshFaton', refreshFaton);
+    _safe('refreshReturns', refreshReturns);
+    _safe('refreshContacts', refreshContacts);
+    _safe('refreshNotes', refreshNotes);
+    _safe('refreshTargets', refreshTargets);
+    _safe('refreshExpenses', refreshExpenses);
+    _safe('refreshLocations', refreshLocations);
+    _safe('refreshBalance', refreshBalance);
+    _safe('updateCharts', updateCharts);
+    _safe('refreshDistribution', function() { if (typeof refreshDistribution === 'function') refreshDistribution(); });
+    _safe('updateTabBadges', function() {
+        if (typeof updateTabBadges === 'function') updateTabBadges();
+        if (typeof updateSyncStatusBar === 'function') updateSyncStatusBar();
+        if (typeof refreshRecentActivityBar === 'function') refreshRecentActivityBar();
+        if (typeof refreshDashboardMiniatures === 'function') refreshDashboardMiniatures();
+        if (typeof showSmartSuggestions === 'function') showSmartSuggestions();
+        if (typeof updateLiveProfitTracker === 'function') updateLiveProfitTracker();
+    });
 }
 
 function refreshPage(page) {
