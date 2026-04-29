@@ -9323,17 +9323,10 @@ a:not(.btn):hover {
    ════════════════════════════════════════════════════════════════════ */
 
 /* (#27) BOTTOM TAB BAR — vetëm në mobile (≤768px) */
+/* v131: legacy .bottom-tab-bar — gjithmonë e fshehur. Përdoret vetëm
+   .hurma-tab-bar tani. */
 .bottom-tab-bar {
-    display: none;
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    background: color-mix(in srgb, var(--bg-secondary) 90%, transparent);
-    backdrop-filter: saturate(1.4) blur(18px);
-    -webkit-backdrop-filter: saturate(1.4) blur(18px);
-    border-top: 1px solid var(--border);
-    z-index: 999;
-    padding: 6px var(--space-2) calc(6px + var(--safe-bottom));
-    box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
+    display: none !important;
 }
 .bottom-tab-bar-inner {
     display: flex;
