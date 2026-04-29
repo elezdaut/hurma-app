@@ -19725,12 +19725,22 @@ function _registerServiceWorker() {
         .then(reg => {
             _swRegistration = reg;
 
-            // Auto-apply i updateve që butonat e rinj të punojnë menjëherë
+            // v127: Guard kundër reload-loops (mësim nga v117 disaster).
+            // Anti-loop layer 1: closure flag (per-session)
+            // Anti-loop layer 2: sessionStorage (per-tab) — max 1 reload per sesion
             var reloading = false;
             navigator.serviceWorker.addEventListener('controllerchange', () => {
                 if (reloading) return;
                 reloading = true;
-                try { showToast('Aplikacioni u përditësua — duke rifreskuar...', 'info'); } catch(e){}
+                try {
+                    if (sessionStorage.getItem('__hurma_sw_reloaded_once')) {
+                        // Tashmë reload-uar njëherë në këtë sesion — mos e bëj sërish
+                        console.warn('[SW] controllerchange e dytë në sesion — SKIP reload');
+                        return;
+                    }
+                    sessionStorage.setItem('__hurma_sw_reloaded_once', '1');
+                } catch(e) {}
+                try { showToast('✓ App-i u përditësua — duke rifreskuar...', 'info'); } catch(e){}
                 setTimeout(() => window.location.reload(), 400);
             });
 
