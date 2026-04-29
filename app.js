@@ -480,8 +480,9 @@ function initAfterAuth() {
     checkNotifications();
     initCharts();
     refreshAll();
+    // v126: dispatch hurma-boot-complete EARLY so loading fallback hides.
+    try { window.dispatchEvent(new Event('hurma-boot-complete')); } catch (e) {}
     // v125: confirmation toast — user sheh me siguri që kodi i ri u ngarkua.
-    // Auto-fade pas 2s; opacity vetëm te toast jo te app.
     try {
         if (typeof showToast === 'function' && window.__HURMA_BUILD__) {
             setTimeout(function () {
