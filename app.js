@@ -480,6 +480,15 @@ function initAfterAuth() {
     checkNotifications();
     initCharts();
     refreshAll();
+    // v125: confirmation toast — user sheh me siguri që kodi i ri u ngarkua.
+    // Auto-fade pas 2s; opacity vetëm te toast jo te app.
+    try {
+        if (typeof showToast === 'function' && window.__HURMA_BUILD__) {
+            setTimeout(function () {
+                showToast('✓ Hurma ' + window.__HURMA_BUILD__ + ' u ngarkua', 'success');
+            }, 600);
+        }
+    } catch (e) {}
     checkWeeklyReport();
     initOfflineMode();
     initKeyboardShortcuts();
