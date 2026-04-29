@@ -356,26 +356,48 @@ try { window.state = state; } catch(e) {}
 
 // ===================== INIT =====================
 function init() {
-    // Fix 6/7: idempotent — safe to call multiple times.
+    // Fix 6/7 (v120): idempotent — safe to call multiple times.
     // Nëse init ka filluar tashmë, dilim heshtas.
     if (window.__hurmaInitDone) return;
     window.__hurmaInitDone = true;
+    // Fix 2/7 + 7/7 (v121): boot trace + version log për debug në Safari iOS
+    var _t0 = Date.now();
+    function _log(step) {
+        try { console.log('[hurma boot ' + (window.__HURMA_BUILD__ || '?') + '] +' + (Date.now() - _t0) + 'ms ' + step); } catch (e) {}
+    }
+    _log('init() start');
     try {
-        // (v107) Heq ?clean=1 / ?_recovered=1 logic — krijonte redirect loop
-        // me SW të vjetër aktiv. Përdoruesit që duan reset shkojnë te /recover.html
         loadState();
-        // Feature 12: PIN lock check
+        _log('loadState OK');
         if (state.pinEnabled && state.pinCode) {
+            _log('PIN lock active → showPinLockScreen');
             showPinLockScreen();
             return;
         }
         initAfterAuth();
+        _log('initAfterAuth OK — boot complete');
     } catch (e) {
-        // Fix 6/7: nëse init thyhet diku, lejojmë retry
+        // Fix 1/7 (v121): SELF-HEAL — nëse init thyhet,
+        // resetoj flag dhe provoj NJË herë me state të pastër.
         window.__hurmaInitDone = false;
         console.error('[hurma] init() failed:', e);
         if (typeof window._showErrToast === 'function') {
             window._showErrToast('Gabim te ngarkimi: ' + (e.message || e));
+        }
+        // Retry: nëse s'kemi provuar tashmë me state të resetuar
+        if (!window.__hurmaInitRetry) {
+            window.__hurmaInitRetry = true;
+            try {
+                console.warn('[hurma] retrying init() me state default...');
+                _log('retry: clearing state');
+                // NUK fshijmë localStorage për të dhënat e biznesit;
+                // vetëm flag-et e session-it që mund jenë shkaku
+                try { sessionStorage.clear(); } catch (e2) {}
+                init();
+                return;
+            } catch (e2) {
+                console.error('[hurma] retry also failed:', e2);
+            }
         }
         throw e;
     }
@@ -419,15 +441,29 @@ window.addEventListener('load', function() {
 });
 
 function loadState() {
-    const saved = localStorage.getItem('hurma-state');
+    // Fix 6/7 (v121): localStorage mund të mos jetë i disponueshëm
+    // (private browsing, quota exceeded, etc.) — wrap-uar plotësisht.
+    var saved = null;
+    try {
+        saved = localStorage.getItem('hurma-state');
+    } catch (e) {
+        console.warn('[hurma] localStorage.getItem failed:', e.message);
+        return; // Përdor defaults — më mirë se crash
+    }
     if (saved) {
         let parsed;
-        try { parsed = JSON.parse(saved); } catch(e) { console.error('Corrupt state data:', e); return; }
-        // PËRDOR Object.assign që të mbajë referencën e njëjtë —
-        // window.state pointer mbetet i vlefshëm dhe modulet e jashtme
-        // (hurma-ai.js) shohin të dhënat e ngarkuara në kohë reale.
+        // Fix 3/7 (v121): nëse JSON është i prishur, KRIJOJ backup dhe vazhdoj me defaults
+        try { parsed = JSON.parse(saved); }
+        catch(e) {
+            console.error('[hurma] Corrupt state — saving as backup, using defaults:', e);
+            try { localStorage.setItem('hurma-state-corrupted-' + Date.now(), saved); } catch(e2) {}
+            if (typeof window._showErrToast === 'function') {
+                window._showErrToast('Të dhënat ishin të prishura — u rikrijua nga zero');
+            }
+            return; // Vazhdo me state defaults
+        }
+        // Object.assign mban referencën — modulet e jashtme shohin update-in
         Object.assign(state, parsed);
-        // Rifresko window pointers për siguri
         try { window.state = state; } catch(e) {}
         // Ensure new arrays exist for backward compatibility
         if (!state.fatonProfitCollections) state.fatonProfitCollections = [];
@@ -567,8 +603,18 @@ function navigateTo(page) {
         n.removeAttribute('aria-current');
     });
 
-    const pageEl = document.getElementById(`page-${page}`);
-    const navEl = document.querySelector(`.nav-item[data-page="${page}"]`);
+    let pageEl = document.getElementById(`page-${page}`);
+    let navEl = document.querySelector(`.nav-item[data-page="${page}"]`);
+    // Fix 4/7 (v121): fallback to dashboard nëse page nuk ekziston —
+    // mbron nga klikim që duket "thyer" sepse target-i mungon.
+    if (!pageEl) {
+        console.warn('[hurma] page-' + page + ' nuk ekziston, kthehem te dashboard');
+        if (page !== 'dashboard') {
+            pageEl = document.getElementById('page-dashboard');
+            navEl = document.querySelector('.nav-item[data-page="dashboard"]');
+            page = 'dashboard';
+        }
+    }
     if (!pageEl || !navEl) return;
     pageEl.classList.add('active');
     navEl.classList.add('active');
