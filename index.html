@@ -34,7 +34,7 @@
     <link rel="preconnect" href="https://rsms.me/">
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
 
-    <link rel="stylesheet" href="style.css?v=120">
+    <link rel="stylesheet" href="style.css?v=121">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <!-- External CDN scripts: defer so a slow/blocked CDN can NEVER block
          page render. Each has onerror that logs but never throws.
@@ -146,7 +146,7 @@
                 <i class="fas fa-rotate" aria-hidden="true"></i>
                 <span>Pastro &amp; Rifresko</span>
             </a>
-            <div style="margin-top:6px;font-size:10px;opacity:0.5;" id="hurma-build-display">v120</div>
+            <div style="margin-top:6px;font-size:10px;opacity:0.5;" id="hurma-build-display">v121</div>
         </div>
     </nav>
 
@@ -1429,14 +1429,14 @@
         </button>
     </nav>
 
-    <script defer src="i18n.js?v=120"></script>
-    <script defer src="app.js?v=120"></script>
-    <script defer src="hurma-polish.js?v=120"></script>
-    <script defer src="hurma-ai.js?v=120"></script>
-    <script defer src="hurma-ux.js?v=120"></script>
-    <!-- Fix 5/7: build version te DOM për debug të lehtë -->
-    <meta name="hurma-build" content="v120">
-    <script>window.__HURMA_BUILD__ = 'v120';</script>
+    <script defer src="i18n.js?v=121"></script>
+    <script defer src="app.js?v=121"></script>
+    <script defer src="hurma-polish.js?v=121"></script>
+    <script defer src="hurma-ai.js?v=121"></script>
+    <script defer src="hurma-ux.js?v=121"></script>
+    <!-- Fix 5/7 (v120): build version te DOM për debug të lehtë -->
+    <meta name="hurma-build" content="v121">
+    <script>window.__HURMA_BUILD__ = 'v121';</script>
 
     <!-- ==========================================================================
          Hurma — App Store enhancement layer (v11)
@@ -1461,13 +1461,34 @@
         // the page has rendered (load) — but never wait longer than 3.5s,
         // even if something below fails.
         var MIN_SPLASH_MS = 100;
-        var MAX_SPLASH_MS = 400; // Fix 1/7: më e shpejtë (ish 800)
+        var MAX_SPLASH_MS = 400;
         var t0 = Date.now();
-        // Failsafe TRIPLE — i pavarur nga gjithçka tjetër
         setTimeout(function() {
             var s = document.getElementById('hurma-splash');
             if (s) { s.classList.add('hurma-splash-hide'); setTimeout(function(){ try{s.remove();}catch(e){} }, 400); }
-        }, 700); // Fix 1/7: hard failsafe 700ms (ish 1200)
+        }, 700);
+
+        // Fix 5/7 (v121): nëse splash ende është aty pas 2s, evidenton vizualisht
+        // një CTA të madh që përdoruesi të dijë se duhet të klikojë.
+        setTimeout(function() {
+            var s = document.getElementById('hurma-splash');
+            if (s) {
+                s.classList.add('hurma-splash-stuck');
+                var cta = document.createElement('div');
+                cta.textContent = '⚠ App po ngec. PREK KËTU për të vazhduar';
+                cta.style.cssText = 'position:absolute;bottom:80px;left:50%;transform:translateX(-50%);background:#fff;color:#B8731A;padding:14px 24px;border-radius:14px;font-weight:700;font-size:16px;box-shadow:0 8px 24px rgba(0,0,0,0.3);max-width:90%;text-align:center;animation:pulse 1s infinite;';
+                cta.onclick = function(e) {
+                    e.stopPropagation();
+                    s.classList.add('hurma-splash-hide');
+                    setTimeout(function(){ try { s.remove(); } catch(e2) {} }, 400);
+                    // Plus offer recovery
+                    if (confirm('App-i po ngec. Dëshiron të bësh pastrim total (recover)?')) {
+                        window.location.replace('/recover.html');
+                    }
+                };
+                s.appendChild(cta);
+            }
+        }, 2000);
         // Reload kur SW kill-switch dërgon mesazh — ME SAFETY NET
         // (mbron nga reload-loops si v117 bug-u që krijoja loop infinit)
         if ('serviceWorker' in navigator) {
