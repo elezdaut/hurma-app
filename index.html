@@ -34,20 +34,126 @@
     <link rel="preconnect" href="https://rsms.me/">
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
 
-    <link rel="stylesheet" href="style.css?v=131">
-    <link rel="preload" as="script" href="app.js?v=131">
+    <!-- v132 SUGGESTION #5: CRITICAL CSS INLINE — first paint instant.
+         Browser shfaq layout bazë para se style.css (255KB) të mbarojë.
+         Nëse style.css fail-on, layout ende mbahet bazë. -->
+    <style>
+        :root {
+            --bg-primary: #FBF6EE;
+            --bg-secondary: #F5EBD8;
+            --text-primary: #3A2410;
+            --text-secondary: #6B5440;
+            --primary: #B8731A;
+            --accent: #E29A2B;
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body {
+            min-height: 100vh;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+        body { display: flex; }
+        .main-content { flex: 1; min-height: 100vh; }
+        .topbar {
+            display: flex; align-items: center; gap: 12px;
+            padding: 12px 16px; background: var(--bg-secondary);
+            position: sticky; top: 0; z-index: 100;
+        }
+        .topbar h1 { font-size: 18px; font-weight: 700; flex: 1; }
+        .page { display: none; padding: 20px; }
+        .page.active { display: block; }
+        .stat-card {
+            background: var(--bg-secondary); border-radius: 12px;
+            padding: 16px; margin-bottom: 12px;
+            display: flex; align-items: center; gap: 12px;
+        }
+        .stat-card h3 { font-size: 12px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; }
+        .stat-card p { font-size: 24px; font-weight: 700; margin-top: 4px; }
+        .btn {
+            padding: 10px 16px; border-radius: 8px; border: none;
+            font-weight: 600; cursor: pointer; min-height: 44px;
+        }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .hidden { display: none !important; }
+        .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); }
+        @media (max-width: 768px) {
+            body { display: block; }
+            .main-content { margin-left: 0; }
+        }
+    </style>
+    <link rel="stylesheet" href="style.css?v=132">
+    <link rel="preload" as="script" href="app.js?v=132">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <!-- External CDN scripts: defer so a slow/blocked CDN can NEVER block
          page render. Each has onerror that logs but never throws.
          app.js already guards every Chart/xlsx/jsPDF call with typeof check. -->
+    <!-- v132 SUGGESTION #7: Chart.js i nevojshëm te boot për dashboard.
+         qrcode/xlsx/jspdf janë LAZY — ngarkohen vetëm kur përdoren. -->
     <script defer src="https://cdn.jsdelivr.net/npm/chart.js" onerror="console.warn('[hurma] Chart.js CDN failed — grafikët do të mungojnë');"></script>
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" onerror="console.warn('[hurma] qrcode CDN failed — QR do të mungojnë');"></script>
-    <!-- Export libraries -->
-    <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" onerror="console.warn('[hurma] xlsx CDN failed — Excel export do të mungojë');"></script>
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" onerror="console.warn('[hurma] jsPDF CDN failed — PDF do të mungojë');"></script>
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js" onerror="console.warn('[hurma] jsPDF-autotable CDN failed');"></script>
+    <script>
+        // v132 lazy-loader për librari të rënda (xlsx ~800KB, jsPDF ~500KB).
+        // Përdoruesi presë ~2s te boot pa to. Ngarkohen vetëm kur klikon Export.
+        window.lazyLoadScript = function(src, opts) {
+            opts = opts || {};
+            return new Promise(function(resolve, reject) {
+                if (opts.check && opts.check()) return resolve(true); // tashmë i ngarkuar
+                var s = document.createElement('script');
+                s.src = src;
+                s.async = true;
+                s.onload = function() { resolve(true); };
+                s.onerror = function() { console.warn('[lazy] failed:', src); reject(new Error(src)); };
+                document.head.appendChild(s);
+            });
+        };
+        window.ensureXLSX = function() {
+            return window.lazyLoadScript('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
+                { check: function() { return typeof XLSX !== 'undefined'; } });
+        };
+        window.ensurePDF = function() {
+            return window.lazyLoadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+                { check: function() { return typeof jspdf !== 'undefined' || typeof window.jsPDF !== 'undefined'; } })
+                .then(function() {
+                    return window.lazyLoadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js');
+                });
+        };
+        window.ensureQR = function() {
+            return window.lazyLoadScript('https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js',
+                { check: function() { return typeof QRCode !== 'undefined'; } });
+        };
+
+        // v132 SUGGESTION #8: Render keepalive — fetch /manifest.json çdo 5min
+        // sa kohë app është hapur. Pengon Render free-tier të flejë → hyrja
+        // tjetër është instant, jo 30-60s cold-start.
+        window.__hurmaKeepAlive = setInterval(function() {
+            if (document.hidden) return; // mos ping nëse tab nuk është aktiv
+            fetch('manifest.json?ka=' + Date.now(), { cache: 'no-store' })
+                .catch(function() {});
+        }, 5 * 60 * 1000); // 5 min
+    </script>
 </head>
 <body>
+    <!-- v132 SUGGESTION #6: NOSCRIPT FALLBACK
+         Edhe nëse JS s'ngarkohet fare, përdoruesi sheh mesazh + recovery link
+         në vend të cream blank screen. -->
+    <noscript>
+        <div style="padding:60px 24px;text-align:center;font-family:-apple-system,sans-serif;">
+            <div style="font-size:48px;margin-bottom:16px;">⚠</div>
+            <h1 style="font-size:22px;margin-bottom:12px;">Hurma App kërkon JavaScript</h1>
+            <p style="font-size:14px;color:#6B5440;margin-bottom:24px;line-height:1.5;">
+                JavaScript është i çaktivizuar te shfletuesi yt.<br>
+                Aktivizoje te Settings → Safari → Advanced → JavaScript → ON.
+            </p>
+            <a href="recover.html" style="display:inline-block;background:#B8731A;color:#fff;padding:12px 24px;border-radius:10px;text-decoration:none;font-weight:600;">
+                🔧 Hap faqen e pastrimit
+            </a>
+        </div>
+    </noscript>
+
     <!-- (Sugjerimi #19) Skip-to-content link për tastierë + screen readers -->
     <a href="#main-content" class="skip-link">Kalo te përmbajtja kryesore</a>
 
@@ -72,7 +178,7 @@
         <!-- Self-heal v124: gjithmonë i dukshëm — link emergjence
              që punon edhe nëse JS s'ngarkohet kurrë -->
         <a href="recover.html" style="position:absolute;bottom:24px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.7);font-size:11px;text-decoration:underline;font-family:sans-serif;" onclick="event.stopPropagation();">🔧 Pastrim total</a>
-        <div style="position:absolute;top:12px;right:14px;color:rgba(255,255,255,0.4);font-size:10px;font-family:monospace;">v131</div>
+        <div style="position:absolute;top:12px;right:14px;color:rgba(255,255,255,0.4);font-size:10px;font-family:monospace;">v132</div>
     </div>
     <!-- CSS-only auto-hide: zhduket pas 1.2s edhe pa JS -->
     <style>
@@ -108,9 +214,9 @@
                 </svg>
                 <span>Hurma</span>
             </h2>
-            <button type="button" class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Mbyll menynë" aria-controls="sidebar" aria-expanded="false"><i class="fas fa-times" aria-hidden="true"></i></button>
+            <button type="button" class="sidebar-toggle" onclick="safeCall('toggleSidebar')" aria-label="Mbyll menynë" aria-controls="sidebar" aria-expanded="false"><i class="fas fa-times" aria-hidden="true"></i></button>
         </div>
-        <button type="button" class="sidebar-collapse-toggle" onclick="toggleSidebarCollapse()" aria-label="Kollapso sidebar" title="Kollapso/Hap sidebar" aria-pressed="false"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+        <button type="button" class="sidebar-collapse-toggle" onclick="safeCall('toggleSidebarCollapse')" aria-label="Kollapso sidebar" title="Kollapso/Hap sidebar" aria-pressed="false"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
         <ul class="nav-menu">
             <li class="sidebar-divider"><span>Përmbledhje</span></li>
             <li class="nav-item active" data-page="dashboard" data-label="Dashboard"><i class="fas fa-tachometer-alt" aria-hidden="true"></i> <span data-i18n="dashboard">Dashboard</span></li>
@@ -151,7 +257,7 @@
                 <i class="fas fa-rotate" aria-hidden="true"></i>
                 <span>Pastro &amp; Rifresko</span>
             </a>
-            <div style="margin-top:6px;font-size:10px;opacity:0.5;" id="hurma-build-display">v131</div>
+            <div style="margin-top:6px;font-size:10px;opacity:0.5;" id="hurma-build-display">v132</div>
         </div>
     </nav>
 
@@ -165,7 +271,7 @@
             </div>
         </div>
         <a href="recover.html" style="color:#FBF6EE;font-size:11px;text-decoration:underline;opacity:0.7;flex-shrink:0;">🔧 Pastro</a>
-        <span style="font:400 10px/1 monospace;opacity:0.5;flex-shrink:0;">v131</span>
+        <span style="font:400 10px/1 monospace;opacity:0.5;flex-shrink:0;">v132</span>
     </div>
     <script>
         // Track every boot stage
@@ -231,7 +337,7 @@
         <h2 style="font-size:20px;margin:0 0 8px;font-weight:700;">Hurma po ngarkohet...</h2>
         <p style="font-size:14px;opacity:0.7;margin:0 0 24px;line-height:1.5;">Pas 5 sekondave, nëse kjo faqe vazhdon e bardhë:</p>
         <a href="recover.html" style="display:inline-block;background:#B8731A;color:#fff;padding:12px 24px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;">🔧 Bëj Pastrim total</a>
-        <div style="margin-top:32px;font-size:11px;opacity:0.4;font-family:monospace;">v131</div>
+        <div style="margin-top:32px;font-size:11px;opacity:0.4;font-family:monospace;">v132</div>
     </div>
     <script>
         // Show fallback after 3s if main-content has no rendered children
@@ -259,7 +365,7 @@
     <main id="main-content" class="main-content" role="main">
         <!-- Top Bar -->
         <header class="topbar" role="banner">
-            <button type="button" class="sidebar-toggle-open" onclick="toggleSidebar()" aria-label="Hap menynë anësore" aria-controls="sidebar" aria-expanded="false"><i class="fas fa-bars" aria-hidden="true"></i></button>
+            <button type="button" class="sidebar-toggle-open" onclick="safeCall('toggleSidebar')" aria-label="Hap menynë anësore" aria-controls="sidebar" aria-expanded="false"><i class="fas fa-bars" aria-hidden="true"></i></button>
             <h1 id="page-title" data-i18n="dashboard">Dashboard</h1>
             <!-- Global Search -->
             <div class="global-search" id="global-search" role="search">
@@ -279,7 +385,7 @@
             </div>
             <div class="topbar-right" role="toolbar" aria-label="Vegla dhe cilësime">
                 <button type="button" class="theme-toggle" onclick="showKeyboardShortcutsHelp()" title="Keyboard Shortcuts (?)" aria-label="Shfaq shkurtoret e tastierës"><i class="fas fa-keyboard" aria-hidden="true"></i></button>
-                <button type="button" class="notification-bell" onclick="toggleNotifications()" aria-label="Shfaq njoftimet" aria-haspopup="true" aria-expanded="false">
+                <button type="button" class="notification-bell" onclick="safeCall('toggleNotifications')" aria-label="Shfaq njoftimet" aria-haspopup="true" aria-expanded="false">
                     <i class="fas fa-bell" aria-hidden="true"></i>
                     <span id="notification-badge" class="badge hidden" aria-live="polite">0</span>
                 </button>
@@ -289,7 +395,7 @@
                     <option value="en">English</option>
                 </select>
                 <button type="button" class="theme-toggle" onclick="forceUpdateApp()" aria-label="Rifresko aplikacionin — pastron cache" title="Rifresko (Shift+Ctrl+U)"><i class="fas fa-rotate" aria-hidden="true"></i></button>
-                <button type="button" class="theme-toggle" onclick="toggleTheme()" aria-label="Ndërro mes mode-it të ndritshëm dhe të errët" title="Light/Dark mode" aria-pressed="false"><i class="fas fa-moon" aria-hidden="true"></i></button>
+                <button type="button" class="theme-toggle" onclick="safeCall('toggleTheme')" aria-label="Ndërro mes mode-it të ndritshëm dhe të errët" title="Light/Dark mode" aria-pressed="false"><i class="fas fa-moon" aria-hidden="true"></i></button>
             </div>
             <!-- Sync Status Bar -->
             <div class="sync-status-bar" id="sync-status-bar">
@@ -523,7 +629,7 @@
                 </div>
             </div>
             <div class="page-actions">
-                <button type="button" class="btn btn-primary" onclick="openSaleModal()"><i class="fas fa-plus" aria-hidden="true"></i> <span data-i18n="new_sale">Shitje e re</span></button>
+                <button type="button" class="btn btn-primary" onclick="safeCall('openSaleModal')"><i class="fas fa-plus" aria-hidden="true"></i> <span data-i18n="new_sale">Shitje e re</span></button>
                 <div class="search-box" id="sales-search-box">
                     <i class="fas fa-search" aria-hidden="true"></i>
                     <input type="text" id="sales-search" placeholder="Kërko shitje..." data-i18n-placeholder="search_sales" oninput="filterSales();_sbToggle(this)">
@@ -621,7 +727,7 @@
                 <button type="button" class="btn btn-export btn-word" onclick="exportClients('word')"><i class="fas fa-file-word" aria-hidden="true"></i> Word</button>
             </div>
             <div class="page-actions">
-                <button type="button" class="btn btn-primary" onclick="openClientModal()"><i class="fas fa-plus" aria-hidden="true"></i> <span data-i18n="add_client">Shto klient</span></button>
+                <button type="button" class="btn btn-primary" onclick="safeCall('openClientModal')"><i class="fas fa-plus" aria-hidden="true"></i> <span data-i18n="add_client">Shto klient</span></button>
                 <div class="search-box" id="clients-search-box">
                     <i class="fas fa-search" aria-hidden="true"></i>
                     <input type="text" id="clients-search" placeholder="Kërko klient..." data-i18n-placeholder="search_client" oninput="filterClients();_sbToggle(this)">
@@ -1410,24 +1516,24 @@
     <!-- (Sugjerimi #27) Bottom Tab Bar (vetëm në mobile ≤768px) -->
     <nav class="bottom-tab-bar" role="navigation" aria-label="Navigim i shpejtë mobile">
         <div class="bottom-tab-bar-inner">
-            <button type="button" class="bottom-tab-item active" data-page="dashboard" onclick="navigateTo('dashboard')" aria-label="Dashboard">
+            <button type="button" class="bottom-tab-item active" data-page="dashboard" onclick="safeCall('navigateTo','dashboard')" aria-label="Dashboard">
                 <i class="fas fa-house" aria-hidden="true"></i>
                 <span>Home</span>
             </button>
-            <button type="button" class="bottom-tab-item" data-page="sales" onclick="navigateTo('sales')" aria-label="Shitjet">
+            <button type="button" class="bottom-tab-item" data-page="sales" onclick="safeCall('navigateTo','sales')" aria-label="Shitjet">
                 <i class="fas fa-cash-register" aria-hidden="true"></i>
                 <span>Shitjet</span>
                 <span class="bt-badge hidden" id="bt-badge-sales">0</span>
             </button>
-            <button type="button" class="bottom-tab-item" data-page="ai" onclick="navigateTo('ai')" aria-label="Hurma AI" style="position:relative;">
+            <button type="button" class="bottom-tab-item" data-page="ai" onclick="safeCall('navigateTo','ai')" aria-label="Hurma AI" style="position:relative;">
                 <i class="fas fa-wand-magic-sparkles" aria-hidden="true" style="background:linear-gradient(135deg,#e17055,#9b59b6);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-size:1.3rem;"></i>
                 <span>AI</span>
             </button>
-            <button type="button" class="bottom-tab-item" data-page="clients" onclick="navigateTo('clients')" aria-label="Klientët">
+            <button type="button" class="bottom-tab-item" data-page="clients" onclick="safeCall('navigateTo','clients')" aria-label="Klientët">
                 <i class="fas fa-users" aria-hidden="true"></i>
                 <span>Klientë</span>
             </button>
-            <button type="button" class="bottom-tab-item sidebar-toggle-open" data-hurma-action="more" onclick="toggleSidebar()" aria-label="Më shumë" aria-controls="sidebar" aria-expanded="false">
+            <button type="button" class="bottom-tab-item sidebar-toggle-open" data-hurma-action="more" onclick="safeCall('toggleSidebar')" aria-label="Më shumë" aria-controls="sidebar" aria-expanded="false">
                 <i class="fas fa-ellipsis" aria-hidden="true"></i>
                 <span>Më</span>
             </button>
@@ -1530,13 +1636,13 @@
         </button>
     </nav>
 
-    <script defer src="i18n.js?v=131"></script>
-    <script defer src="app.js?v=131"></script>
-    <script defer src="hurma-polish.js?v=131"></script>
-    <script defer src="hurma-ai.js?v=131"></script>
-    <script defer src="hurma-ux.js?v=131"></script>
-    <meta name="hurma-build" content="v131">
-    <script>window.__HURMA_BUILD__ = 'v131';</script>
+    <script defer src="i18n.js?v=132"></script>
+    <script defer src="app.js?v=132"></script>
+    <script defer src="hurma-polish.js?v=132"></script>
+    <script defer src="hurma-ai.js?v=132"></script>
+    <script defer src="hurma-ux.js?v=132"></script>
+    <meta name="hurma-build" content="v132">
+    <script>window.__HURMA_BUILD__ = 'v132';</script>
 
     <!-- ==========================================================================
          Hurma — App Store enhancement layer (v11)
