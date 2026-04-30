@@ -86,8 +86,8 @@
             .main-content { margin-left: 0; }
         }
     </style>
-    <link rel="stylesheet" href="style.css?v=132">
-    <link rel="preload" as="script" href="app.js?v=132">
+    <link rel="stylesheet" href="style.css?v=133">
+    <link rel="preload" as="script" href="app.js?v=133">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <!-- External CDN scripts: defer so a slow/blocked CDN can NEVER block
          page render. Each has onerror that logs but never throws.
@@ -130,10 +130,97 @@
         // sa kohë app është hapur. Pengon Render free-tier të flejë → hyrja
         // tjetër është instant, jo 30-60s cold-start.
         window.__hurmaKeepAlive = setInterval(function() {
-            if (document.hidden) return; // mos ping nëse tab nuk është aktiv
+            if (document.hidden) return;
             fetch('manifest.json?ka=' + Date.now(), { cache: 'no-store' })
                 .catch(function() {});
-        }, 5 * 60 * 1000); // 5 min
+        }, 5 * 60 * 1000);
+
+        // v133 SUGGESTION #12: ?force=clean URL — pastrim total nga URL bar.
+        // Përdoruesi mund të hapë https://hurma-app.onrender.com/?force=clean
+        // dhe app-i NUK boot-on; në vend të tyre fshi gjithçka + redirect te /.
+        (function() {
+            try {
+                var params = new URLSearchParams(location.search);
+                if (params.get('force') === 'clean') {
+                    Promise.all([
+                        ('serviceWorker' in navigator) ?
+                            navigator.serviceWorker.getRegistrations().then(function(rs) {
+                                return Promise.all(rs.map(function(r) { return r.unregister(); }));
+                            }) : Promise.resolve(),
+                        ('caches' in window) ?
+                            caches.keys().then(function(ks) {
+                                return Promise.all(ks.map(function(k) { return caches.delete(k); }));
+                            }) : Promise.resolve()
+                    ]).then(function() {
+                        try { localStorage.removeItem('hurma-state-corrupted'); } catch(e) {}
+                        try { sessionStorage.clear(); } catch(e) {}
+                        location.replace('/?cleaned=1&_t=' + Date.now());
+                    });
+                    document.addEventListener('DOMContentLoaded', function() {
+                        document.body.innerHTML =
+                            '<div style="padding:60px 24px;text-align:center;font-family:-apple-system,sans-serif;">'
+                            + '<div style="font-size:48px;">🧹</div>'
+                            + '<h2 style="margin:16px 0;">Po pastrohet...</h2>'
+                            + '<p style="opacity:0.7;">Auto-redirect pas pak sekondash</p></div>';
+                    });
+                    return; // mos boot app
+                }
+                if (params.get('cleaned') === '1') {
+                    // Pas pastrimit — sukses banner
+                    setTimeout(function() {
+                        if (typeof window._showErrToast === 'function') {
+                            window._showErrToast('✓ Cache u pastrua plotësisht');
+                        }
+                    }, 2000);
+                }
+            } catch (e) {}
+        })();
+
+        // v133 SUGGESTION #11: ?debug=1 — on-screen console për iPhone.
+        // Përdoruesi sheh logs/errors LIVE pa nevojë për Mac-DevTools.
+        (function() {
+            try {
+                if (new URLSearchParams(location.search).get('debug') !== '1') return;
+                var box = document.createElement('div');
+                box.id = 'hurma-debug-overlay';
+                box.style.cssText = 'position:fixed;bottom:0;left:0;right:0;max-height:40vh;overflow-y:auto;background:rgba(0,0,0,0.92);color:#0f0;font:11px/1.3 monospace;padding:8px;z-index:99997;border-top:2px solid #0f0;';
+                box.innerHTML = '<div style="color:#ff0;font-weight:700;border-bottom:1px solid #444;padding-bottom:4px;margin-bottom:4px;">DEBUG · ' + (window.__HURMA_BUILD__ || '?') + ' · <button onclick="this.closest(\'#hurma-debug-overlay\').remove()" style="background:#f00;color:#fff;border:none;padding:2px 8px;font-size:10px;cursor:pointer;">×</button></div><div id="hurma-debug-log"></div>';
+                document.documentElement.appendChild(box);
+                var log = box.querySelector('#hurma-debug-log');
+                function append(level, args) {
+                    var line = document.createElement('div');
+                    line.style.cssText = 'margin:2px 0;color:' + (level === 'error' ? '#f88' : level === 'warn' ? '#ff8' : '#0f0') + ';';
+                    line.textContent = '[' + level + '] ' + Array.prototype.slice.call(args).map(function(a) {
+                        try { return typeof a === 'object' ? JSON.stringify(a).slice(0, 200) : String(a); }
+                        catch (e) { return '[obj]'; }
+                    }).join(' ');
+                    log.appendChild(line);
+                    while (log.children.length > 100) log.removeChild(log.firstChild);
+                    log.scrollTop = log.scrollHeight;
+                }
+                ['log', 'warn', 'error'].forEach(function(lvl) {
+                    var orig = console[lvl];
+                    console[lvl] = function() { append(lvl, arguments); orig.apply(console, arguments); };
+                });
+                window.addEventListener('error', function(e) { append('error', [e.message + ' @ ' + (e.filename || '').split('/').pop() + ':' + e.lineno]); });
+                window.addEventListener('unhandledrejection', function(e) { append('error', ['Promise rejection: ' + (e.reason && e.reason.message || e.reason)]); });
+                console.log('[debug] overlay aktiv te ?debug=1');
+            } catch (e) {}
+        })();
+
+        // v133 SUGGESTION #13: Cold-start detector — nëse fetch-i për keepalive
+        // ose cilido endpoint merr > 3s, shfaq "Render po zgjohet..." te boot bar.
+        var coldStartTimer = setTimeout(function() {
+            try {
+                var status = document.getElementById('hurma-boot-status');
+                if (status && /Po ngarkohet kodi/.test(status.textContent)) {
+                    status.textContent = '⚠ Render po zgjohet... (mund marrë 30-60s herën e parë)';
+                }
+            } catch (e) {}
+        }, 5000);
+        window.addEventListener('hurma-boot-complete', function() {
+            try { clearTimeout(coldStartTimer); } catch (e) {}
+        });
     </script>
 </head>
 <body>
@@ -178,7 +265,7 @@
         <!-- Self-heal v124: gjithmonë i dukshëm — link emergjence
              që punon edhe nëse JS s'ngarkohet kurrë -->
         <a href="recover.html" style="position:absolute;bottom:24px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.7);font-size:11px;text-decoration:underline;font-family:sans-serif;" onclick="event.stopPropagation();">🔧 Pastrim total</a>
-        <div style="position:absolute;top:12px;right:14px;color:rgba(255,255,255,0.4);font-size:10px;font-family:monospace;">v132</div>
+        <div style="position:absolute;top:12px;right:14px;color:rgba(255,255,255,0.4);font-size:10px;font-family:monospace;">v133</div>
     </div>
     <!-- CSS-only auto-hide: zhduket pas 1.2s edhe pa JS -->
     <style>
@@ -257,7 +344,7 @@
                 <i class="fas fa-rotate" aria-hidden="true"></i>
                 <span>Pastro &amp; Rifresko</span>
             </a>
-            <div style="margin-top:6px;font-size:10px;opacity:0.5;" id="hurma-build-display">v132</div>
+            <div style="margin-top:6px;font-size:10px;opacity:0.5;" id="hurma-build-display">v133</div>
         </div>
     </nav>
 
@@ -271,7 +358,7 @@
             </div>
         </div>
         <a href="recover.html" style="color:#FBF6EE;font-size:11px;text-decoration:underline;opacity:0.7;flex-shrink:0;">🔧 Pastro</a>
-        <span style="font:400 10px/1 monospace;opacity:0.5;flex-shrink:0;">v132</span>
+        <span style="font:400 10px/1 monospace;opacity:0.5;flex-shrink:0;">v133</span>
     </div>
     <script>
         // Track every boot stage
@@ -337,7 +424,7 @@
         <h2 style="font-size:20px;margin:0 0 8px;font-weight:700;">Hurma po ngarkohet...</h2>
         <p style="font-size:14px;opacity:0.7;margin:0 0 24px;line-height:1.5;">Pas 5 sekondave, nëse kjo faqe vazhdon e bardhë:</p>
         <a href="recover.html" style="display:inline-block;background:#B8731A;color:#fff;padding:12px 24px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;">🔧 Bëj Pastrim total</a>
-        <div style="margin-top:32px;font-size:11px;opacity:0.4;font-family:monospace;">v132</div>
+        <div style="margin-top:32px;font-size:11px;opacity:0.4;font-family:monospace;">v133</div>
     </div>
     <script>
         // Show fallback after 3s if main-content has no rendered children
@@ -1636,13 +1723,13 @@
         </button>
     </nav>
 
-    <script defer src="i18n.js?v=132"></script>
-    <script defer src="app.js?v=132"></script>
-    <script defer src="hurma-polish.js?v=132"></script>
-    <script defer src="hurma-ai.js?v=132"></script>
-    <script defer src="hurma-ux.js?v=132"></script>
-    <meta name="hurma-build" content="v132">
-    <script>window.__HURMA_BUILD__ = 'v132';</script>
+    <script defer src="i18n.js?v=133"></script>
+    <script defer src="app.js?v=133"></script>
+    <script defer src="hurma-polish.js?v=133"></script>
+    <script defer src="hurma-ai.js?v=133"></script>
+    <script defer src="hurma-ux.js?v=133"></script>
+    <meta name="hurma-build" content="v133">
+    <script>window.__HURMA_BUILD__ = 'v133';</script>
 
     <!-- ==========================================================================
          Hurma — App Store enhancement layer (v11)
